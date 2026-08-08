@@ -20,6 +20,7 @@
   --wa:#e8a045;--wa-d:rgba(232,160,69,.14);
   --bl:#5b9bd5;--bl-d:rgba(91,155,213,.14);
   --vi:#9b7fd4;--vi-d:rgba(155,127,212,.14);
+  --br:#c98a4b;--br-d:rgba(201,138,75,.16);
   --brand:#0052cc;--brand2:#2f7dff;--brand-d:rgba(0,82,204,.16);
   --r:14px;--r2:9px;--sw:250px;--hh:60px;
   --sh:0 8px 28px rgba(0,0,0,.5);--tr:.18s ease;
@@ -114,6 +115,7 @@ tr:hover td{background:var(--bg3)}
 .badge.wa{background:var(--wa-d);color:var(--wa)}
 .badge.bl{background:var(--bl-d);color:var(--bl)}
 .badge.vi{background:var(--vi-d);color:var(--vi)}
+.badge.br{background:var(--br-d);color:var(--br)}
 .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
 .dot.ok{background:var(--ok)}.dot.er{background:var(--er)}.dot.wa{background:var(--wa)}.dot.bl{background:var(--bl)}.dot.vi{background:var(--vi)}
 
@@ -141,6 +143,9 @@ tr:hover td{background:var(--bg3)}
 .sf-card.amarillo{background:var(--wa-d)}
 .sf-card.ok{background:var(--ok-d)}
 .sf-card.vi{background:var(--vi-d)}
+.sf-card.br{background:var(--br-d)}
+.kpi.clickable{cursor:pointer}
+.kpi.clickable:hover{border-color:var(--brand-d)}
 .sf-val{font-size:24px;font-weight:800}
 .sf-lbl{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-top:4px}
 
@@ -207,6 +212,12 @@ tr:hover td{background:var(--bg3)}
       <select id="f-ciudad" class="select-inline"><option value="">Todas las ciudades</option></select>
       <select id="f-categoria" class="select-inline"><option value="">Todas las categorías</option></select>
       <select id="f-supervisor" class="select-inline"><option value="">Todos los supervisores</option></select>
+      <span class="fbar-label" style="margin-left:6px"><i class="fas fa-calendar-week"></i> Rango</span>
+      <input type="date" id="f-desde" class="select-inline">
+      <span style="color:var(--tx3)">→</span>
+      <input type="date" id="f-hasta" class="select-inline">
+      <button class="tb-btn" id="btn-junio" style="padding:7px 12px">Junio</button>
+      <button class="tb-btn" id="btn-julio" style="padding:7px 12px">Julio</button>
       <div id="fbar-chips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
     </div>
     <div class="content" id="content"></div>
@@ -315,11 +326,12 @@ CITY_CONFIG.forEach(city=>{
 const pdvById = id => PDVS.find(p=>p.id===id);
 const promoterById = id => PROMOTERS.find(p=>p.id===id);
 
-// ---- Generación de visitas / auditorías de PDV (últimos 45 días, sin domingos) ----
+// ---- Generación de visitas / auditorías de PDV (últimos ~3 meses, sin domingos) ----
 const VISITS = [];
 let visitSeq = 0;
 const TODAY = new Date();
-const DIAS_HISTORIAL = 44;
+const DIAS_HISTORIAL = 90;
+const MOTIVOS_AVERIA = ['Envase dañado','Producto golpeado','Humedad / deterioro','Etiqueta ilegible'];
 function pickAccionCompetencia(){
   if(chance(0.5)) return 'Sin acciones';
   return pick(ACCIONES_COMP);
@@ -347,6 +359,13 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
         const opts = PRODUCTS[categoria];
         productos = rnd()<0.5 ? [opts[0]] : [opts[0],opts[1]];
       }
+      const tieneAveriados = chance(0.08);
+      let motivoAveriado=null, productosAveriados=[];
+      if(tieneAveriados){
+        motivoAveriado = pick(MOTIVOS_AVERIA);
+        const opts = PRODUCTS[categoria];
+        productosAveriados = rnd()<0.6 ? [opts[0]] : [opts[0],opts[1]];
+      }
       const [lo,hi] = PRECIO_BASE[categoria];
       const precioNuestro = lo + Math.floor(rnd()*(hi-lo));
       const precioCompetidor = Math.round(precioNuestro*(0.85+rnd()*0.3)/100)*100;
@@ -357,6 +376,7 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
         id:'v'+visitSeq, fecha:isoDate(day), promotorId:prom.id, pdvId, categoria,
         hora:`${pad2(hour)}:${pad2(min)}`, duracion,
         cumpleCriterios, tienePOP, tienePrecios, tieneVencidos, estadoVenc, diasVenc, productos,
+        tieneAveriados, motivoAveriado, productosAveriados,
         popTipo: tienePOP ? pick(POP_TYPES) : null,
         gondolaPct: Math.round(15+rnd()*35),
         espacioGanado: chance(0.22),
@@ -398,16 +418,25 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
 // ESTADO / FILTROS
 // ============================================================
 let currentPage='resumen';
-const F = {dias:45, cadena:'', ciudad:'', categoria:'', supervisor:''};
+const F = {dias:45, cadena:'', ciudad:'', categoria:'', supervisor:'', fechaDesde:'', fechaHasta:''};
 let searchTerm='';
 let recorridoPromotor = PROMOTERS[0].id;
 const charts = {};
 let mapCobertura=null, mapRecorrido=null;
+const FECHA_MIN = isoDate(addDays(TODAY,-DIAS_HISTORIAL));
+const FECHA_MAX = isoDate(TODAY);
 
+function fechaEnRango(fecha){
+  if(F.fechaDesde || F.fechaHasta){
+    if(F.fechaDesde && fecha < F.fechaDesde) return false;
+    if(F.fechaHasta && fecha > F.fechaHasta) return false;
+    return true;
+  }
+  return fecha >= isoDate(addDays(TODAY, -F.dias));
+}
 function filterVisits(){
-  const limite = addDays(TODAY, -F.dias);
   return VISITS.filter(v=>{
-    if(new Date(v.fecha) < limite) return false;
+    if(!fechaEnRango(v.fecha)) return false;
     const pdv = pdvById(v.pdvId);
     if(F.cadena && pdv.chain!==F.cadena) return false;
     if(F.ciudad && pdv.city!==F.ciudad) return false;
@@ -417,9 +446,8 @@ function filterVisits(){
   });
 }
 function filterJornadas(){
-  const limite = addDays(TODAY, -F.dias);
   return JORNADAS.filter(j=>{
-    if(new Date(j.fecha) < limite) return false;
+    if(!fechaEnRango(j.fecha)) return false;
     const prom = promoterById(j.promotorId);
     if(F.ciudad && prom.city!==F.ciudad) return false;
     if(F.supervisor && prom.supervisorId!==F.supervisor) return false;
@@ -456,8 +484,9 @@ function animateNum(el, target, suffix=''){
 // ============================================================
 // COMPONENTES REUTILIZABLES
 // ============================================================
-function kpiCard(label, value, sub, icon, colorVar, id){
-  return `<div class="kpi">
+function kpiCard(label, value, sub, icon, colorVar, id, target){
+  const clickable = target ? `class="kpi clickable" onclick="goPage('${target}')" title="Ver detalle"` : `class="kpi"`;
+  return `<div ${clickable}>
     <div class="kpi-lbl">${label}</div>
     <div class="kpi-val" style="color:var(${colorVar})" id="${id}">0</div>
     <div class="kpi-sub">${sub}</div>
@@ -469,6 +498,9 @@ function badgeVenc(estado){
   if(estado==='vence7') return `<span class="badge wa"><i class="fas fa-clock"></i> Vence ≤7 días</span>`;
   if(estado==='vence15') return `<span class="badge wa" style="opacity:.75"><i class="fas fa-clock"></i> Vence ≤15 días</span>`;
   return `<span class="badge ok"><i class="fas fa-check-circle"></i> OK</span>`;
+}
+function badgeAveria(motivo){
+  return `<span class="badge br"><i class="fas fa-box-open"></i> Averiado${motivo?': '+motivo:''}</span>`;
 }
 function badgeTardanza(min){
   if(!min || min<=10) return `<span class="badge ok"><i class="fas fa-check-circle"></i> A horario</span>`;
@@ -527,22 +559,38 @@ document.getElementById('modal-photo').onclick = e=>{ if(e.target.id==='modal-ph
 // ============================================================
 function renderResumen(){
   const rows = filterVisits();
+  const jrows = filterJornadas();
   const totalVisitas = rows.length;
   const pdvsUnicos = new Set(rows.map(r=>r.pdvId)).size;
   const cumplPct = rows.length? rows.filter(r=>r.cumpleCriterios).length/rows.length*100 : 0;
-  const alertas = rows.filter(r=>r.tieneVencidos).length;
+  const vencidosCount = rows.filter(r=>r.tieneVencidos).length;
+  const alertas = rows.filter(r=>r.tieneVencidos||r.tieneAveriados).length;
   const promotoresActivos = new Set(rows.map(r=>r.promotorId)).size;
   const gondolaProm = rows.length? rows.reduce((a,r)=>a+r.gondolaPct,0)/rows.length : 0;
+  const pctPuntual = jrows.length? Math.round(jrows.filter(r=>!r.tardanza).length/jrows.length*100) : 100;
+  const periodoLabel = (F.fechaDesde||F.fechaHasta) ? 'rango seleccionado' : `período de ${F.dias} días`;
+
+  const metas = [
+    {label:'Cumplimiento de criterios', meta:90, real:Math.round(cumplPct)},
+    {label:'Cobertura de PDVs', meta:95, real:Math.round(pdvsUnicos/PDVS.length*100)},
+    {label:'Participación en góndola', meta:35, real:Math.round(gondolaProm)},
+    {label:'Asistencia puntual', meta:95, real:pctPuntual},
+    {label:'PDVs sin vencidos', meta:98, real: totalVisitas? Math.round((1-vencidosCount/totalVisitas)*100) : 100},
+  ];
 
   document.getElementById('content').innerHTML = `
     <div class="banner"><i class="fas fa-info-circle"></i> Panel de demostración — toda la información (visitas, PDVs, alertas) es ficticia y se genera en el navegador para fines comerciales.</div>
     <div class="grid grid-kpi" style="margin-bottom:18px">
-      ${kpiCard('Visitas totales', totalVisitas, `período de ${F.dias} días`, 'fa-clipboard-check', '--brand2','k-visitas')}
-      ${kpiCard('PDVs cubiertos', pdvsUnicos, `de ${PDVS.length} puntos totales`, 'fa-store', '--ok','k-pdvs')}
-      ${kpiCard('Cumplimiento', Math.round(cumplPct), 'promedio de criterios', 'fa-check-circle', '--ok','k-cumpl')}
-      ${kpiCard('Alertas activas', alertas, 'productos por vencer/vencidos', 'fa-exclamation-triangle', '--er','k-alertas')}
-      ${kpiCard('Promotores activos', promotoresActivos, `de ${PROMOTERS.length} en nómina`, 'fa-users', '--bl','k-promotores')}
-      ${kpiCard('Góndola promedio', Math.round(gondolaProm), 'participación de espacio', 'fa-border-all', '--vi','k-gondola')}
+      ${kpiCard('Visitas totales', totalVisitas, periodoLabel, 'fa-clipboard-check', '--brand2','k-visitas','cobertura')}
+      ${kpiCard('PDVs cubiertos', pdvsUnicos, `de ${PDVS.length} puntos totales`, 'fa-store', '--ok','k-pdvs','cobertura')}
+      ${kpiCard('Cumplimiento', Math.round(cumplPct), 'promedio de criterios', 'fa-check-circle', '--ok','k-cumpl','auditoria')}
+      ${kpiCard('Alertas activas', alertas, 'vencidos, por vencer y averiados', 'fa-exclamation-triangle', '--er','k-alertas','alertas')}
+      ${kpiCard('Promotores activos', promotoresActivos, `de ${PROMOTERS.length} en nómina`, 'fa-users', '--bl','k-promotores','supervisores')}
+      ${kpiCard('Góndola promedio', Math.round(gondolaProm), 'participación de espacio', 'fa-border-all', '--vi','k-gondola','auditoria')}
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr"><div><div class="card-title">Metas vs. cumplimiento</div><div class="card-sub">Objetivos comerciales definidos vs. resultado real del período</div></div></div>
+      <div class="chart-wrap" style="height:220px"><canvas id="ch-metas"></canvas></div>
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div><div class="card-title">Visitas últimos 14 días</div><div class="card-sub">Evolución diaria en el período filtrado</div></div></div>
@@ -553,7 +601,7 @@ function renderResumen(){
     <div class="grid grid-2">
       <div class="card"><div class="card-hdr"><div><div class="card-title">% Cumplimiento por cadena</div><div class="card-sub">Criterios de visibilidad y exhibición</div></div></div>
         <div class="chart-wrap"><canvas id="ch-cadena"></canvas></div></div>
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Alertas recientes</div><div class="card-sub">Últimos vencimientos detectados</div></div></div>
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Alertas recientes</div><div class="card-sub">Últimos vencimientos y averías detectados</div></div></div>
         <div id="lista-alertas-mini"></div></div>
     </div>`;
 
@@ -563,6 +611,13 @@ function renderResumen(){
   animateNum(document.getElementById('k-alertas'), alertas);
   animateNum(document.getElementById('k-promotores'), promotoresActivos);
   animateNum(document.getElementById('k-gondola'), Math.round(gondolaProm), '%');
+
+  mkChart('ch-metas',{type:'bar',data:{labels:metas.map(m=>m.label),datasets:[
+      {label:'Meta',data:metas.map(m=>m.meta),backgroundColor:'rgba(255,255,255,.16)',borderRadius:5,maxBarThickness:18},
+      {label:'Real',data:metas.map(m=>m.real),backgroundColor:brandColor(),borderRadius:5,maxBarThickness:18},
+    ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}},
+      scales:{x:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false}}}}});
 
   const dias14 = [...Array(14)].map((_,i)=>isoDate(addDays(TODAY,-(13-i))));
   const conteoDias = dias14.map(d=>rows.filter(r=>r.fecha===d).length);
@@ -580,12 +635,13 @@ function renderResumen(){
   mkChart('ch-cadena',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Cumplimiento',data:cadenaPct,backgroundColor:brandColor(),borderRadius:6,maxBarThickness:40}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false}}}}});
 
-  const alertRows = rows.filter(r=>r.tieneVencidos).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,5);
+  const alertRows = rows.filter(r=>r.tieneVencidos||r.tieneAveriados).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,5);
   document.getElementById('lista-alertas-mini').innerHTML = alertRows.length ? alertRows.map(r=>{
     const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId);
+    const productos = r.tieneVencidos ? r.productos : r.productosAveriados;
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--bd)">
-      <div><div style="font-weight:700;font-size:12.5px">${pdv.name}</div><div style="font-size:11px;color:var(--tx3)">${prom.name} · ${dateDisplay(r.fecha)} · ${r.productos.join(', ')}</div></div>
-      ${badgeVenc(r.estadoVenc)}</div>`;
+      <div><div style="font-weight:700;font-size:12.5px">${pdv.name}</div><div style="font-size:11px;color:var(--tx3)">${prom.name} · ${dateDisplay(r.fecha)} · ${productos.join(', ')}</div></div>
+      ${r.tieneVencidos ? badgeVenc(r.estadoVenc) : badgeAveria()}</div>`;
   }).join('') : `<div style="color:var(--tx3);text-align:center;padding:30px 0"><i class="fas fa-check-circle" style="font-size:22px;display:block;margin-bottom:8px;color:var(--ok)"></i>Sin alertas en el período</div>`;
 }
 
@@ -732,11 +788,12 @@ function renderAlertas(){
   const vencidos = rows.filter(r=>r.estadoVenc==='vencido');
   const vence7 = rows.filter(r=>r.estadoVenc==='vence7');
   const vence15 = rows.filter(r=>r.estadoVenc==='vence15');
-  const sinCriterios = rows.filter(r=>!r.cumpleCriterios);
-  const alertRows = rows.filter(r=>r.tieneVencidos).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const averiados = rows.filter(r=>r.tieneAveriados);
+  const alertRows = rows.filter(r=>r.tieneVencidos||r.tieneAveriados).sort((a,b)=>b.fecha.localeCompare(a.fecha));
 
   const prodCounts = {};
-  alertRows.forEach(r=>r.productos.forEach(p=>prodCounts[p]=(prodCounts[p]||0)+1));
+  rows.filter(r=>r.tieneVencidos).forEach(r=>r.productos.forEach(p=>prodCounts[p]=(prodCounts[p]||0)+1));
+  averiados.forEach(r=>r.productosAveriados.forEach(p=>prodCounts[p]=(prodCounts[p]||0)+1));
   const prodTop = Object.entries(prodCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
 
   document.getElementById('content').innerHTML = `
@@ -744,27 +801,28 @@ function renderAlertas(){
       <div class="sf-card rojo"><div class="sf-val" style="color:var(--er)">${vencidos.length}</div><div class="sf-lbl">Ya vencidos</div></div>
       <div class="sf-card naranja"><div class="sf-val" style="color:var(--wa)">${vence7.length}</div><div class="sf-lbl">Vencen en ≤ 7 días</div></div>
       <div class="sf-card amarillo"><div class="sf-val" style="color:var(--wa)">${vence15.length}</div><div class="sf-lbl">Vencen en ≤ 15 días</div></div>
-      <div class="sf-card vi"><div class="sf-val" style="color:var(--vi)">${sinCriterios.length}</div><div class="sf-lbl">PDVs sin cumplir criterios</div></div>
+      <div class="sf-card br"><div class="sf-val" style="color:var(--br)">${averiados.length}</div><div class="sf-lbl">Productos averiados</div></div>
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
-      <div class="card"><div class="card-hdr"><div class="card-title">Productos más alertados</div></div>
+      <div class="card"><div class="card-hdr"><div class="card-title">Productos más alertados</div><div class="card-sub">Incluye vencimientos y averías</div></div>
         <div class="chart-wrap sm"><canvas id="ch-productos"></canvas></div></div>
       <div class="card"><div class="card-hdr"><div class="card-title">Motivos de alerta</div></div>
         <div class="chart-wrap sm"><canvas id="ch-motivos"></canvas></div></div>
     </div>
     <div class="card">
       <div class="card-hdr"><div><div class="card-title">Detalle de alertas</div><div class="card-sub">${alertRows.length} registros en el período</div></div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Ciudad</th><th>Promotor</th><th>Producto</th><th>Estado</th></tr></thead><tbody>
+      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Ciudad</th><th>Promotor</th><th>Tipo</th><th>Producto</th><th>Estado</th></tr></thead><tbody>
         ${alertRows.slice(0,25).map(r=>{ const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId);
-          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td>${r.productos.join(', ')}</td><td>${badgeVenc(r.estadoVenc)}</td></tr>`;
-        }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:30px">Sin alertas en el período seleccionado</td></tr>`}
+          if(r.tieneVencidos) return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge er">Vencimiento</span></td><td>${r.productos.join(', ')}</td><td>${badgeVenc(r.estadoVenc)}</td></tr>`;
+          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge br">Avería</span></td><td>${r.productosAveriados.join(', ')}</td><td>${badgeAveria(r.motivoAveriado)}</td></tr>`;
+        }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--tx3);padding:30px">Sin alertas en el período seleccionado</td></tr>`}
       </tbody></table></div>
     </div>`;
 
   mkChart('ch-productos',{type:'bar',data:{labels:prodTop.map(p=>p[0]),datasets:[{label:'Alertas',data:prodTop.map(p=>p[1]),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:26}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false},ticks:{font:{size:10.5}}}}}});
 
-  mkChart('ch-motivos',{type:'doughnut',data:{labels:['Vencido','Vence ≤7d','Vence ≤15d','Sin criterios'],datasets:[{data:[vencidos.length,vence7.length,vence15.length,sinCriterios.length],backgroundColor:['#e84a55','#e8a045','#f0c674','#9b7fd4'],borderWidth:0}]},
+  mkChart('ch-motivos',{type:'doughnut',data:{labels:['Vencido','Vence ≤7d','Vence ≤15d','Averiados'],datasets:[{data:[vencidos.length,vence7.length,vence15.length,averiados.length],backgroundColor:['#e84a55','#e8a045','#f0c674','#c98a4b'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}}}});
 }
 
@@ -981,6 +1039,10 @@ function renderFbarChips(){
   if(F.ciudad) chips.push(chip(F.ciudad, `clearFilter('ciudad')`));
   if(F.categoria) chips.push(chip(F.categoria, `clearFilter('categoria')`));
   if(F.supervisor) chips.push(chip(supById(F.supervisor).name, `clearFilter('supervisor')`));
+  if(F.fechaDesde || F.fechaHasta){
+    const lbl = `${F.fechaDesde?dateDisplay(F.fechaDesde):dateDisplay(FECHA_MIN)} → ${F.fechaHasta?dateDisplay(F.fechaHasta):dateDisplay(FECHA_MAX)}`;
+    chips.push(chip(lbl, `clearDateRange()`));
+  }
   document.getElementById('fbar-chips').innerHTML = chips.join('');
 }
 function clearFilter(key){
@@ -988,8 +1050,20 @@ function clearFilter(key){
   document.getElementById('f-'+key).value='';
   applyFilters();
 }
+function clearDateRange(){
+  F.fechaDesde=''; F.fechaHasta='';
+  document.getElementById('f-desde').value='';
+  document.getElementById('f-hasta').value='';
+  applyFilters();
+}
+function setDateRange(desde,hasta){
+  F.fechaDesde=desde; F.fechaHasta=hasta;
+  document.getElementById('f-desde').value=desde;
+  document.getElementById('f-hasta').value=hasta;
+  applyFilters();
+}
 function updateBadges(){
-  document.getElementById('nb-alertas').textContent = filterVisits().filter(r=>r.tieneVencidos).length;
+  document.getElementById('nb-alertas').textContent = filterVisits().filter(r=>r.tieneVencidos||r.tieneAveriados).length;
   document.getElementById('nb-tardanzas').textContent = filterJornadas().filter(r=>r.tardanza).length;
 }
 function applyFilters(){
@@ -1009,11 +1083,20 @@ function initFilterOptions(){
   SUPERVISORS.forEach(s=> selSup.insertAdjacentHTML('beforeend', `<option value="${s.id}">${s.name}</option>`));
 
   document.getElementById('f-dias').value = String(F.dias);
-  document.getElementById('f-dias').onchange = e=>{ F.dias=+e.target.value; applyFilters(); };
+  document.getElementById('f-dias').onchange = e=>{ F.dias=+e.target.value; F.fechaDesde=''; F.fechaHasta=''; document.getElementById('f-desde').value=''; document.getElementById('f-hasta').value=''; applyFilters(); };
   selC.onchange = e=>{ F.cadena=e.target.value; applyFilters(); };
   selCi.onchange = e=>{ F.ciudad=e.target.value; applyFilters(); };
   selCat.onchange = e=>{ F.categoria=e.target.value; applyFilters(); };
   selSup.onchange = e=>{ F.supervisor=e.target.value; applyFilters(); };
+
+  const selDesde = document.getElementById('f-desde'), selHasta = document.getElementById('f-hasta');
+  [selDesde,selHasta].forEach(el=>{ el.min=FECHA_MIN; el.max=FECHA_MAX; });
+  selDesde.onchange = e=>{ F.fechaDesde=e.target.value; applyFilters(); };
+  selHasta.onchange = e=>{ F.fechaHasta=e.target.value; applyFilters(); };
+
+  const anio = TODAY.getFullYear();
+  document.getElementById('btn-junio').onclick = ()=> setDateRange(`${anio}-06-01`, `${anio}-06-30`);
+  document.getElementById('btn-julio').onclick = ()=> setDateRange(`${anio}-07-01`, `${anio}-07-31`);
 }
 
 document.getElementById('btn-refresh').onclick = ()=>{
@@ -1023,10 +1106,10 @@ document.getElementById('btn-refresh').onclick = ()=>{
 };
 document.getElementById('btn-export').onclick = ()=>{
   const rows = filterVisits();
-  const header = ['Fecha','Hora','Promotor','Supervisor','PDV','Cadena','Ciudad','Categoria','CumpleCriterios','TienePOP','TienePrecios','TieneVencidos','GondolaPct','EspacioGanado','PrecioNuestro','PrecioCompetidor','AccionCompetencia'];
+  const header = ['Fecha','Hora','Promotor','Supervisor','PDV','Cadena','Ciudad','Categoria','CumpleCriterios','TienePOP','TienePrecios','TieneVencidos','TieneAveriados','GondolaPct','EspacioGanado','PrecioNuestro','PrecioCompetidor','AccionCompetencia'];
   const lines = rows.map(r=>{
     const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId);
-    return [r.fecha,r.hora,prom.name,supById(prom.supervisorId).name,pdv.name,pdv.chain,pdv.city,r.categoria,r.cumpleCriterios,r.tienePOP,r.tienePrecios,r.tieneVencidos,r.gondolaPct,r.espacioGanado,r.precioNuestro,r.precioCompetidor,r.accionCompetencia].join(',');
+    return [r.fecha,r.hora,prom.name,supById(prom.supervisorId).name,pdv.name,pdv.chain,pdv.city,r.categoria,r.cumpleCriterios,r.tienePOP,r.tienePrecios,r.tieneVencidos,r.tieneAveriados,r.gondolaPct,r.espacioGanado,r.precioNuestro,r.precioCompetidor,r.accionCompetencia].join(',');
   });
   const csv = [header.join(','), ...lines].join('\n');
   const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
