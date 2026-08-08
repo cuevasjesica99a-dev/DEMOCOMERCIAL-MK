@@ -1,4 +1,4 @@
-<!-- NOVA CONSUMO — DEMO COMERCIAL +Marka — Datos 100% ficticios -->
+<!-- NOVA CONSUMO — DEMO COMERCIAL +Marka — Datos 100% ficticios (Paraguay) -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -37,13 +37,13 @@ body.light ::-webkit-scrollbar-thumb{background:rgba(15,20,40,.18)}
 .app{display:flex;height:100vh}
 
 /* ---------- SIDEBAR ---------- */
-.sidebar{width:var(--sw);flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;padding:18px 14px}
+.sidebar{width:var(--sw);flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;padding:18px 14px;overflow-y:auto}
 .brand{display:flex;align-items:center;gap:10px;padding:4px 6px 18px;border-bottom:1px solid var(--bd);margin-bottom:14px}
 .brand-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#fff;flex-shrink:0;box-shadow:0 4px 14px var(--brand-d)}
 .brand-name{font-weight:800;font-size:15px;letter-spacing:-.2px}
 .brand-sub{font-size:10.5px;color:var(--tx3);font-weight:600;letter-spacing:.3px;text-transform:uppercase}
 .demo-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--brand2);background:var(--brand-d);border:1px solid var(--brand-d);padding:3px 8px;border-radius:20px;margin-top:8px}
-.nav{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+.nav{display:flex;flex-direction:column;gap:2px;margin-top:2px}
 .ni{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:var(--r2);color:var(--tx2);font-weight:600;font-size:13px;cursor:pointer;transition:var(--tr);white-space:nowrap}
 .ni i{width:16px;text-align:center;font-size:14px}
 .ni:hover{background:var(--bg3);color:var(--tx)}
@@ -82,9 +82,10 @@ body.light ::-webkit-scrollbar-thumb{background:rgba(15,20,40,.18)}
 .grid{display:grid;gap:16px}
 .grid-kpi{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
 .grid-2{grid-template-columns:2fr 1fr}
+.grid-2e{grid-template-columns:1fr 1fr}
 .grid-3{grid-template-columns:repeat(3,1fr)}
 .grid-4{grid-template-columns:repeat(4,1fr)}
-@media(max-width:1100px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+@media(max-width:1100px){.grid-2,.grid-3,.grid-4,.grid-2e{grid-template-columns:1fr}}
 
 .card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:18px;box-shadow:var(--sh)}
 .card-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px}
@@ -96,18 +97,18 @@ body.light ::-webkit-scrollbar-thumb{background:rgba(15,20,40,.18)}
 .kpi{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:var(--tr)}
 .kpi:hover{transform:translateY(-2px);box-shadow:var(--sh)}
 .kpi-lbl{font-size:11.5px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.3px}
-.kpi-val{font-size:26px;font-weight:800;margin-top:6px;letter-spacing:-.5px}
+.kpi-val{font-size:24px;font-weight:800;margin-top:6px;letter-spacing:-.5px}
 .kpi-sub{font-size:11px;color:var(--tx3);margin-top:4px}
 .kpi-ico{position:absolute;right:14px;top:14px;font-size:22px;opacity:.35}
 
 table{width:100%;border-collapse:collapse;font-size:12.5px}
-th{text-align:left;color:var(--tx3);font-weight:700;text-transform:uppercase;font-size:10.5px;letter-spacing:.3px;padding:9px 10px;border-bottom:1px solid var(--bd)}
-td{padding:10px;border-bottom:1px solid var(--bd)}
+th{text-align:left;color:var(--tx3);font-weight:700;text-transform:uppercase;font-size:10.5px;letter-spacing:.3px;padding:9px 10px;border-bottom:1px solid var(--bd);white-space:nowrap}
+td{padding:10px;border-bottom:1px solid var(--bd);white-space:nowrap}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--bg3)}
 .tbl-wrap{overflow-x:auto}
 
-.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
 .badge.ok{background:var(--ok-d);color:var(--ok)}
 .badge.er{background:var(--er-d);color:var(--er)}
 .badge.wa{background:var(--wa-d);color:var(--wa)}
@@ -116,21 +117,21 @@ tr:hover td{background:var(--bg3)}
 .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
 .dot.ok{background:var(--ok)}.dot.er{background:var(--er)}.dot.wa{background:var(--wa)}.dot.bl{background:var(--bl)}.dot.vi{background:var(--vi)}
 
-.evid-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.evid-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
 .evid-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:var(--tr)}
 .evid-card:hover{transform:translateY(-3px);box-shadow:var(--sh)}
-.evid-img{width:100%;height:130px;object-fit:cover;display:block;background:var(--bg3)}
+.evid-img{width:100%;height:120px;object-fit:cover;display:block;background:var(--bg3)}
 .evid-body{padding:11px 13px}
-.evid-pdv{font-weight:700;font-size:13px;margin-bottom:2px}
-.evid-meta{font-size:11px;color:var(--tx3);margin-bottom:8px}
+.evid-pdv{font-weight:700;font-size:12.5px;margin-bottom:2px}
+.evid-meta{font-size:10.5px;color:var(--tx3);margin-bottom:8px}
 .evid-tags{display:flex;flex-wrap:wrap;gap:5px}
 
 .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;align-items:center;justify-content:center}
 .modal-ov.open{display:flex}
-.modal-box{background:var(--bg2);border-radius:var(--r);max-width:560px;width:92%;overflow:hidden;border:1px solid var(--bd)}
-.modal-box img{width:100%;display:block;max-height:360px;object-fit:cover}
+.modal-box{background:var(--bg2);border-radius:var(--r);max-width:560px;width:92%;overflow:hidden;border:1px solid var(--bd);max-height:88vh;overflow-y:auto}
+.modal-box img{width:100%;display:block;max-height:320px;object-fit:cover}
 .modal-body{padding:18px}
-.close-btn{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;border:none;cursor:pointer;font-size:15px}
+.close-btn{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;border:none;cursor:pointer;font-size:15px;z-index:2}
 
 .semaforo{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
 @media(max-width:900px){.semaforo{grid-template-columns:repeat(2,1fr)}}
@@ -146,8 +147,9 @@ tr:hover td{background:var(--bg3)}
 #map-cobertura,#map-recorrido{height:340px;border-radius:var(--r2);overflow:hidden}
 .toast{position:fixed;bottom:22px;right:22px;background:var(--bg4);border:1px solid var(--bd2);color:var(--tx);padding:12px 18px;border-radius:10px;box-shadow:var(--sh);font-size:13px;font-weight:600;display:flex;align-items:center;gap:9px;z-index:300;opacity:0;transform:translateY(10px);transition:.25s ease}
 .toast.show{opacity:1;transform:translateY(0)}
-.rank-medal{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#fff}
+.rank-medal{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#fff;flex-shrink:0}
 .select-inline{background:var(--bg3);border:1px solid var(--bd);color:var(--tx);padding:7px 10px;border-radius:8px}
+.mono{font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -158,17 +160,22 @@ tr:hover td{background:var(--bg3)}
       <div class="brand-mark" id="brand-mark">NC</div>
       <div>
         <div class="brand-name">Nova Consumo</div>
-        <div class="brand-sub">Panel +Marka</div>
+        <div class="brand-sub">Panel +Marka · Paraguay</div>
       </div>
     </div>
     <div class="demo-badge"><i class="fas fa-circle" style="font-size:6px"></i> Demo comercial</div>
 
-    <div class="nav-sect">Navegación</div>
+    <div class="nav-sect">Análisis</div>
     <nav class="nav" id="nav">
       <div class="ni active" data-p="resumen"><i class="fas fa-chart-pie"></i>Resumen ejecutivo</div>
       <div class="ni" data-p="cobertura"><i class="fas fa-store"></i>Cobertura</div>
-      <div class="ni" data-p="evidencias"><i class="fas fa-images"></i>Evidencias fotográficas</div>
+      <div class="ni" data-p="auditoria"><i class="fas fa-clipboard-check"></i>Auditoría de PDV</div>
       <div class="ni" data-p="alertas"><i class="fas fa-exclamation-triangle"></i>Alertas y vencimientos<span class="ni-badge" id="nb-alertas">0</span></div>
+    </nav>
+    <div class="nav-sect">Equipo</div>
+    <nav class="nav" id="nav2">
+      <div class="ni" data-p="jornada"><i class="fas fa-user-clock"></i>Jornada y asistencia<span class="ni-badge" id="nb-tardanzas">0</span></div>
+      <div class="ni" data-p="comisiones"><i class="fas fa-hand-holding-dollar"></i>Comisiones</div>
       <div class="ni" data-p="supervisores"><i class="fas fa-user-tie"></i>Supervisores</div>
     </nav>
 
@@ -193,11 +200,13 @@ tr:hover td{background:var(--bg3)}
       <select id="f-dias" class="select-inline">
         <option value="7">Últimos 7 días</option>
         <option value="14">Últimos 14 días</option>
-        <option value="30" selected>Últimos 30 días</option>
+        <option value="30">Últimos 30 días</option>
+        <option value="45" selected>Últimos 45 días</option>
       </select>
       <select id="f-cadena" class="select-inline"><option value="">Todas las cadenas</option></select>
       <select id="f-ciudad" class="select-inline"><option value="">Todas las ciudades</option></select>
       <select id="f-categoria" class="select-inline"><option value="">Todas las categorías</option></select>
+      <select id="f-supervisor" class="select-inline"><option value="">Todos los supervisores</option></select>
       <div id="fbar-chips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
     </div>
     <div class="content" id="content"></div>
@@ -216,7 +225,7 @@ tr:hover td{background:var(--bg3)}
 
 <script>
 /* ============================================================
-   NOVA CONSUMO — DATOS FICTICIOS GENERADOS LOCALMENTE
+   NOVA CONSUMO — DATOS FICTICIOS GENERADOS LOCALMENTE (Paraguay)
    Nada de esta información corresponde a un cliente real.
    ============================================================ */
 
@@ -225,22 +234,28 @@ const rng = mulberry32(20260808);
 const rnd = ()=>rng();
 const pick = arr => arr[Math.floor(rnd()*arr.length)];
 const chance = p => rnd() < p;
-const fmtInt = n => Math.round(n).toLocaleString('es-AR');
+const fmtInt = n => Math.round(n).toLocaleString('es-PY');
+const fmtGs = n => 'Gs. '+Math.round(n).toLocaleString('es-PY');
 const fmtPct = n => Math.round(n)+'%';
 const pad2 = n => String(n).padStart(2,'0');
 const isoDate = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
 const dateDisplay = iso => { const [y,m,d]=iso.split('-'); return `${d}/${m}`; };
 const addDays = (d,n) => { const x=new Date(d); x.setDate(x.getDate()+n); return x; };
+const minToHHMM = min => { min=((Math.round(min)%1440)+1440)%1440; return pad2(Math.floor(min/60))+':'+pad2(min%60); };
+const hhmmToMin = s => { const [h,m]=s.split(':').map(Number); return h*60+m; };
 
 const CHAINS = ['SuperAhorro','Mercado Total','La Espiga','FreshMax','Bodega Central'];
-const CITY_COORDS = {
-  'Buenos Aires':[-34.6037,-58.3816],
-  'Córdoba':[-31.4201,-64.1888],
-  'Rosario':[-32.9442,-60.6505],
-  'Mendoza':[-32.8895,-68.8458],
-  'La Plata':[-34.9215,-57.9545],
-};
-const CITIES = Object.keys(CITY_COORDS);
+const ZONES = ['Centro','Zona Norte','Zona Sur','Zona Este','Zona Oeste'];
+const CITY_CONFIG = [
+  {name:'Asunción', lat:-25.2637, lng:-57.5759, promoters:5},
+  {name:'Ciudad del Este', lat:-25.5095, lng:-54.6116, promoters:4},
+  {name:'San Lorenzo', lat:-25.3400, lng:-57.5083, promoters:3},
+  {name:'Fernando de la Mora', lat:-25.3200, lng:-57.5333, promoters:3},
+  {name:'Luque', lat:-25.2696, lng:-57.4894, promoters:3},
+  {name:'Encarnación', lat:-27.3306, lng:-55.8664, promoters:2},
+];
+const CITIES = CITY_CONFIG.map(c=>c.name);
+const CITY_COORDS = {}; CITY_CONFIG.forEach(c=>CITY_COORDS[c.name]=[c.lat,c.lng]);
 const CATEGORIES = ['Snacks','Bebidas','Cuidado del Hogar','Higiene Personal'];
 const PRODUCTS = {
   'Snacks':['Nova Snacks Clásicas 150g','Nova Snacks Picantes 120g'],
@@ -248,50 +263,68 @@ const PRODUCTS = {
   'Cuidado del Hogar':['Nova Detergente Floral 900ml','Nova Multiuso 750ml'],
   'Higiene Personal':['Nova Jabón Avena x3','Nova Shampoo Reparador 400ml'],
 };
-
-// ---- PDVs: una por cadena y ciudad ----
-let pdvSeq=0;
-const PDVS = [];
-CITIES.forEach(city=>{
-  CHAINS.forEach((chain,ci)=>{
-    const [lat,lng]=CITY_COORDS[city];
-    pdvSeq++;
-    PDVS.push({
-      id:'pdv'+pdvSeq, chain, city,
-      name:`${chain} — ${city}`,
-      lat: lat + (rnd()-0.5)*0.09,
-      lng: lng + (rnd()-0.5)*0.09,
-    });
-  });
-});
-const pdvById = id => PDVS.find(p=>p.id===id);
-
-// ---- Supervisores y promotores ----
+const PRECIO_BASE = {
+  'Snacks':[8000,15000], 'Bebidas':[6000,12000],
+  'Cuidado del Hogar':[18000,32000], 'Higiene Personal':[12000,22000],
+};
+const COMPETIDORES = ['Rival Plus','Marca Andina','Sello Azul'];
+const ACCIONES_COMP = ['Promoción 2x1','Degustación en punto','Nueva exhibición','Bajó su precio','Descuento por cantidad'];
+const POP_TYPES = ['Exhibidor de punta','Cenefa','Isla promocional','Stopper de góndola','Habladores de precio'];
+const PROMOTER_NAMES = [
+  'Rodrigo Benítez','Fátima Ovelar','Diego Cabrera','Liz Duarte','Marcos Villalba',
+  'Sofía Ayala','Gustavo Cardozo','Andrea Ríos','Hugo Ferreira',
+  'Paola Franco','Julio Ortigoza','Belén Espínola',
+  'Cristian Melgarejo','Nadia Aquino','Wilson Recalde',
+  'Carla Bogado','Rubén Acosta','Yenny Servín',
+  'Mario Núñez','Lorena Vera',
+];
+const SUP_BY_CITY = {
+  'Asunción':'s1','Ciudad del Este':'s2','Encarnación':'s2',
+  'San Lorenzo':'s3','Fernando de la Mora':'s3','Luque':'s4',
+};
 const SUPERVISORS = [
-  {id:'s1',name:'Romina Díaz'},
-  {id:'s2',name:'Federico Álvarez'},
-  {id:'s3',name:'Agustina Torres'},
+  {id:'s1',name:'Romina Díaz'},{id:'s2',name:'Federico Álvarez'},
+  {id:'s3',name:'Agustina Torres'},{id:'s4',name:'Diego Maidana'},
 ];
 const supById = id => SUPERVISORS.find(s=>s.id===id);
 
-function portfolioFor(city, chainsSubset){
-  return PDVS.filter(p=>p.city===city && chainsSubset.includes(p.chain)).map(p=>p.id);
-}
-const PROMOTERS = [
-  {id:'p1',name:'Martina Sosa',supervisorId:'s1',city:'Buenos Aires',portfolio:portfolioFor('Buenos Aires',['SuperAhorro','Mercado Total','La Espiga'])},
-  {id:'p2',name:'Nicolás Medina',supervisorId:'s3',city:'Buenos Aires',portfolio:portfolioFor('Buenos Aires',['FreshMax','Bodega Central'])},
-  {id:'p3',name:'Lucas Fernández',supervisorId:'s1',city:'La Plata',portfolio:portfolioFor('La Plata',CHAINS)},
-  {id:'p4',name:'Camila Rojas',supervisorId:'s2',city:'Córdoba',portfolio:portfolioFor('Córdoba',CHAINS)},
-  {id:'p5',name:'Ezequiel Paredes',supervisorId:'s2',city:'Rosario',portfolio:portfolioFor('Rosario',CHAINS)},
-  {id:'p6',name:'Valentina Acosta',supervisorId:'s3',city:'Mendoza',portfolio:portfolioFor('Mendoza',CHAINS)},
-];
+// ---- Generar PDVs (una sucursal por cadena y por zona de cada ciudad) y Promotores ----
+const PDVS = [];
+const PROMOTERS = [];
+let pdvSeq=0, pIdx=0;
+CITY_CONFIG.forEach(city=>{
+  for(let z=0; z<city.promoters; z++){
+    const zone = ZONES[z];
+    const portfolio = [];
+    const angle = z*(Math.PI*2/5);
+    CHAINS.forEach(chain=>{
+      pdvSeq++;
+      const id = 'pdv'+pdvSeq;
+      PDVS.push({
+        id, chain, city:city.name, zone,
+        name:`${chain} — ${city.name} (${zone})`,
+        lat: city.lat + Math.cos(angle)*0.045 + (rnd()-0.5)*0.012,
+        lng: city.lng + Math.sin(angle)*0.045 + (rnd()-0.5)*0.012,
+      });
+      portfolio.push(id);
+    });
+    PROMOTERS.push({id:'p'+(pIdx+1), name:PROMOTER_NAMES[pIdx], city:city.name, zone, supervisorId:SUP_BY_CITY[city.name], portfolio});
+    pIdx++;
+  }
+});
+const pdvById = id => PDVS.find(p=>p.id===id);
 const promoterById = id => PROMOTERS.find(p=>p.id===id);
 
-// ---- Generación de visitas (últimos 35 días, sin domingos) ----
+// ---- Generación de visitas / auditorías de PDV (últimos 45 días, sin domingos) ----
 const VISITS = [];
 let visitSeq = 0;
 const TODAY = new Date();
-for(let back=34; back>=0; back--){
+const DIAS_HISTORIAL = 44;
+function pickAccionCompetencia(){
+  if(chance(0.5)) return 'Sin acciones';
+  return pick(ACCIONES_COMP);
+}
+for(let back=DIAS_HISTORIAL; back>=0; back--){
   const day = addDays(TODAY, -back);
   if(day.getDay()===0) continue; // domingo cerrado
   PROMOTERS.forEach(prom=>{
@@ -314,6 +347,9 @@ for(let back=34; back>=0; back--){
         const opts = PRODUCTS[categoria];
         productos = rnd()<0.5 ? [opts[0]] : [opts[0],opts[1]];
       }
+      const [lo,hi] = PRECIO_BASE[categoria];
+      const precioNuestro = lo + Math.floor(rnd()*(hi-lo));
+      const precioCompetidor = Math.round(precioNuestro*(0.85+rnd()*0.3)/100)*100;
       const duracion = 15+Math.floor(rnd()*38);
       min += 10+Math.floor(rnd()*20);
       if(min>=60){hour+=1;min-=60;}
@@ -321,9 +357,39 @@ for(let back=34; back>=0; back--){
         id:'v'+visitSeq, fecha:isoDate(day), promotorId:prom.id, pdvId, categoria,
         hora:`${pad2(hour)}:${pad2(min)}`, duracion,
         cumpleCriterios, tienePOP, tienePrecios, tieneVencidos, estadoVenc, diasVenc, productos,
+        popTipo: tienePOP ? pick(POP_TYPES) : null,
+        gondolaPct: Math.round(15+rnd()*35),
+        espacioGanado: chance(0.22),
+        competidorNombre: pick(COMPETIDORES),
+        precioNuestro, precioCompetidor,
+        accionCompetencia: pickAccionCompetencia(),
         fotoSeed: visitSeq % 60,
       });
       hour += Math.floor(duracion/60); min += duracion%60; if(min>=60){hour+=1;min-=60;}
+    });
+  });
+}
+
+// ---- Generación de jornadas (entrada / almuerzo / salida) ----
+const JORNADAS = [];
+for(let back=DIAS_HISTORIAL; back>=0; back--){
+  const day = addDays(TODAY, -back);
+  if(day.getDay()===0) continue;
+  PROMOTERS.forEach(prom=>{
+    const entradaMin = 495 + Math.floor(rnd()*65); // 08:15 - 09:20
+    const minutosTardeRaw = entradaMin - 510; // programado 08:30
+    const tardanza = minutosTardeRaw > 10;
+    const minutosTarde = tardanza ? minutosTardeRaw : 0;
+    const almSalidaMin = 720 + Math.floor(rnd()*90); // 12:00 - 13:30
+    const duracionAlmuerzo = 40 + Math.floor(rnd()*35);
+    const almEntradaMin = almSalidaMin + duracionAlmuerzo;
+    const salidaMin = entradaMin + duracionAlmuerzo + 8*60 + Math.floor(rnd()*60-20);
+    JORNADAS.push({
+      id:'j'+prom.id+'_'+isoDate(day), promotorId:prom.id, fecha:isoDate(day),
+      entrada:minToHHMM(entradaMin), almSalida:minToHHMM(almSalidaMin),
+      almEntrada:minToHHMM(almEntradaMin), salida:minToHHMM(salidaMin),
+      tardanza, minutosTarde, duracionAlmuerzo,
+      horasTrabajadas: Math.round(((salidaMin-entradaMin-duracionAlmuerzo)/60)*10)/10,
     });
   });
 }
@@ -332,7 +398,7 @@ for(let back=34; back>=0; back--){
 // ESTADO / FILTROS
 // ============================================================
 let currentPage='resumen';
-const F = {dias:30, cadena:'', ciudad:'', categoria:''};
+const F = {dias:45, cadena:'', ciudad:'', categoria:'', supervisor:''};
 let searchTerm='';
 let recorridoPromotor = PROMOTERS[0].id;
 const charts = {};
@@ -346,6 +412,17 @@ function filterVisits(){
     if(F.cadena && pdv.chain!==F.cadena) return false;
     if(F.ciudad && pdv.city!==F.ciudad) return false;
     if(F.categoria && v.categoria!==F.categoria) return false;
+    if(F.supervisor && promoterById(v.promotorId).supervisorId!==F.supervisor) return false;
+    return true;
+  });
+}
+function filterJornadas(){
+  const limite = addDays(TODAY, -F.dias);
+  return JORNADAS.filter(j=>{
+    if(new Date(j.fecha) < limite) return false;
+    const prom = promoterById(j.promotorId);
+    if(F.ciudad && prom.city!==F.ciudad) return false;
+    if(F.supervisor && prom.supervisorId!==F.supervisor) return false;
     return true;
   });
 }
@@ -366,6 +443,7 @@ function toast(msg, icon='fa-check-circle'){
 }
 
 function animateNum(el, target, suffix=''){
+  if(!el) return;
   const start=0, dur=650, t0=performance.now();
   function step(t){
     const p=Math.min(1,(t-t0)/dur);
@@ -392,11 +470,57 @@ function badgeVenc(estado){
   if(estado==='vence15') return `<span class="badge wa" style="opacity:.75"><i class="fas fa-clock"></i> Vence ≤15 días</span>`;
   return `<span class="badge ok"><i class="fas fa-check-circle"></i> OK</span>`;
 }
+function badgeTardanza(min){
+  if(!min || min<=10) return `<span class="badge ok"><i class="fas fa-check-circle"></i> A horario</span>`;
+  if(min<=15) return `<span class="badge wa"><i class="fas fa-clock"></i> Leve +${min}min</span>`;
+  if(min<=30) return `<span class="badge wa" style="opacity:.8"><i class="fas fa-clock"></i> Moderada +${min}min</span>`;
+  return `<span class="badge er"><i class="fas fa-exclamation-circle"></i> Grave +${min}min</span>`;
+}
 function chip(label, onclickAttr){
   return `<span class="fbar-chip" onclick="${onclickAttr}"><i class="fas fa-times" style="font-size:9px"></i>${label}</span>`;
 }
 function brandColor(){ return getComputedStyle(document.documentElement).getPropertyValue('--brand').trim(); }
 function brandColor2(){ return getComputedStyle(document.documentElement).getPropertyValue('--brand2').trim(); }
+
+function buildFotoCard(r){
+  const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId);
+  return `<div class="evid-card" onclick='openPhoto("${r.id}")'>
+    <img class="evid-img" src="https://picsum.photos/seed/nova${r.fotoSeed}/320/200" loading="lazy" alt="Evidencia">
+    <div class="evid-body">
+      <div class="evid-pdv">${pdv.name}</div>
+      <div class="evid-meta">${prom.name} · ${dateDisplay(r.fecha)} · ${r.hora}</div>
+      <div class="evid-tags">
+        ${r.cumpleCriterios?'<span class="badge ok">Criterios OK</span>':'<span class="badge er">Sin criterios</span>'}
+        ${r.tieneVencidos?'<span class="badge er">Vencidos</span>':''}
+        <span class="badge bl">Góndola ${r.gondolaPct}%</span>
+      </div>
+    </div></div>`;
+}
+function openPhoto(visitId){
+  const r = VISITS.find(v=>v.id===visitId);
+  const pdv = pdvById(r.pdvId), prom = promoterById(r.promotorId);
+  document.getElementById('modal-img').src = `https://picsum.photos/seed/nova${r.fotoSeed}/700/420`;
+  const diffPrecio = Math.round((r.precioNuestro-r.precioCompetidor)/r.precioCompetidor*100);
+  document.getElementById('modal-body').innerHTML = `
+    <div style="font-weight:800;font-size:15px;margin-bottom:4px">${pdv.name}</div>
+    <div style="color:var(--tx3);font-size:12.5px;margin-bottom:12px">${prom.name} · ${dateDisplay(r.fecha)} · ${r.hora} · ${r.duracion} min en punto</div>
+    <div class="evid-tags" style="margin-bottom:12px">
+      ${badgeVenc(r.tieneVencidos ? r.estadoVenc : 'ok')}
+      ${r.cumpleCriterios?'<span class="badge ok">Criterios OK</span>':'<span class="badge er">Sin criterios</span>'}
+      ${r.tienePOP?`<span class="badge vi">POP: ${r.popTipo}</span>`:'<span class="badge wa">Sin POP</span>'}
+      ${r.tienePrecios?'<span class="badge bl">Precios actualizados</span>':'<span class="badge wa">Precios desactualizados</span>'}
+      ${r.espacioGanado?'<span class="badge ok">Espacio ganado</span>':''}
+    </div>
+    <div class="tbl-wrap"><table>
+      <tr><td>Participación en góndola</td><td style="text-align:right;font-weight:700">${r.gondolaPct}%</td></tr>
+      <tr><td>Nuestro precio</td><td style="text-align:right;font-weight:700">${fmtGs(r.precioNuestro)}</td></tr>
+      <tr><td>Precio ${r.competidorNombre}</td><td style="text-align:right;font-weight:700">${fmtGs(r.precioCompetidor)} <span style="color:${diffPrecio<=0?'var(--ok)':'var(--er)'}">(${diffPrecio>0?'+':''}${diffPrecio}%)</span></td></tr>
+      <tr><td>Acción de competencia</td><td style="text-align:right;font-weight:700">${r.accionCompetencia}</td></tr>
+    </table></div>`;
+  document.getElementById('modal-photo').classList.add('open');
+}
+document.getElementById('modal-close').onclick = ()=>document.getElementById('modal-photo').classList.remove('open');
+document.getElementById('modal-photo').onclick = e=>{ if(e.target.id==='modal-photo') e.currentTarget.classList.remove('open'); };
 
 // ============================================================
 // PÁGINA: RESUMEN EJECUTIVO
@@ -408,7 +532,7 @@ function renderResumen(){
   const cumplPct = rows.length? rows.filter(r=>r.cumpleCriterios).length/rows.length*100 : 0;
   const alertas = rows.filter(r=>r.tieneVencidos).length;
   const promotoresActivos = new Set(rows.map(r=>r.promotorId)).size;
-  const duracionProm = rows.length? rows.reduce((a,r)=>a+r.duracion,0)/rows.length : 0;
+  const gondolaProm = rows.length? rows.reduce((a,r)=>a+r.gondolaPct,0)/rows.length : 0;
 
   document.getElementById('content').innerHTML = `
     <div class="banner"><i class="fas fa-info-circle"></i> Panel de demostración — toda la información (visitas, PDVs, alertas) es ficticia y se genera en el navegador para fines comerciales.</div>
@@ -418,7 +542,7 @@ function renderResumen(){
       ${kpiCard('Cumplimiento', Math.round(cumplPct), 'promedio de criterios', 'fa-check-circle', '--ok','k-cumpl')}
       ${kpiCard('Alertas activas', alertas, 'productos por vencer/vencidos', 'fa-exclamation-triangle', '--er','k-alertas')}
       ${kpiCard('Promotores activos', promotoresActivos, `de ${PROMOTERS.length} en nómina`, 'fa-users', '--bl','k-promotores')}
-      ${kpiCard('Duración promedio', Math.round(duracionProm), 'minutos por visita', 'fa-hourglass-half', '--vi','k-duracion')}
+      ${kpiCard('Góndola promedio', Math.round(gondolaProm), 'participación de espacio', 'fa-border-all', '--vi','k-gondola')}
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div><div class="card-title">Visitas últimos 14 días</div><div class="card-sub">Evolución diaria en el período filtrado</div></div></div>
@@ -438,20 +562,17 @@ function renderResumen(){
   animateNum(document.getElementById('k-cumpl'), Math.round(cumplPct), '%');
   animateNum(document.getElementById('k-alertas'), alertas);
   animateNum(document.getElementById('k-promotores'), promotoresActivos);
-  animateNum(document.getElementById('k-duracion'), Math.round(duracionProm));
+  animateNum(document.getElementById('k-gondola'), Math.round(gondolaProm), '%');
 
-  // tendencia 14 días
   const dias14 = [...Array(14)].map((_,i)=>isoDate(addDays(TODAY,-(13-i))));
   const conteoDias = dias14.map(d=>rows.filter(r=>r.fecha===d).length);
   mkChart('ch-tendencia',{type:'line',data:{labels:dias14.map(dateDisplay),datasets:[{label:'Visitas',data:conteoDias,borderColor:brandColor2(),backgroundColor:brandColor2()+'33',fill:true,tension:.35,pointRadius:3}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false}}}}});
 
-  // categoría donut
   const catCounts = CATEGORIES.map(c=>rows.filter(r=>r.categoria===c).length);
   mkChart('ch-categoria',{type:'doughnut',data:{labels:CATEGORIES,datasets:[{data:catCounts,backgroundColor:['#5b9bd5','#3cb3a8','#9b7fd4','#e8a045'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}}}});
 
-  // cumplimiento por cadena
   const cadenaPct = CHAINS.map(c=>{
     const rs = rows.filter(r=>pdvById(r.pdvId).chain===c);
     return rs.length? Math.round(rs.filter(r=>r.cumpleCriterios).length/rs.length*100) : 0;
@@ -484,9 +605,9 @@ function renderCobertura(){
 
   document.getElementById('content').innerHTML = `
     <div class="grid grid-2" style="margin-bottom:16px">
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Mapa de puntos de venta</div><div class="card-sub">${PDVS.length} PDVs · color según estado de cumplimiento</div></div></div>
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Mapa de puntos de venta</div><div class="card-sub">${PDVS.length} PDVs en Paraguay · color según estado de cumplimiento</div></div></div>
         <div id="map-cobertura"></div>
-        <div style="display:flex;gap:16px;margin-top:12px;font-size:11.5px;color:var(--tx2)">
+        <div style="display:flex;gap:16px;margin-top:12px;font-size:11.5px;color:var(--tx2);flex-wrap:wrap">
           <span><span class="dot ok"></span> Cumple</span><span><span class="dot wa"></span> Cumplimiento bajo</span><span><span class="dot er"></span> Con vencidos</span><span><span class="dot" style="background:var(--tx3)"></span> Sin visitas</span>
         </div></div>
       <div class="card"><div class="card-hdr"><div><div class="card-title">Visitas por ciudad</div></div></div>
@@ -507,7 +628,7 @@ function renderCobertura(){
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false}}}}});
 
   if(mapCobertura){ mapCobertura.remove(); mapCobertura=null; }
-  mapCobertura = L.map('map-cobertura',{scrollWheelZoom:false}).setView([-34.0,-63.5],4.6);
+  mapCobertura = L.map('map-cobertura',{scrollWheelZoom:false}).setView([-25.6,-56.5],6.6);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapCobertura);
   PDVS.forEach(pdv=>{
     const rs = rows.filter(r=>r.pdvId===pdv.id);
@@ -517,70 +638,91 @@ function renderCobertura(){
       const cumpl = rs.filter(r=>r.cumpleCriterios).length/rs.length*100;
       color = conVenc ? '#e84a55' : (cumpl>=80 ? '#3cb3a8' : '#e8a045');
     }
-    const marker = L.circleMarker([pdv.lat,pdv.lng],{radius:7,color,fillColor:color,fillOpacity:.85,weight:1.5}).addTo(mapCobertura);
+    const marker = L.circleMarker([pdv.lat,pdv.lng],{radius:6,color,fillColor:color,fillOpacity:.85,weight:1.5}).addTo(mapCobertura);
     marker.bindPopup(`<b>${pdv.name}</b><br>${rs.length} visitas en el período`);
   });
   setTimeout(()=>mapCobertura && mapCobertura.invalidateSize(), 150);
 }
 
 // ============================================================
-// PÁGINA: EVIDENCIAS FOTOGRÁFICAS
+// PÁGINA: AUDITORÍA DE PUNTO DE VENTA
 // ============================================================
-function renderEvidencias(){
-  let rows = filterVisits().slice().sort((a,b)=>b.fecha.localeCompare(a.fecha));
+function renderAuditoria(){
+  let rows = filterVisits();
   if(searchTerm){
     const s = searchTerm.toLowerCase();
     rows = rows.filter(r=> pdvById(r.pdvId).name.toLowerCase().includes(s) || promoterById(r.promotorId).name.toLowerCase().includes(s));
   }
-  const shown = rows.slice(0,30);
+  const all = filterVisits();
+  const gondolaProm = all.length? all.reduce((a,r)=>a+r.gondolaPct,0)/all.length : 0;
+  const pctPOP = all.length? all.filter(r=>r.tienePOP).length/all.length*100 : 0;
+  const espaciosGanados = all.filter(r=>r.espacioGanado).length;
+  const diffPrecioProm = all.length? all.reduce((a,r)=>a+((r.precioNuestro-r.precioCompetidor)/r.precioCompetidor*100),0)/all.length : 0;
+
+  const gondolaCadena = CHAINS.map(c=>{
+    const rs = all.filter(r=>pdvById(r.pdvId).chain===c);
+    return rs.length? Math.round(rs.reduce((a,r)=>a+r.gondolaPct,0)/rs.length):0;
+  });
+  const preciosCat = CATEGORIES.map(cat=>{
+    const rs = all.filter(r=>r.categoria===cat);
+    return {cat, nuestro: rs.length?Math.round(rs.reduce((a,r)=>a+r.precioNuestro,0)/rs.length):0,
+      competidor: rs.length?Math.round(rs.reduce((a,r)=>a+r.precioCompetidor,0)/rs.length):0};
+  });
+  const accionesCount = {};
+  all.forEach(r=>accionesCount[r.accionCompetencia]=(accionesCount[r.accionCompetencia]||0)+1);
+  const accionesLabels = Object.keys(accionesCount);
+  const popCount = {};
+  all.filter(r=>r.tienePOP).forEach(r=>popCount[r.popTipo]=(popCount[r.popTipo]||0)+1);
+
+  const fotos = rows.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,24);
 
   document.getElementById('content').innerHTML = `
-    <div style="margin-bottom:16px;display:flex;align-items:center;gap:10px">
-      <div class="fbar" style="border:none;padding:0;flex:1">
-        <span class="fbar-label"><i class="fas fa-search"></i></span>
-        <input type="text" id="evid-search" placeholder="Buscar por PDV o promotor..." style="flex:1;max-width:320px" value="${searchTerm}">
-      </div>
-      <span class="card-sub">${rows.length} evidencias encontradas · mostrando ${shown.length}</span>
+    <div class="grid grid-kpi" style="margin-bottom:18px">
+      ${kpiCard('Participación en góndola', Math.round(gondolaProm), 'promedio del período', 'fa-border-all', '--vi','k-gondola2')}
+      ${kpiCard('PDVs con materiales POP', Math.round(pctPOP), 'de las visitas relevadas', 'fa-tags', '--bl','k-pop')}
+      ${kpiCard('Espacios ganados', espaciosGanados, 'facings adicionales al planograma', 'fa-arrow-up-right-dots', '--ok','k-espacios')}
+      ${kpiCard('Diferencia de precio', Math.round(diffPrecioProm), 'vs. precio promedio competencia', diffPrecioProm<=0?'fa-arrow-down':'fa-arrow-up', diffPrecioProm<=0?'--ok':'--er','k-diffprecio')}
     </div>
-    <div class="evid-grid">
-      ${shown.map(r=>{
-        const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId);
-        return `<div class="evid-card" onclick='openPhoto("${r.id}")'>
-          <img class="evid-img" src="https://picsum.photos/seed/nova${r.fotoSeed}/320/200" loading="lazy" alt="Evidencia">
-          <div class="evid-body">
-            <div class="evid-pdv">${pdv.name}</div>
-            <div class="evid-meta">${prom.name} · ${dateDisplay(r.fecha)} · ${r.hora}</div>
-            <div class="evid-tags">
-              ${r.cumpleCriterios?'<span class="badge ok">Criterios OK</span>':'<span class="badge er">Sin criterios</span>'}
-              ${r.tieneVencidos?'<span class="badge er">Vencidos</span>':''}
-              ${r.tienePOP?'<span class="badge vi">POP</span>':''}
-            </div>
-          </div></div>`;
-      }).join('') || `<div style="grid-column:1/-1;text-align:center;color:var(--tx3);padding:50px 0"><i class="fas fa-search" style="font-size:26px;display:block;margin-bottom:10px"></i>Sin resultados</div>`}
+    <div class="grid grid-2e" style="margin-bottom:16px">
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Participación en góndola por cadena</div><div class="card-sub">% de espacio de exhibición ocupado por Nova Consumo</div></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-gondola"></canvas></div></div>
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Precio propio vs. competencia</div><div class="card-sub">Promedio por categoría (Gs.)</div></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-precios"></canvas></div></div>
+    </div>
+    <div class="grid grid-2e" style="margin-bottom:16px">
+      <div class="card"><div class="card-hdr"><div class="card-title">Acciones de competencia detectadas</div></div>
+        <div class="chart-wrap sm"><canvas id="ch-competencia"></canvas></div></div>
+      <div class="card"><div class="card-hdr"><div class="card-title">Materiales POP instalados</div></div>
+        <div class="tbl-wrap"><table><thead><tr><th>Tipo de material</th><th>Instalaciones</th></tr></thead><tbody>
+        ${POP_TYPES.map(t=>`<tr><td>${t}</td><td style="font-weight:700">${popCount[t]||0}</td></tr>`).join('')}
+        </tbody></table></div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr" style="align-items:center">
+        <div><div class="card-title">Relevamiento fotográfico</div><div class="card-sub">${rows.length} evidencias en el período filtrado</div></div>
+        <input type="text" id="aud-search" placeholder="Buscar por PDV o promotor..." style="max-width:260px" value="${searchTerm}">
+      </div>
+      <div class="evid-grid">
+        ${fotos.map(buildFotoCard).join('') || `<div style="grid-column:1/-1;text-align:center;color:var(--tx3);padding:40px 0"><i class="fas fa-search" style="font-size:24px;display:block;margin-bottom:8px"></i>Sin resultados</div>`}
+      </div>
     </div>`;
 
-  document.getElementById('evid-search').oninput = e=>{ searchTerm=e.target.value; renderEvidencias(); };
-  document.getElementById('evid-search').focus();
-  document.getElementById('evid-search').selectionStart = document.getElementById('evid-search').value.length;
-}
+  mkChart('ch-gondola',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Góndola',data:gondolaCadena,backgroundColor:'#9b7fd4',borderRadius:6,maxBarThickness:36}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
-function openPhoto(visitId){
-  const r = VISITS.find(v=>v.id===visitId);
-  const pdv = pdvById(r.pdvId), prom = promoterById(r.promotorId);
-  document.getElementById('modal-img').src = `https://picsum.photos/seed/nova${r.fotoSeed}/700/420`;
-  document.getElementById('modal-body').innerHTML = `
-    <div style="font-weight:800;font-size:15px;margin-bottom:4px">${pdv.name}</div>
-    <div style="color:var(--tx3);font-size:12.5px;margin-bottom:12px">${prom.name} · ${dateDisplay(r.fecha)} · ${r.hora} · ${r.duracion} min en punto</div>
-    <div class="evid-tags">
-      ${badgeVenc(r.tieneVencidos ? r.estadoVenc : 'ok')}
-      ${r.cumpleCriterios?'<span class="badge ok">Criterios OK</span>':'<span class="badge er">Sin criterios</span>'}
-      ${r.tienePOP?'<span class="badge vi">Con material POP</span>':'<span class="badge wa">Sin POP</span>'}
-      ${r.tienePrecios?'<span class="badge bl">Precios actualizados</span>':'<span class="badge wa">Precios desactualizados</span>'}
-    </div>`;
-  document.getElementById('modal-photo').classList.add('open');
+  mkChart('ch-precios',{type:'bar',data:{labels:preciosCat.map(p=>p.cat),datasets:[
+      {label:'Nova Consumo',data:preciosCat.map(p=>p.nuestro),backgroundColor:brandColor(),borderRadius:5,maxBarThickness:22},
+      {label:'Competencia',data:preciosCat.map(p=>p.competidor),backgroundColor:'#5a5252',borderRadius:5,maxBarThickness:22},
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+  mkChart('ch-competencia',{type:'doughnut',data:{labels:accionesLabels,datasets:[{data:accionesLabels.map(a=>accionesCount[a]),backgroundColor:['#5a5252','#5b9bd5','#3cb3a8','#9b7fd4','#e8a045','#e84a55'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}}}});
+
+  const auSearch = document.getElementById('aud-search');
+  auSearch.oninput = e=>{ searchTerm=e.target.value; renderAuditoria(); };
+  auSearch.focus();
+  auSearch.selectionStart = auSearch.value.length;
 }
-document.getElementById('modal-close').onclick = ()=>document.getElementById('modal-photo').classList.remove('open');
-document.getElementById('modal-photo').onclick = e=>{ if(e.target.id==='modal-photo') e.currentTarget.classList.remove('open'); };
 
 // ============================================================
 // PÁGINA: ALERTAS Y VENCIMIENTOS
@@ -627,6 +769,119 @@ function renderAlertas(){
 }
 
 // ============================================================
+// PÁGINA: JORNADA Y ASISTENCIA
+// ============================================================
+function renderJornada(){
+  const rows = filterJornadas();
+  const tardias = rows.filter(r=>r.tardanza);
+  const pctPuntual = rows.length? Math.round((rows.length-tardias.length)/rows.length*100):100;
+  const avgTarde = tardias.length? Math.round(tardias.reduce((a,r)=>a+r.minutosTarde,0)/tardias.length):0;
+  const avgHoras = rows.length? (rows.reduce((a,r)=>a+r.horasTrabajadas,0)/rows.length).toFixed(1):'0';
+  const avgAlmuerzo = rows.length? Math.round(rows.reduce((a,r)=>a+r.duracionAlmuerzo,0)/rows.length):0;
+
+  const porProm = PROMOTERS.map(p=>{
+    const rs = rows.filter(r=>r.promotorId===p.id);
+    const tard = rs.filter(r=>r.tardanza);
+    return {
+      p, dias:rs.length, tardanzas:tard.length,
+      entradaProm: rs.length? minToHHMM(rs.reduce((a,r)=>a+hhmmToMin(r.entrada),0)/rs.length):'—',
+      salidaProm: rs.length? minToHHMM(rs.reduce((a,r)=>a+hhmmToMin(r.salida),0)/rs.length):'—',
+    };
+  }).sort((a,b)=>b.tardanzas-a.tardanzas);
+
+  const recientes = tardias.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,20);
+
+  document.getElementById('content').innerHTML = `
+    <div class="grid grid-kpi" style="margin-bottom:18px">
+      ${kpiCard('Asistencia puntual', pctPuntual, `sobre ${rows.length} jornadas`, 'fa-user-check', '--ok','k-puntual')}
+      ${kpiCard('Llegadas tardías', tardias.length, `promedio +${avgTarde} min`, 'fa-user-clock', '--er','k-tardias')}
+      ${kpiCard('Horas trabajadas', avgHoras, 'promedio por jornada', 'fa-hourglass-half', '--bl','k-horas')}
+      ${kpiCard('Duración de almuerzo', avgAlmuerzo, 'minutos promedio', 'fa-utensils', '--vi','k-almuerzo')}
+    </div>
+    <div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card"><div class="card-hdr"><div class="card-title">Resumen por promotor</div></div>
+        <div class="tbl-wrap"><table><thead><tr><th>Promotor</th><th>Ciudad</th><th>Días trabajados</th><th>Entrada prom.</th><th>Salida prom.</th><th>Tardanzas</th></tr></thead><tbody>
+        ${porProm.map(r=>`<tr><td style="font-weight:700">${r.p.name}</td><td>${r.p.city}</td><td>${r.dias}</td><td class="mono">${r.entradaProm}</td><td class="mono">${r.salidaProm}</td><td>${r.tardanzas?`<span class="badge er">${r.tardanzas}</span>`:'<span class="badge ok">0</span>'}</td></tr>`).join('')}
+        </tbody></table></div></div>
+      <div class="card"><div class="card-hdr"><div class="card-title">Tardanzas por promotor</div></div>
+        <div class="chart-wrap"><canvas id="ch-tardanzas"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div><div class="card-title">Llegadas tardías recientes</div><div class="card-sub">${tardias.length} registros en el período</div></div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Promotor</th><th>Hora de entrada</th><th>Programado</th><th>Estado</th></tr></thead><tbody>
+      ${recientes.map(r=>`<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${promoterById(r.promotorId).name}</td><td class="mono">${r.entrada}</td><td class="mono">08:30</td><td>${badgeTardanza(r.minutosTarde)}</td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:30px">Sin llegadas tardías en el período</td></tr>`}
+      </tbody></table></div>
+    </div>`;
+
+  const top10 = porProm.slice(0,10);
+  mkChart('ch-tardanzas',{type:'bar',data:{labels:top10.map(r=>r.p.name.split(' ')[0]),datasets:[{label:'Tardanzas',data:top10.map(r=>r.tardanzas),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:26}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{stepSize:1}},y:{grid:{display:false},ticks:{font:{size:10.5}}}}}});
+}
+
+// ============================================================
+// PÁGINA: COMISIONES
+// ============================================================
+function renderComisiones(){
+  const rows = filterVisits();
+  const jrows = filterJornadas();
+  const data = PROMOTERS.map(p=>{
+    const rs = rows.filter(r=>r.promotorId===p.id);
+    const js = jrows.filter(r=>r.promotorId===p.id);
+    const cumplPct = rs.length? rs.filter(r=>r.cumpleCriterios).length/rs.length*100 : 0;
+    const gondolaProm = rs.length? rs.reduce((a,r)=>a+r.gondolaPct,0)/rs.length : 0;
+    const tardanzas = js.filter(r=>r.tardanza).length;
+    const diasTrabajados = js.length;
+    const base = Math.round(500000 * diasTrabajados/22);
+    const bonusCumpl = cumplPct>=90?300000:(cumplPct>=80?150000:0);
+    const bonusGondola = gondolaProm>=30?100000:0;
+    const penal = Math.min(150000, tardanzas*20000);
+    const total = Math.max(0, base+bonusCumpl+bonusGondola-penal);
+    return {p, diasTrabajados, cumplPct:Math.round(cumplPct), gondolaProm:Math.round(gondolaProm), tardanzas, base, bonusCumpl, bonusGondola, penal, total};
+  }).sort((a,b)=>b.total-a.total);
+
+  const totalPagar = data.reduce((a,d)=>a+d.total,0);
+  const promedio = data.length? totalPagar/data.length:0;
+  const conBono = data.filter(d=>d.bonusCumpl>0).length;
+  const medalColor = i => i===0?'#e8a045':i===1?'#9c9494':i===2?'#c07a3a':'var(--bg4)';
+
+  document.getElementById('content').innerHTML = `
+    <div class="banner"><i class="fas fa-calculator"></i> Cálculo estimado: comisión base prorrateada por días trabajados + bono por cumplimiento + bono por góndola − penalización por tardanzas.</div>
+    <div class="grid grid-kpi" style="margin-bottom:18px">
+      ${kpiCard('Total a pagar', 0, `período de ${F.dias} días`, 'fa-sack-dollar', '--brand2','k-total')}
+      ${kpiCard('Comisión promedio', 0, 'por promotor', 'fa-hand-holding-dollar', '--ok','k-promedio')}
+      ${kpiCard('Con bono de cumplimiento', conBono, `de ${data.length} promotores`, 'fa-medal', '--vi','k-conbono')}
+      ${kpiCard('Mejor comisión', 0, data[0]?data[0].p.name:'—', 'fa-trophy', '--wa','k-mejor')}
+    </div>
+    <div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card"><div class="card-hdr"><div class="card-title">Top 10 comisiones del período</div></div>
+        <div class="chart-wrap"><canvas id="ch-comisiones"></canvas></div></div>
+      <div class="card"><div class="card-hdr"><div class="card-title">Cómo se compone</div></div>
+        <div style="font-size:12.5px;color:var(--tx2);line-height:2">
+          <div><span class="dot bl"></span> Base: Gs. 500.000 prorrateado por días trabajados / 22</div>
+          <div><span class="dot ok"></span> Bono cumplimiento: +Gs. 300.000 (≥90%) / +Gs. 150.000 (≥80%)</div>
+          <div><span class="dot vi"></span> Bono góndola: +Gs. 100.000 si participación ≥ 30%</div>
+          <div><span class="dot er"></span> Penalización: -Gs. 20.000 por tardanza (tope Gs. 150.000)</div>
+        </div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">Detalle por promotor</div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Promotor</th><th>Días</th><th>Cumpl.</th><th>Góndola</th><th>Tardanzas</th><th>Base</th><th>Bonos</th><th>Penal.</th><th>Total</th></tr></thead><tbody>
+      ${data.map((d,i)=>`<tr><td><span class="rank-medal" style="background:${medalColor(i)}">${i+1}</span></td><td style="font-weight:700">${d.p.name}</td><td>${d.diasTrabajados}</td><td><span class="badge ${d.cumplPct>=80?'ok':'wa'}">${d.cumplPct}%</span></td><td>${d.gondolaProm}%</td><td>${d.tardanzas||'—'}</td><td class="mono">${fmtGs(d.base)}</td><td class="mono" style="color:var(--ok)">+${fmtGs(d.bonusCumpl+d.bonusGondola)}</td><td class="mono" style="color:var(--er)">${d.penal?'-'+fmtGs(d.penal):'—'}</td><td class="mono" style="font-weight:800">${fmtGs(d.total)}</td></tr>`).join('')}
+      </tbody></table></div>
+    </div>`;
+
+  animateNum(document.getElementById('k-total'), totalPagar);
+  document.getElementById('k-total').textContent = fmtGs(totalPagar);
+  document.getElementById('k-promedio').textContent = fmtGs(promedio);
+  animateNum(document.getElementById('k-conbono'), conBono);
+  document.getElementById('k-mejor').textContent = data[0]? fmtGs(data[0].total) : 'Gs. 0';
+
+  const top10 = data.slice(0,10);
+  mkChart('ch-comisiones',{type:'bar',data:{labels:top10.map(d=>d.p.name.split(' ')[0]),datasets:[{label:'Comisión total',data:top10.map(d=>d.total),backgroundColor:brandColor(),borderRadius:6,maxBarThickness:30}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmtGs(ctx.parsed.y)}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{callback:v=>fmtInt(v)}},x:{grid:{display:false},ticks:{font:{size:10.5}}}}}});
+}
+
+// ============================================================
 // PÁGINA: SUPERVISORES
 // ============================================================
 function renderSupervisores(){
@@ -657,8 +912,8 @@ function renderSupervisores(){
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div class="card-title">Ranking de promotores</div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Promotor</th><th>Supervisor</th><th>Visitas</th><th>PDVs</th><th>Cumplimiento</th><th>Alertas</th></tr></thead><tbody>
-      ${rankProm.map((r,i)=>`<tr><td><span class="rank-medal" style="background:${medalColor(i)}">${i+1}</span></td><td style="font-weight:700">${r.p.name}</td><td>${supById(r.p.supervisorId).name}</td><td>${r.visitas}</td><td>${r.pdvs}</td><td><span class="badge ${r.cumpl>=80?'ok':r.cumpl>=60?'wa':'er'}">${r.cumpl}%</span></td><td>${r.alertas?`<span class="badge er">${r.alertas}</span>`:'—'}</td></tr>`).join('')}
+      <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Promotor</th><th>Supervisor</th><th>Ciudad</th><th>Visitas</th><th>PDVs</th><th>Cumplimiento</th><th>Alertas</th></tr></thead><tbody>
+      ${rankProm.map((r,i)=>`<tr><td><span class="rank-medal" style="background:${medalColor(i)}">${i+1}</span></td><td style="font-weight:700">${r.p.name}</td><td>${supById(r.p.supervisorId).name}</td><td>${r.p.city}</td><td>${r.visitas}</td><td>${r.pdvs}</td><td><span class="badge ${r.cumpl>=80?'ok':r.cumpl>=60?'wa':'er'}">${r.cumpl}%</span></td><td>${r.alertas?`<span class="badge er">${r.alertas}</span>`:'—'}</td></tr>`).join('')}
       </tbody></table></div>
     </div>
     <div class="card">
@@ -668,8 +923,8 @@ function renderSupervisores(){
       <div id="map-recorrido"></div>
     </div>`;
 
-  mkChart('ch-promotores',{type:'bar',data:{labels:rankProm.map(r=>r.p.name.split(' ')[0]),datasets:[{label:'% Cumplimiento',data:rankProm.map(r=>r.cumpl),backgroundColor:brandColor(),borderRadius:6,maxBarThickness:30}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10.5}}}}}});
+  mkChart('ch-promotores',{type:'bar',data:{labels:rankProm.map(r=>r.p.name.split(' ')[0]),datasets:[{label:'% Cumplimiento',data:rankProm.map(r=>r.cumpl),backgroundColor:brandColor(),borderRadius:5,maxBarThickness:20}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
   document.getElementById('sel-recorrido').onchange = e=>{ recorridoPromotor=e.target.value; drawRecorrido(); };
   drawRecorrido();
@@ -702,28 +957,30 @@ function drawRecorrido(){
 const PAGES = {
   resumen:{title:'Resumen ejecutivo', icon:'fa-chart-pie', render:renderResumen},
   cobertura:{title:'Cobertura', icon:'fa-store', render:renderCobertura},
-  evidencias:{title:'Evidencias fotográficas', icon:'fa-images', render:renderEvidencias},
+  auditoria:{title:'Auditoría de punto de venta', icon:'fa-clipboard-check', render:renderAuditoria},
   alertas:{title:'Alertas y vencimientos', icon:'fa-exclamation-triangle', render:renderAlertas},
+  jornada:{title:'Jornada y asistencia', icon:'fa-user-clock', render:renderJornada},
+  comisiones:{title:'Comisiones', icon:'fa-hand-holding-dollar', render:renderComisiones},
   supervisores:{title:'Supervisores', icon:'fa-user-tie', render:renderSupervisores},
 };
 
 function goPage(page){
   currentPage = page;
+  searchTerm='';
   document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('active', n.dataset.p===page));
   document.getElementById('pt-text').textContent = PAGES[page].title;
   document.getElementById('pt-icon').className = 'fas '+PAGES[page].icon;
   PAGES[page].render();
 }
-document.getElementById('nav').addEventListener('click', e=>{
-  const ni = e.target.closest('.ni');
-  if(ni) goPage(ni.dataset.p);
-});
+document.getElementById('nav').addEventListener('click', e=>{ const ni=e.target.closest('.ni'); if(ni) goPage(ni.dataset.p); });
+document.getElementById('nav2').addEventListener('click', e=>{ const ni=e.target.closest('.ni'); if(ni) goPage(ni.dataset.p); });
 
 function renderFbarChips(){
   const chips=[];
   if(F.cadena) chips.push(chip(F.cadena, `clearFilter('cadena')`));
   if(F.ciudad) chips.push(chip(F.ciudad, `clearFilter('ciudad')`));
   if(F.categoria) chips.push(chip(F.categoria, `clearFilter('categoria')`));
+  if(F.supervisor) chips.push(chip(supById(F.supervisor).name, `clearFilter('supervisor')`));
   document.getElementById('fbar-chips').innerHTML = chips.join('');
 }
 function clearFilter(key){
@@ -731,9 +988,13 @@ function clearFilter(key){
   document.getElementById('f-'+key).value='';
   applyFilters();
 }
+function updateBadges(){
+  document.getElementById('nb-alertas').textContent = filterVisits().filter(r=>r.tieneVencidos).length;
+  document.getElementById('nb-tardanzas').textContent = filterJornadas().filter(r=>r.tardanza).length;
+}
 function applyFilters(){
   renderFbarChips();
-  document.getElementById('nb-alertas').textContent = filterVisits().filter(r=>r.tieneVencidos).length;
+  updateBadges();
   PAGES[currentPage].render();
 }
 
@@ -744,11 +1005,15 @@ function initFilterOptions(){
   CITIES.forEach(c=> selCi.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`));
   const selCat = document.getElementById('f-categoria');
   CATEGORIES.forEach(c=> selCat.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`));
+  const selSup = document.getElementById('f-supervisor');
+  SUPERVISORS.forEach(s=> selSup.insertAdjacentHTML('beforeend', `<option value="${s.id}">${s.name}</option>`));
 
+  document.getElementById('f-dias').value = String(F.dias);
   document.getElementById('f-dias').onchange = e=>{ F.dias=+e.target.value; applyFilters(); };
   selC.onchange = e=>{ F.cadena=e.target.value; applyFilters(); };
   selCi.onchange = e=>{ F.ciudad=e.target.value; applyFilters(); };
   selCat.onchange = e=>{ F.categoria=e.target.value; applyFilters(); };
+  selSup.onchange = e=>{ F.supervisor=e.target.value; applyFilters(); };
 }
 
 document.getElementById('btn-refresh').onclick = ()=>{
@@ -758,10 +1023,10 @@ document.getElementById('btn-refresh').onclick = ()=>{
 };
 document.getElementById('btn-export').onclick = ()=>{
   const rows = filterVisits();
-  const header = ['Fecha','Hora','Promotor','Supervisor','PDV','Cadena','Ciudad','Categoria','CumpleCriterios','TienePOP','TienePrecios','TieneVencidos','Duracion(min)'];
+  const header = ['Fecha','Hora','Promotor','Supervisor','PDV','Cadena','Ciudad','Categoria','CumpleCriterios','TienePOP','TienePrecios','TieneVencidos','GondolaPct','EspacioGanado','PrecioNuestro','PrecioCompetidor','AccionCompetencia'];
   const lines = rows.map(r=>{
     const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId);
-    return [r.fecha,r.hora,prom.name,supById(prom.supervisorId).name,pdv.name,pdv.chain,pdv.city,r.categoria,r.cumpleCriterios,r.tienePOP,r.tienePrecios,r.tieneVencidos,r.duracion].join(',');
+    return [r.fecha,r.hora,prom.name,supById(prom.supervisorId).name,pdv.name,pdv.chain,pdv.city,r.categoria,r.cumpleCriterios,r.tienePOP,r.tienePrecios,r.tieneVencidos,r.gondolaPct,r.espacioGanado,r.precioNuestro,r.precioCompetidor,r.accionCompetencia].join(',');
   });
   const csv = [header.join(','), ...lines].join('\n');
   const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
@@ -815,7 +1080,7 @@ document.getElementById('theme-toggle').onclick = ()=>{
 initFilterOptions();
 initSwatches();
 renderFbarChips();
-document.getElementById('nb-alertas').textContent = filterVisits().filter(r=>r.tieneVencidos).length;
+updateBadges();
 goPage('resumen');
 </script>
 </body>
