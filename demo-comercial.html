@@ -260,12 +260,29 @@ const CITY_CONFIG = [
 const CITIES = CITY_CONFIG.map(c=>c.name);
 const CITY_COORDS = {}; CITY_CONFIG.forEach(c=>CITY_COORDS[c.name]=[c.lat,c.lng]);
 const CATEGORIES = ['Snacks','Bebidas','Cuidado del Hogar','Higiene Personal'];
-const PRODUCTS = {
-  'Snacks':['Nova Snacks Clásicas 150g','Nova Snacks Picantes 120g'],
-  'Bebidas':['Nova Cítrica 1L','Nova Agua Saborizada 500ml'],
-  'Cuidado del Hogar':['Nova Detergente Floral 900ml','Nova Multiuso 750ml'],
-  'Higiene Personal':['Nova Jabón Avena x3','Nova Shampoo Reparador 400ml'],
+const CATALOGO = {
+  'Snacks':{
+    'Papas fritas':['Nova Snacks Clásicas 150g','Nova Snacks Picantes 120g'],
+    'Galletitas':['Nova Galletitas Dulces 200g','Nova Galletitas Saladas 180g'],
+  },
+  'Bebidas':{
+    'Gaseosas':['Nova Cítrica 1L','Nova Cola 1.5L'],
+    'Aguas saborizadas':['Nova Agua Saborizada 500ml','Nova Agua Frutal 500ml'],
+  },
+  'Cuidado del Hogar':{
+    'Limpieza líquida':['Nova Detergente Floral 900ml','Nova Multiuso 750ml'],
+    'Desinfección':['Nova Lavandina 1L','Nova Desinfectante Pino 900ml'],
+  },
+  'Higiene Personal':{
+    'Jabones':['Nova Jabón Avena x3','Nova Jabón Glicerina x3'],
+    'Shampoo':['Nova Shampoo Reparador 400ml','Nova Shampoo Hidratante 400ml'],
+  },
 };
+const SUBCATEGORIAS = [];
+Object.entries(CATALOGO).forEach(([cat,subs])=>Object.keys(subs).forEach(sub=>SUBCATEGORIAS.push({cat,sub})));
+const TODOS_PRODUCTOS = Object.values(CATALOGO).flatMap(subs=>Object.values(subs).flat());
+const PRODUCTS = {};
+Object.entries(CATALOGO).forEach(([cat,subs])=>PRODUCTS[cat]=Object.values(subs).flat());
 const PRECIO_BASE = {
   'Snacks':[8000,15000], 'Bebidas':[6000,12000],
   'Cuidado del Hogar':[18000,32000], 'Higiene Personal':[12000,22000],
@@ -358,6 +375,8 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
         const opts = PRODUCTS[categoria];
         productosAveriados = rnd()<0.6 ? [opts[0]] : [opts[0],opts[1]];
       }
+      const subcategoria = pick(Object.keys(CATALOGO[categoria]));
+      const producto = pick(CATALOGO[categoria][subcategoria]);
       const [lo,hi] = PRECIO_BASE[categoria];
       const precioNuestro = lo + Math.floor(rnd()*(hi-lo));
       const precioCompetidor = Math.round(precioNuestro*(0.85+rnd()*0.3)/100)*100;
@@ -365,7 +384,7 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
       min += 10+Math.floor(rnd()*20);
       if(min>=60){hour+=1;min-=60;}
       VISITS.push({
-        id:'v'+visitSeq, fecha:isoDate(day), promotorId:prom.id, pdvId, categoria,
+        id:'v'+visitSeq, fecha:isoDate(day), promotorId:prom.id, pdvId, categoria, subcategoria, producto,
         hora:`${pad2(hour)}:${pad2(min)}`, duracion,
         cumpleCriterios, tienePOP, tienePrecios, tieneVencidos, estadoVenc, diasVenc, productos,
         tieneAveriados, motivoAveriado, productosAveriados,
@@ -753,12 +772,17 @@ function renderAuditoria(){
   const precioNuestroMax = all.length? Math.max(...all.map(r=>r.precioNuestro)) : 0;
   const precioCompMin = all.length? Math.min(...all.map(r=>r.precioCompetidor)) : 0;
   const precioCompMax = all.length? Math.max(...all.map(r=>r.precioCompetidor)) : 0;
-  const preciosRangoCat = CATEGORIES.map(cat=>{
-    const rs = all.filter(r=>r.categoria===cat);
-    return {cat,
+  const rangoDe = (filtroFn) => {
+    const rs = all.filter(filtroFn);
+    return {
       nMin: rs.length?Math.min(...rs.map(r=>r.precioNuestro)):0, nMax: rs.length?Math.max(...rs.map(r=>r.precioNuestro)):0,
-      cMin: rs.length?Math.min(...rs.map(r=>r.precioCompetidor)):0, cMax: rs.length?Math.max(...rs.map(r=>r.precioCompetidor)):0};
-  });
+      cMin: rs.length?Math.min(...rs.map(r=>r.precioCompetidor)):0, cMax: rs.length?Math.max(...rs.map(r=>r.precioCompetidor)):0,
+      n: rs.length,
+    };
+  };
+  const preciosRangoCat = CATEGORIES.map(cat=>({cat, ...rangoDe(r=>r.categoria===cat)}));
+  const preciosRangoSubcat = SUBCATEGORIAS.map(({cat,sub})=>({cat, sub, ...rangoDe(r=>r.subcategoria===sub)}));
+  const preciosRangoProducto = TODOS_PRODUCTOS.map(prod=>({prod, ...rangoDe(r=>r.producto===prod)}));
 
   const fotos = rows.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,24);
 
@@ -800,8 +824,17 @@ function renderAuditoria(){
         <div class="kpi"><div class="kpi-lbl">Mínimo — Competencia</div><div class="kpi-val" style="color:var(--tx2)">${fmtGs(precioCompMin)}</div></div>
         <div class="kpi"><div class="kpi-lbl">Máximo — Competencia</div><div class="kpi-val" style="color:var(--tx2)">${fmtGs(precioCompMax)}</div></div>
       </div>
-      <div class="tbl-wrap"><table><thead><tr><th>Categoría</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
+      <div class="card-sub" style="margin-bottom:8px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.3px">Por categoría</div>
+      <div class="tbl-wrap" style="margin-bottom:18px"><table><thead><tr><th>Categoría</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
       ${preciosRangoCat.map(p=>`<tr><td style="font-weight:700">${p.cat}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="card-sub" style="margin-bottom:8px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.3px">Por subcategoría</div>
+      <div class="tbl-wrap" style="margin-bottom:18px"><table><thead><tr><th>Subcategoría</th><th>Categoría</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
+      ${preciosRangoSubcat.map(p=>`<tr><td style="font-weight:700">${p.sub}</td><td>${p.cat}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="card-sub" style="margin-bottom:8px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.3px">Por producto</div>
+      <div class="tbl-wrap"><table><thead><tr><th>Producto</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
+      ${preciosRangoProducto.map(p=>`<tr><td style="font-weight:700">${p.prod}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td></tr>`).join('')}
       </tbody></table></div>
     </div>`;
 
