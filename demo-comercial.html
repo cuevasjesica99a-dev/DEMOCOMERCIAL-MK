@@ -123,6 +123,10 @@ tr:hover td{background:var(--bg3)}
 .evid-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:var(--tr)}
 .evid-card:hover{transform:translateY(-3px);box-shadow:var(--sh)}
 .evid-img{width:100%;height:120px;object-fit:cover;display:block;background:var(--bg3)}
+.evid-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;height:100px;background:var(--bg3)}
+.evid-photos .ph-wrap{position:relative;overflow:hidden;cursor:pointer}
+.evid-photos img{width:100%;height:100%;object-fit:cover;display:block}
+.evid-photos .ph-label{position:absolute;bottom:2px;left:3px;font-size:8px;color:#fff;background:rgba(0,0,0,.55);padding:1px 4px;border-radius:3px}
 .evid-body{padding:11px 13px}
 .evid-pdv{font-weight:700;font-size:12.5px;margin-bottom:2px}
 .evid-meta{font-size:10.5px;color:var(--tx3);margin-bottom:8px}
@@ -430,23 +434,28 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
       const tienePOP = chance(0.63+boost*0.03);
       const tienePrecios = chance(0.91+boost*0.02);
       const tieneVencidos = chance(0.11-boost*0.03);
-      let estadoVenc=null, diasVenc=null, productos=[], motivoVencido=null;
+      let estadoVenc=null, diasVenc=null, productos=[], motivoVencido=null, cantidadVencidos=0;
       if(tieneVencidos){
         const roll = rnd();
-        if(roll<0.4){ estadoVenc='vencido'; diasVenc = -(1+Math.floor(rnd()*10)); }
-        else if(roll<0.75){ estadoVenc='vence7'; diasVenc = 1+Math.floor(rnd()*7); }
-        else { estadoVenc='vence15'; diasVenc = 8+Math.floor(rnd()*8); }
+        if(roll<0.3){ estadoVenc='vencido'; diasVenc = -(1+Math.floor(rnd()*10)); }
+        else if(roll<0.55){ estadoVenc='urgente'; diasVenc = 1+Math.floor(rnd()*7); }
+        else if(roll<0.8){ estadoVenc='proximo'; diasVenc = 8+Math.floor(rnd()*23); }
+        else { estadoVenc='holgado'; diasVenc = 31+Math.floor(rnd()*30); }
         const opts = PRODUCTS[categoria];
         productos = rnd()<0.5 ? [opts[0]] : [opts[0],opts[1]];
         motivoVencido = pick(MOTIVOS_VENC);
+        cantidadVencidos = 2+Math.floor(rnd()*22);
       }
       const tieneAveriados = chance(0.08-boost*0.02);
-      let motivoAveriado=null, productosAveriados=[];
+      let motivoAveriado=null, productosAveriados=[], cantidadAveriados=0;
       if(tieneAveriados){
         motivoAveriado = pick(MOTIVOS_AVERIA);
         const opts = PRODUCTS[categoria];
         productosAveriados = rnd()<0.6 ? [opts[0]] : [opts[0],opts[1]];
+        cantidadAveriados = 1+Math.floor(rnd()*9);
       }
+      const rPresencia = rnd() - boost*0.08;
+      const presenciaCompetencia = rPresencia<0.30 ? 'Menor' : rPresencia<0.75 ? 'Igual' : 'Mayor';
       const subcategoria = pick(Object.keys(CATALOGO[categoria]));
       const producto = pick(CATALOGO[categoria][subcategoria]);
       const precioSugerido = PRECIO_SUGERIDO[producto];
@@ -465,8 +474,9 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
       VISITS.push({
         id:'v'+visitSeq, fecha:isoDate(day), promotorId:prom.id, pdvId, categoria, subcategoria, producto,
         hora:`${pad2(hour)}:${pad2(min)}`, duracion,
-        cumpleCriterios, tienePOP, tienePrecios, tieneVencidos, estadoVenc, diasVenc, productos, motivoVencido,
-        tieneAveriados, motivoAveriado, productosAveriados,
+        cumpleCriterios, tienePOP, tienePrecios, tieneVencidos, estadoVenc, diasVenc, productos, motivoVencido, cantidadVencidos,
+        tieneAveriados, motivoAveriado, productosAveriados, cantidadAveriados,
+        presenciaCompetencia,
         popTipo: tienePOP ? pick(POP_TYPES) : null,
         gondolaPct: tieneQuiebre ? 0 : Math.max(5,Math.min(95,Math.round(15+rnd()*35+boost*5))),
         espacioGanado: !tieneQuiebre && chance(0.22+boost*0.05),
@@ -479,6 +489,7 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
         fotoEstanteria: fotoUrl('estanteria', fotoSeed),
         fotoPrecio: fotoUrl('precio', fotoSeed),
         fotoProducto: fotoUrl('producto', fotoSeed),
+        fotoVencidos: tieneVencidos ? fotoUrl('producto', fotoSeed+'venc') : null,
       });
       hour += Math.floor(duracion/60); min += duracion%60; if(min>=60){hour+=1;min-=60;}
     });
@@ -541,6 +552,7 @@ let recorridoPromotor = PROMOTERS[0].id;
 let jornadaDiaFiltro='';
 let coberturaVista='cadena';
 let preciosVista='categoria';
+let alertasTab='todos';
 const charts = {};
 let mapCobertura=null, mapRecorrido=null;
 const ROI = {
@@ -631,8 +643,9 @@ function kpiCard(label, value, sub, icon, colorVar, id, target){
 }
 function badgeVenc(estado){
   if(estado==='vencido') return `<span class="badge er"><i class="fas fa-times-circle"></i> Vencido</span>`;
-  if(estado==='vence7') return `<span class="badge wa"><i class="fas fa-clock"></i> Vence ≤7 días</span>`;
-  if(estado==='vence15') return `<span class="badge wa" style="opacity:.75"><i class="fas fa-clock"></i> Vence ≤15 días</span>`;
+  if(estado==='urgente') return `<span class="badge wa"><i class="fas fa-clock"></i> Vence ≤7 días</span>`;
+  if(estado==='proximo') return `<span class="badge wa" style="opacity:.8"><i class="fas fa-clock"></i> Vence 8-30 días</span>`;
+  if(estado==='holgado') return `<span class="badge" style="background:var(--ok-d);color:var(--ok);opacity:.75"><i class="fas fa-clock"></i> Vence +30 días</span>`;
   return `<span class="badge ok"><i class="fas fa-check-circle"></i> OK</span>`;
 }
 function badgeAveria(motivo){
@@ -660,9 +673,13 @@ function brandColor2(){ return getComputedStyle(document.documentElement).getPro
 
 function buildFotoCard(r){
   const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId);
-  return `<div class="evid-card" onclick='openPhoto("${r.id}")'>
-    <img class="evid-img" src="${r.fotoEstanteria}" loading="lazy" alt="Evidencia">
-    <div class="evid-body">
+  const fotos = [{tag:'estanteria',u:r.fotoEstanteria,lbl:'Estantería'},{tag:'precio',u:r.fotoPrecio,lbl:'Precio'},{tag:'producto',u:r.fotoProducto,lbl:'Producto'}];
+  if(r.tieneVencidos) fotos[2] = {tag:'vencidos',u:r.fotoVencidos,lbl:'Vencidos'};
+  return `<div class="evid-card">
+    <div class="evid-photos">
+      ${fotos.map(f=>`<div class="ph-wrap" onclick='event.stopPropagation();openPhoto("${r.id}","${f.tag}")'><img src="${f.u}" loading="lazy" alt="${f.lbl}"><span class="ph-label">${f.lbl}</span></div>`).join('')}
+    </div>
+    <div class="evid-body" onclick='openPhoto("${r.id}","estanteria")' style="cursor:pointer">
       <div class="evid-pdv">${pdv.name}</div>
       <div class="evid-meta">${prom.name} · ${dateDisplay(r.fecha)} · ${r.hora}</div>
       <div class="evid-tags">
@@ -672,10 +689,11 @@ function buildFotoCard(r){
       </div>
     </div></div>`;
 }
-function openPhoto(visitId){
+function openPhoto(visitId, tag){
   const r = VISITS.find(v=>v.id===visitId);
   const pdv = pdvById(r.pdvId), prom = promoterById(r.promotorId);
-  document.getElementById('modal-img').src = r.fotoEstanteria.replace('w=480&h=360','w=700&h=420');
+  const fotoPorTag = {estanteria:r.fotoEstanteria, precio:r.fotoPrecio, producto:r.fotoProducto, vencidos:r.fotoVencidos};
+  document.getElementById('modal-img').src = (fotoPorTag[tag]||r.fotoEstanteria).replace('w=480&h=360','w=700&h=420');
   const diffPrecio = r.tieneQuiebre ? null : Math.round((r.precioNuestro-r.precioCompetidor)/r.precioCompetidor*100);
   document.getElementById('modal-body').innerHTML = `
     <div style="font-weight:800;font-size:15px;margin-bottom:4px">${pdv.name}</div>
@@ -709,6 +727,36 @@ function rowsDelMes(mes){
   const hasta = `${ANIO_DEMO}-${pad2(mes)}-31`;
   return VISITS.filter(v=>{
     if(v.fecha<desde || v.fecha>hasta) return false;
+    const pdv = pdvById(v.pdvId);
+    if(F.cadena && pdv.chain!==F.cadena) return false;
+    if(F.ciudad && pdv.city!==F.ciudad) return false;
+    if(F.categoria && v.categoria!==F.categoria) return false;
+    return true;
+  });
+}
+function rowsEnRangoFechas(desdeStr, hastaStr){
+  return VISITS.filter(v=>{
+    if(v.fecha<desdeStr || v.fecha>hastaStr) return false;
+    const pdv = pdvById(v.pdvId);
+    if(F.cadena && pdv.chain!==F.cadena) return false;
+    if(F.ciudad && pdv.city!==F.ciudad) return false;
+    if(F.categoria && v.categoria!==F.categoria) return false;
+    return true;
+  });
+}
+function preciosPorProducto(rows){
+  const conStock = rows.filter(r=>!r.tieneQuiebre);
+  return TODOS_PRODUCTOS.map(prod=>{
+    const rs = conStock.filter(r=>r.producto===prod);
+    const nuestro = rs.length? Math.round(rs.reduce((a,r)=>a+r.precioNuestro,0)/rs.length):0;
+    const competidor = rs.length? Math.round(rs.reduce((a,r)=>a+r.precioCompetidor,0)/rs.length):0;
+    const indice = competidor? Math.round(nuestro/competidor*100):100;
+    return {prod, nuestro, competidor, indice, n:rs.length};
+  }).filter(p=>p.n>0);
+}
+function visitasDelDia(fecha){
+  return VISITS.filter(v=>{
+    if(v.fecha!==fecha) return false;
     const pdv = pdvById(v.pdvId);
     if(F.cadena && pdv.chain!==F.cadena) return false;
     if(F.ciudad && pdv.city!==F.ciudad) return false;
@@ -784,6 +832,24 @@ function renderResumen(){
   const disponibilidad = totalVisitas? (1-rows.filter(r=>r.tieneQuiebre).length/totalVisitas)*100 : 100;
   const periodoLabel = rangoLabel();
 
+  const ejecucionPct = totalVisitas? Math.round(100*rows.reduce((s,r)=>s+((r.cumpleCriterios?1:0)+(r.espacioGanado?1:0)+(r.tienePOP?1:0)+(r.tienePrecios?1:0)),0)/(totalVisitas*4)) : 0;
+  const valorMovilizado = rows.reduce((s,r)=>s+r.unidadesRepuestas*r.precioSugerido,0);
+
+  const catRiesgo = {};
+  rows.filter(r=>!r.tieneQuiebre).forEach(r=>{ if(!catRiesgo[r.categoria]) catRiesgo[r.categoria]={cumple:0,n:0}; catRiesgo[r.categoria].n++; if(r.cumplePrecioPropio) catRiesgo[r.categoria].cumple++; });
+  const categoriasRiesgo = Object.entries(catRiesgo).map(([cat,v])=>({cat,pct:v.n?Math.round(100*v.cumple/v.n):0})).sort((a,b)=>a.pct-b.pct).slice(0,3);
+  const prodRotacion = {};
+  rows.forEach(r=>{ prodRotacion[r.producto]=(prodRotacion[r.producto]||0)+r.unidadesRepuestas; });
+  const topRotacion = Object.entries(prodRotacion).sort((a,b)=>b[1]-a[1]).slice(0,3);
+
+  const posicionamiento = preciosPorProducto(rows);
+  const masCaras = posicionamiento.filter(p=>p.indice>105).sort((a,b)=>b.indice-a.indice).slice(0,3);
+  const masBaratas = posicionamiento.filter(p=>p.indice<95).sort((a,b)=>a.indice-b.indice).slice(0,3);
+
+  const dias14evol = [...Array(14)].map((_,i)=>isoDate(addDays(TODAY,-(13-i))));
+  const serieDesvioPropio = dias14evol.map(d=>{ const rs=visitasDelDia(d).filter(r=>!r.tieneQuiebre); return rs.length? Math.round(rs.reduce((s,r)=>s+((r.precioNuestro-r.precioSugerido)/r.precioSugerido*100),0)/rs.length*10)/10 : null; });
+  const serieDesvioComp = dias14evol.map(d=>{ const rs=visitasDelDia(d); return rs.length? Math.round(rs.reduce((s,r)=>s+((r.precioCompetidor-r.precioSugerido)/r.precioSugerido*100),0)/rs.length*10)/10 : null; });
+
   const metas = [
     {label:'Cumplimiento de criterios', meta:90, real:Math.round(cumplPct)},
     {label:'Cobertura de PDVs', meta:95, real:Math.round(pdvsUnicos/PDVS.length*100)},
@@ -805,6 +871,32 @@ function renderResumen(){
       ${kpiCard('Alertas activas', alertas, 'vencidos, por vencer y averiados', 'fa-exclamation-triangle', '--er','k-alertas','alertas')}
       ${kpiCard('Promotores activos', promotoresActivos, `de ${PROMOTERS.length} en nómina`, 'fa-users', '--bl','k-promotores','supervisores')}
       ${kpiCard('Góndola promedio', Math.round(gondolaProm), 'participación de espacio', 'fa-border-all', '--vi','k-gondola','auditoria')}
+      ${kpiCard('Cumplimiento de ejecución', ejecucionPct, 'criterios + espacios + POP + precios', 'fa-clipboard-check', ejecucionPct>=85?'--ok':ejecucionPct>=60?'--wa':'--er','k-ejecucion','relevamientos')}
+      ${kpiCard('Valor de mercado movilizado', 0, `${fmtInt(rows.reduce((s,r)=>s+r.unidadesRepuestas,0))} unidades repuestas`, 'fa-coins', '--brand2','k-valormov','precios')}
+    </div>
+    <div class="grid grid-3" style="margin-bottom:16px">
+      <div class="card" style="cursor:pointer" onclick="goPage('precios')">
+        <div class="card-hdr"><div><div class="card-title">Ranking de categorías</div><div class="card-sub">por rotación de producto →</div></div></div>
+        ${topRotacion.map(([p,unid],i)=>`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px"><span style="color:var(--tx2)">${p}</span><span style="font-weight:700">${unid} unid.</span></div><div style="height:6px;background:var(--bg4);border-radius:4px;overflow:hidden"><div style="height:100%;width:${Math.round(unid/(topRotacion[0][1]||1)*100)}%;background:${i===0?brandColor():'var(--tx3)'}"></div></div></div>`).join('') || `<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px 0">Sin datos</div>`}
+      </div>
+      <div class="card">
+        <div class="card-hdr"><div class="card-title">Riesgos y oportunidades</div></div>
+        <div style="font-size:9.5px;font-weight:700;color:var(--er);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">⚠ Menor cumplimiento de precio</div>
+        ${categoriasRiesgo.map(cc=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${cc.cat}</span><span style="font-weight:700;color:${cc.pct<70?'var(--er)':'var(--wa)'}">${cc.pct}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Sin datos suficientes</div>`}
+        <div style="font-size:9.5px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">📈 Mejor rotación</div>
+        ${topRotacion.map(([p,unid])=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${p}</span><span style="font-weight:700;color:var(--ok)">${unid} unid.</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Sin datos suficientes</div>`}
+      </div>
+      <div class="card" style="cursor:pointer" onclick="goPage('precios')">
+        <div class="card-hdr"><div><div class="card-title">Posicionamiento competitivo</div><div class="card-sub">precio propio vs. promedio de la categoría →</div></div></div>
+        <div style="font-size:9.5px;font-weight:700;color:var(--er);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Más caras que su categoría</div>
+        ${masCaras.map(m=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${m.prod}</span><span style="font-weight:700;color:var(--er)">+${m.indice-100}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Ninguna</div>`}
+        <div style="font-size:9.5px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">Más económicas que su categoría</div>
+        ${masBaratas.map(m=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${m.prod}</span><span style="font-weight:700;color:var(--ok)">${m.indice-100}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Ninguna</div>`}
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr"><div><div class="card-title">Evolución de precios</div><div class="card-sub">Desviación promedio vs. precio público sugerido, propio vs. competencia — últimos 14 días</div></div></div>
+      <div class="chart-wrap" style="height:190px"><canvas id="ch-evolprecios"></canvas></div>
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">Julio vs. Junio</div><div class="card-sub">Comparativo mensual e índice de competitividad</div></div></div>
@@ -849,6 +941,13 @@ function renderResumen(){
   animateNum(document.getElementById('k-alertas'), alertas);
   animateNum(document.getElementById('k-promotores'), promotoresActivos);
   animateNum(document.getElementById('k-gondola'), Math.round(gondolaProm), '%');
+  animateNum(document.getElementById('k-ejecucion'), ejecucionPct, '%');
+  document.getElementById('k-valormov').textContent = fmtGs(valorMovilizado);
+
+  mkChart('ch-evolprecios',{type:'line',data:{labels:dias14evol.map(dateDisplay),datasets:[
+      {label:'Propio',data:serieDesvioPropio,borderColor:'#e0722a',backgroundColor:'rgba(224,114,42,.15)',tension:.35,fill:true,spanGaps:true,pointRadius:2},
+      {label:'Competencia',data:serieDesvioComp,borderColor:'#5b9bd5',backgroundColor:'rgba(91,155,213,.1)',tension:.35,fill:true,spanGaps:true,pointRadius:2},
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y>0?'+':''}${ctx.parsed.y}% vs. PVP`}}},scales:{y:{grid:{color:'rgba(255,255,255,.06)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});
 
   mkChart('ch-metas',{type:'bar',data:{labels:metas.map(m=>m.label),datasets:[
       {label:'Meta',data:metas.map(m=>m.meta),backgroundColor:'rgba(255,255,255,.16)',borderRadius:5,maxBarThickness:18},
@@ -907,6 +1006,22 @@ function renderCobertura(){
     return {nombre:c, visitas:rs.length, pdvs:new Set(rs.map(r=>r.pdvId)).size, cumpl: rs.length? Math.round(rs.filter(r=>r.cumpleCriterios).length/rs.length*100):0};
   });
 
+  const pdvsFiltrados = PDVS.filter(pdv => (!F.cadena||pdv.chain===F.cadena) && (!F.ciudad||pdv.city===F.ciudad));
+  const ultimaVisitaPorPdv = {};
+  VISITS.forEach(v=>{
+    if(F.categoria && v.categoria!==F.categoria) return;
+    const pdv = pdvById(v.pdvId);
+    if(F.cadena && pdv.chain!==F.cadena) return;
+    if(F.ciudad && pdv.city!==F.ciudad) return;
+    if(!ultimaVisitaPorPdv[v.pdvId] || v.fecha>ultimaVisitaPorPdv[v.pdvId]) ultimaVisitaPorPdv[v.pdvId]=v.fecha;
+  });
+  const zonasSinVisita = pdvsFiltrados.map(pdv=>{
+    const ultima = ultimaVisitaPorPdv[pdv.id]||null;
+    let dias=null;
+    if(ultima){ const [y,m,d]=ultima.split('-').map(Number); dias=Math.round((TODAY-new Date(y,m-1,d))/86400000); }
+    return {pdv, ultima, dias};
+  }).filter(z=>z.dias==null||z.dias>7).sort((a,b)=>(b.dias??9999)-(a.dias??9999));
+
   document.getElementById('content').innerHTML = `
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div><div class="card-title">Mapa de puntos de venta</div><div class="card-sub">${PDVS.length} PDVs en Paraguay · color según estado de cumplimiento</div></div></div>
@@ -916,6 +1031,12 @@ function renderCobertura(){
         </div></div>
       <div class="card"><div class="card-hdr"><div><div class="card-title">Visitas por ciudad</div></div></div>
         <div class="chart-wrap"><canvas id="ch-ciudad"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr"><div><div class="card-title">Zonas sin visitas recientes</div><div class="card-sub">${zonasSinVisita.length} de ${pdvsFiltrados.length} PDVs sin relevar hace más de 7 días</div></div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>PDV</th><th>Cadena</th><th>Ciudad</th><th>Última visita</th></tr></thead><tbody>
+      ${zonasSinVisita.slice(0,15).map(z=>`<tr><td style="font-weight:700">${z.pdv.name}</td><td>${z.pdv.chain}</td><td>${z.pdv.city}</td><td>${z.dias==null?'<span class="badge er">Sin visitas registradas</span>':`<span class="badge wa">Hace ${z.dias} días</span>`}</td></tr>`).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--tx3);padding:20px"><i class="fas fa-check-circle" style="color:var(--ok);margin-right:6px"></i>Todos los PDVs con visita en los últimos 7 días</td></tr>`}
+      </tbody></table></div>
     </div>
     <div class="card">
       <div class="card-hdr" style="align-items:center">
@@ -1064,13 +1185,7 @@ function renderPrecios(){
   const preciosRangoSubcat = SUBCATEGORIAS.map(({cat,sub})=>({cat, sub, ...rangoDe(r=>r.subcategoria===sub)}));
   const preciosRangoProducto = TODOS_PRODUCTOS.map(prod=>({prod, ...rangoDe(r=>r.producto===prod)}));
 
-  const vsCompetencia = TODOS_PRODUCTOS.map(prod=>{
-    const rs = conStock.filter(r=>r.producto===prod);
-    const nuestro = rs.length? Math.round(rs.reduce((a,r)=>a+r.precioNuestro,0)/rs.length):0;
-    const competidor = rs.length? Math.round(rs.reduce((a,r)=>a+r.precioCompetidor,0)/rs.length):0;
-    const diff = competidor? Math.round((nuestro-competidor)/competidor*100):0;
-    return {prod, nuestro, competidor, diff, n:rs.length};
-  }).filter(p=>p.n>0).sort((a,b)=>b.diff-a.diff);
+  const vsCompetencia = preciosPorProducto(all).map(p=>({...p, diff:p.indice-100})).sort((a,b)=>b.diff-a.diff);
 
   document.getElementById('content').innerHTML = `
     <div class="grid grid-kpi" style="margin-bottom:18px">
@@ -1159,54 +1274,119 @@ function renderEvidencias(){
 // PÁGINA: RELEVAMIENTOS (log crudo de visitas)
 // ============================================================
 function renderRelevamientos(){
-  const relevSearchTenidoFoco = document.activeElement && document.activeElement.id==='relev-search';
-  let rows = filterVisits();
-  if(searchTerm){
-    const s = searchTerm.toLowerCase();
-    rows = rows.filter(r=> pdvById(r.pdvId).name.toLowerCase().includes(s) || promoterById(r.promotorId).name.toLowerCase().includes(s) || r.producto.toLowerCase().includes(s));
-  }
-  const ordenado = rows.slice().sort((a,b)=> b.fecha.localeCompare(a.fecha) || b.hora.localeCompare(a.hora));
-  const shown = ordenado.slice(0,60);
+  const rows = filterVisits();
+  const n = rows.length;
+  const colorPct = pct => pct>=85?'var(--ok)':pct>=60?'var(--wa)':'var(--er)';
+
+  const coberturaPct = n? Math.round(100*rows.filter(r=>r.cumpleCriterios).length/n) : 0;
+  const espaciosPct = n? Math.round(100*rows.filter(r=>r.espacioGanado).length/n) : 0;
+  const popPct = n? Math.round(100*rows.filter(r=>r.tienePOP).length/n) : 0;
+  const materialesPct = n? Math.round((espaciosPct+popPct)/2) : 0;
+  const promoPct = n? Math.round(100*rows.filter(r=>r.tienePromocion).length/n) : 0;
+  const dominamosPct = n? Math.round(100*rows.filter(r=>r.presenciaCompetencia==='Menor').length/n) : 0;
+  const empatePct = n? Math.round(100*rows.filter(r=>r.presenciaCompetencia==='Igual').length/n) : 0;
+  const dominaCompPct = n? Math.round(100*rows.filter(r=>r.presenciaCompetencia==='Mayor').length/n) : 0;
+
+  const porCadena = CHAINS.map(cadena=>{
+    const rs = rows.filter(r=>pdvById(r.pdvId).chain===cadena);
+    return {
+      cadena, n:rs.length,
+      cobertura: rs.length?Math.round(100*rs.filter(r=>r.cumpleCriterios).length/rs.length):0,
+      materiales: rs.length?Math.round(100*(rs.filter(r=>r.espacioGanado).length+rs.filter(r=>r.tienePOP).length)/(2*rs.length)):0,
+      promociones: rs.length?Math.round(100*rs.filter(r=>r.tienePromocion).length/rs.length):0,
+      dominaCompetencia: rs.length?Math.round(100*rs.filter(r=>r.presenciaCompetencia==='Mayor').length/rs.length):0,
+    };
+  }).sort((a,b)=>b.n-a.n);
+  const cadenasEnRiesgo = porCadena.filter(c=>c.n>=3 && c.dominaCompetencia>=30).sort((a,b)=>b.dominaCompetencia-a.dominaCompetencia).slice(0,3);
+
+  const dias14 = [...Array(14)].map((_,i)=>isoDate(addDays(TODAY,-(13-i))));
+  const indiceDias = dias14.map(fecha=>{
+    const rs = visitasDelDia(fecha);
+    if(!rs.length) return {fecha, pct:null};
+    const score = rs.reduce((s,r)=>s+((r.cumpleCriterios?1:0)+(r.espacioGanado?1:0)+(r.tienePOP?1:0)+(r.tienePromocion?1:0)+(r.presenciaCompetencia==='Menor'?1:0))/5*100,0)/rs.length;
+    return {fecha, pct:Math.round(score)};
+  });
+
+  const promoFallidas = rows.filter(r=>!r.tienePromocion).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,8);
 
   document.getElementById('content').innerHTML = `
-    <div class="banner"><i class="fas fa-database"></i> Registro crudo de cada visita relevada en el período. Para el listado completo, usá "Exportar CSV" en la barra superior.</div>
-    <div class="card">
-      <div class="card-hdr" style="align-items:center">
-        <div><div class="card-title">Relevamientos</div><div class="card-sub">${ordenado.length} registros en el período · mostrando los ${shown.length} más recientes</div></div>
-        <input type="text" id="relev-search" placeholder="Buscar por PDV, promotor o producto..." style="max-width:280px" value="${searchTerm}">
+    <div class="grid grid-kpi" style="margin-bottom:18px">
+      ${kpiCard('Cobertura de criterios', coberturaPct, `${n} relevamientos en el período`, 'fa-clipboard-check', coberturaPct>=85?'--ok':coberturaPct>=60?'--wa':'--er','k-cobertura')}
+      ${kpiCard('Estado de materiales', materialesPct, `espacios ${espaciosPct}% + POP ${popPct}%`, 'fa-box', materialesPct>=85?'--ok':materialesPct>=60?'--wa':'--er','k-materiales')}
+      ${kpiCard('Cumplimiento de promociones', promoPct, `de ${n} visitas relevadas`, 'fa-bullhorn', promoPct>=85?'--ok':promoPct>=60?'--wa':'--er','k-promorel')}
+      ${kpiCard('Dominio de góndola', dominamosPct, `vs. ${dominaCompPct}% donde domina la competencia`, 'fa-flag', dominamosPct>=dominaCompPct?'--ok':'--er','k-dominio')}
+      ${kpiCard('Relevamientos totales', n, 'con evidencia fotográfica', 'fa-images', '--bl','k-totalrelev')}
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr"><div><div class="card-title">Índice combinado de relevamiento</div><div class="card-sub">Criterios + espacios + POP + promoción + dominio de góndola — últimos 14 días</div></div></div>
+      <div class="chart-wrap" style="height:190px"><canvas id="ch-relev-indice"></canvas></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr"><div><div class="card-title">Presencia de competencia en el punto de venta</div><div class="card-sub">Encuesta independiente de precio/vencimientos — quién domina el espacio de exhibición</div></div></div>
+      <div style="height:14px;border-radius:7px;overflow:hidden;display:flex;gap:2px;margin-bottom:12px">
+        ${dominamosPct?`<div style="flex:${dominamosPct};background:var(--ok)"></div>`:''}
+        ${empatePct?`<div style="flex:${empatePct};background:var(--bl)"></div>`:''}
+        ${dominaCompPct?`<div style="flex:${dominaCompPct};background:var(--er)"></div>`:''}
       </div>
-      <div class="tbl-wrap"><table><thead><tr>
-        <th>Fecha</th><th>Hora</th><th>Promotor</th><th>PDV</th><th>Cadena</th><th>Ciudad</th><th>Producto</th>
-        <th>Criterios</th><th>POP</th><th>Promoción</th><th>Góndola</th><th>Quiebre</th><th>Vencidos</th><th>Averiados</th>
-      </tr></thead><tbody>
-        ${shown.map(r=>{ const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId);
-          const si = `<span class="badge ok">Sí</span>`, no = `<span class="badge er">No</span>`;
-          return `<tr>
-            <td>${dateDisplay(r.fecha)}</td><td class="mono">${r.hora}</td><td style="font-weight:700">${prom.name}</td>
-            <td>${pdv.name}</td><td>${pdv.chain}</td><td>${pdv.city}</td><td>${r.producto}</td>
-            <td>${r.cumpleCriterios?si:no}</td><td>${r.tienePOP?si:no}</td><td>${r.tienePromocion?si:no}</td>
-            <td>${r.tieneQuiebre?'—':r.gondolaPct+'%'}</td><td>${r.tieneQuiebre?si:no}</td>
-            <td>${r.tieneVencidos?no:si}</td><td>${r.tieneAveriados?no:si}</td>
-          </tr>`;
-        }).join('') || `<tr><td colspan="14" style="text-align:center;color:var(--tx3);padding:30px">Sin registros para esta búsqueda</td></tr>`}
+      <div style="display:flex;gap:16px;font-size:11px;flex-wrap:wrap;margin-bottom:${cadenasEnRiesgo.length?'12px':'0'}">
+        <span><span class="dot ok"></span> Dominamos nosotros (${dominamosPct}%)</span>
+        <span><span class="dot bl"></span> Empate (${empatePct}%)</span>
+        <span><span class="dot er"></span> Domina la competencia (${dominaCompPct}%)</span>
+      </div>
+      ${cadenasEnRiesgo.length?`<div class="banner" style="background:var(--er-d);border-color:var(--er-d);color:var(--er)"><i class="fas fa-triangle-exclamation"></i> Cadenas donde la competencia gana espacio: ${cadenasEnRiesgo.map(c=>`${c.cadena} (${c.dominaCompetencia}%)`).join(' · ')} — priorizar negociación de espacio/POP ahí.</div>`:''}
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr"><div class="card-title">Relevamiento por cadena</div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Cadena</th><th>Visitas</th><th>Cobertura</th><th>Materiales</th><th>Promociones</th><th>Domina competencia</th></tr></thead><tbody>
+      ${porCadena.map(c=>`<tr><td style="font-weight:700">${c.cadena}</td><td>${c.n}</td><td><span class="badge ${c.cobertura>=85?'ok':c.cobertura>=60?'wa':'er'}">${c.cobertura}%</span></td><td><span class="badge ${c.materiales>=85?'ok':c.materiales>=60?'wa':'er'}">${c.materiales}%</span></td><td><span class="badge ${c.promociones>=85?'ok':c.promociones>=60?'wa':'er'}">${c.promociones}%</span></td><td><span class="badge ${c.dominaCompetencia>=30?'er':c.dominaCompetencia>=15?'wa':'ok'}">${c.dominaCompetencia}%</span></td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px">Sin datos</td></tr>`}
+      </tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div><div class="card-title">Promociones no cumplidas</div><div class="card-sub">${rows.length-rows.filter(r=>r.tienePromocion).length} de ${n}</div></div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Cadena</th><th>Promotor</th><th>Motivo</th></tr></thead><tbody>
+      ${promoFallidas.map(r=>{ const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId); return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.chain}</td><td>${prom.name}</td><td style="color:var(--wa)">${r.motivoIncumplimientoPromo}</td></tr>`; }).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:20px"><i class="fas fa-check-circle" style="color:var(--ok);margin-right:6px"></i>Todas las promociones relevadas están cumplidas</td></tr>`}
       </tbody></table></div>
     </div>`;
 
-  const relevSearch = document.getElementById('relev-search');
-  relevSearch.oninput = e=>{ searchTerm=e.target.value; renderRelevamientos(); };
-  if(relevSearchTenidoFoco){ relevSearch.focus(); relevSearch.selectionStart = relevSearch.value.length; }
+  animateNum(document.getElementById('k-cobertura'), coberturaPct, '%');
+  animateNum(document.getElementById('k-materiales'), materialesPct, '%');
+  animateNum(document.getElementById('k-promorel'), promoPct, '%');
+  animateNum(document.getElementById('k-dominio'), dominamosPct, '%');
+  animateNum(document.getElementById('k-totalrelev'), n);
+
+  mkChart('ch-relev-indice',{type:'line',data:{labels:dias14.map(d=>dateDisplay(d)),datasets:[{data:indiceDias.map(d=>d.pct),borderColor:'#9b7fd4',backgroundColor:'rgba(155,127,212,.15)',tension:.35,fill:true,pointRadius:3,spanGaps:true}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`Índice: ${ctx.parsed.y}%`}}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});
 }
 
 // ============================================================
 // PÁGINA: ALERTAS Y VENCIMIENTOS
 // ============================================================
+function valorAlerta(productosArr, cantidad){
+  if(!productosArr || !productosArr.length) return 0;
+  const precioProm = productosArr.reduce((s,p)=>s+PRECIO_SUGERIDO[p],0)/productosArr.length;
+  return precioProm * cantidad;
+}
 function renderAlertas(){
   const rows = filterVisits();
   const vencidos = rows.filter(r=>r.estadoVenc==='vencido');
-  const vence7 = rows.filter(r=>r.estadoVenc==='vence7');
-  const vence15 = rows.filter(r=>r.estadoVenc==='vence15');
+  const urgente = rows.filter(r=>r.estadoVenc==='urgente');
+  const proximo = rows.filter(r=>r.estadoVenc==='proximo');
+  const holgado = rows.filter(r=>r.estadoVenc==='holgado');
   const averiados = rows.filter(r=>r.tieneAveriados);
   const alertRows = rows.filter(r=>r.tieneVencidos||r.tieneAveriados).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+
+  const valorVencido = vencidos.reduce((s,r)=>s+valorAlerta(r.productos,r.cantidadVencidos),0);
+  const valorProximo = [...urgente,...proximo,...holgado].reduce((s,r)=>s+valorAlerta(r.productos,r.cantidadVencidos),0);
+  const valorAveriado = averiados.reduce((s,r)=>s+valorAlerta(r.productosAveriados,r.cantidadAveriados),0);
+  const valorEnRiesgo = valorVencido+valorProximo+valorAveriado;
+
+  const pdvsConRelevamiento = new Set(rows.map(r=>r.pdvId));
+  const pdvsConAlerta = new Set([...vencidos,...averiados].map(r=>r.pdvId));
+  const pctCobertura = pdvsConRelevamiento.size? Math.round(100*pdvsConAlerta.size/pdvsConRelevamiento.size):0;
+
+  const alertasEstaSemana = rowsEnRangoFechas(isoDate(addDays(TODAY,-6)), isoDate(TODAY)).filter(r=>r.estadoVenc==='vencido'||r.tieneAveriados).length;
+  const alertasSemanaPrevia = rowsEnRangoFechas(isoDate(addDays(TODAY,-13)), isoDate(addDays(TODAY,-7))).filter(r=>r.estadoVenc==='vencido'||r.tieneAveriados).length;
+  const tendenciaPct = alertasSemanaPrevia>0 ? Math.round(100*(alertasEstaSemana-alertasSemanaPrevia)/alertasSemanaPrevia) : (alertasEstaSemana>0?100:0);
 
   const prodCounts = {};
   rows.filter(r=>r.tieneVencidos).forEach(r=>r.productos.forEach(p=>prodCounts[p]=(prodCounts[p]||0)+1));
@@ -1218,12 +1398,44 @@ function renderAlertas(){
     return {pdv, vencidos:rs.filter(r=>r.tieneVencidos).length, averiados:rs.filter(r=>r.tieneAveriados).length};
   }).filter(l=>l.vencidos>0 || l.averiados>0).sort((a,b)=>(b.vencidos+b.averiados)-(a.vencidos+a.averiados));
 
+  const comboMap = {};
+  rows.filter(r=>r.tieneVencidos).forEach(r=>{
+    const pdv = pdvById(r.pdvId);
+    r.productos.forEach(p=>{
+      const k = r.pdvId+'|'+p;
+      if(!comboMap[k]) comboMap[k] = {pdv:pdv.name, cadena:pdv.chain, producto:p, unid:0, vencido:false};
+      comboMap[k].unid += r.cantidadVencidos;
+      if(r.estadoVenc==='vencido') comboMap[k].vencido = true;
+    });
+  });
+  const topCombos = Object.values(comboMap).sort((a,b)=>b.unid-a.unid).slice(0,8);
+
+  const tabRows = alertasTab==='todos' ? alertRows
+    : alertasTab==='vencidos' ? rows.filter(r=>r.estadoVenc==='vencido').sort((a,b)=>b.fecha.localeCompare(a.fecha))
+    : alertasTab==='proximos' ? rows.filter(r=>['urgente','proximo','holgado'].includes(r.estadoVenc)).sort((a,b)=>b.fecha.localeCompare(a.fecha))
+    : averiados.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha));
+
   document.getElementById('content').innerHTML = `
-    <div class="semaforo">
-      <div class="sf-card rojo"><div class="sf-val" style="color:var(--er)">${vencidos.length}</div><div class="sf-lbl">Ya vencidos</div></div>
-      <div class="sf-card naranja"><div class="sf-val" style="color:var(--wa)">${vence7.length}</div><div class="sf-lbl">Vencen en ≤ 7 días</div></div>
-      <div class="sf-card amarillo"><div class="sf-val" style="color:var(--wa)">${vence15.length}</div><div class="sf-lbl">Vencen en ≤ 15 días</div></div>
-      <div class="sf-card br"><div class="sf-val" style="color:var(--br)">${averiados.length}</div><div class="sf-lbl">Productos averiados</div></div>
+    ${vencidos.length?`<div class="banner" style="background:var(--er-d);border-color:var(--er-d);color:var(--er)"><i class="fas fa-calendar-times"></i> <b>${vencidos.length} productos ya vencidos</b> — ${fmtGs(valorVencido)} en riesgo, hay que retirarlos de góndola.</div>`:''}
+    <div class="grid grid-4" style="margin-bottom:16px">
+      <div class="kpi"><div class="kpi-lbl">Valor ya vencido</div><div class="kpi-val" style="color:var(--er)">${fmtGs(valorVencido)}</div></div>
+      <div class="kpi"><div class="kpi-lbl">Valor próximo a vencer</div><div class="kpi-val" style="color:var(--wa)">${fmtGs(valorProximo)}</div></div>
+      <div class="kpi"><div class="kpi-lbl">Valor en averías</div><div class="kpi-val" style="color:var(--br)">${fmtGs(valorAveriado)}</div></div>
+      <div class="kpi"><div class="kpi-lbl">Valor total en riesgo</div><div class="kpi-val" style="color:var(--vi)">${fmtGs(valorEnRiesgo)}</div><div class="kpi-sub">a precio público sugerido</div></div>
+    </div>
+    <div class="semaforo" style="grid-template-columns:repeat(6,1fr)">
+      <div class="sf-card rojo"><div class="sf-val" style="color:var(--er)">${vencidos.length}</div><div class="sf-lbl">Ya vencido</div></div>
+      <div class="sf-card naranja"><div class="sf-val" style="color:var(--wa)">${urgente.length}</div><div class="sf-lbl">Vence ≤7 días</div></div>
+      <div class="sf-card amarillo"><div class="sf-val" style="color:var(--wa)">${proximo.length}</div><div class="sf-lbl">Vence 8-30 días</div></div>
+      <div class="sf-card ok"><div class="sf-val" style="color:var(--ok)">${holgado.length}</div><div class="sf-lbl">Vence +30 días</div></div>
+      <div class="sf-card" style="background:var(--bl-d)"><div class="sf-val" style="color:var(--bl)">${pctCobertura}%</div><div class="sf-lbl">PDVs con alerta</div></div>
+      <div class="sf-card" style="background:${tendenciaPct>0?'var(--er-d)':'var(--ok-d)'}"><div class="sf-val" style="color:${tendenciaPct>0?'var(--er)':'var(--ok)'}">${tendenciaPct>0?'+':''}${tendenciaPct}%</div><div class="sf-lbl">Tendencia semanal</div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr"><div><div class="card-title">Dónde accionar</div><div class="card-sub">Cruce PDV × Producto, ordenado por unidades en riesgo</div></div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>PDV</th><th>Cadena</th><th>Producto</th><th>Estado</th><th>Unidades</th></tr></thead><tbody>
+        ${topCombos.map(x=>`<tr><td style="font-weight:700">${x.pdv}</td><td>${x.cadena}</td><td>${x.producto}</td><td><span class="badge ${x.vencido?'er':'wa'}">${x.vencido?'Vencido':'Próximo'}</span></td><td style="font-weight:800;color:var(--er)">${x.unid}</td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:30px">Sin datos</td></tr>`}
+      </tbody></table></div>
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div class="card-title">Productos más alertados</div><div class="card-sub">Incluye vencimientos y averías</div></div>
@@ -1238,19 +1450,33 @@ function renderAlertas(){
       </tbody></table></div>
     </div>
     <div class="card">
-      <div class="card-hdr"><div><div class="card-title">Detalle de alertas</div><div class="card-sub">${alertRows.length} registros en el período</div></div></div>
+      <div class="card-hdr" style="align-items:center">
+        <div><div class="card-title">Detalle de alertas</div><div class="card-sub">${tabRows.length} registros</div></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span class="fbar-chip" id="tab-todos" style="cursor:pointer">Todos (${alertRows.length})</span>
+          <span class="fbar-chip" id="tab-vencidos" style="cursor:pointer">Vencidos (${vencidos.length})</span>
+          <span class="fbar-chip" id="tab-proximos" style="cursor:pointer">Próximos (${urgente.length+proximo.length+holgado.length})</span>
+          <span class="fbar-chip" id="tab-averiados" style="cursor:pointer">Averiados (${averiados.length})</span>
+        </div>
+      </div>
       <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Ciudad</th><th>Promotor</th><th>Tipo</th><th>Producto</th><th>Motivo</th><th>Estado</th></tr></thead><tbody>
-        ${alertRows.slice(0,25).map(r=>{ const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId);
-          if(r.tieneVencidos) return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge er">Vencimiento</span></td><td>${r.productos.join(', ')}</td><td style="font-size:11px;color:var(--tx2)">${r.motivoVencido}</td><td>${badgeVenc(r.estadoVenc)}</td></tr>`;
-          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge br">Avería</span></td><td>${r.productosAveriados.join(', ')}</td><td style="font-size:11px;color:var(--tx2)">${r.motivoAveriado}</td><td>${badgeAveria()}</td></tr>`;
+        ${tabRows.slice(0,25).map(r=>{ const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId);
+          if(r.tieneVencidos && (alertasTab!=='averiados')) return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge er">Vencimiento</span></td><td>${r.productos.join(', ')} <span style="color:var(--tx3)">(${r.cantidadVencidos} u.)</span></td><td style="font-size:11px;color:var(--tx2)">${r.motivoVencido}</td><td>${badgeVenc(r.estadoVenc)}</td></tr>`;
+          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge br">Avería</span></td><td>${r.productosAveriados.join(', ')} <span style="color:var(--tx3)">(${r.cantidadAveriados} u.)</span></td><td style="font-size:11px;color:var(--tx2)">${r.motivoAveriado}</td><td>${badgeAveria()}</td></tr>`;
         }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--tx3);padding:30px">Sin alertas en el período seleccionado</td></tr>`}
       </tbody></table></div>
     </div>`;
 
+  const marcarTab = (id, activo) => { const el=document.getElementById(id); if(activo){ el.style.background='var(--brand-d)'; el.style.color='var(--brand2)'; el.style.borderColor='var(--brand-d)'; } else { el.style.background=''; el.style.color=''; el.style.borderColor=''; } };
+  [['todos','tab-todos'],['vencidos','tab-vencidos'],['proximos','tab-proximos'],['averiados','tab-averiados']].forEach(([tab,id])=>{
+    marcarTab(id, alertasTab===tab);
+    document.getElementById(id).onclick = ()=>{ alertasTab=tab; renderAlertas(); };
+  });
+
   mkChart('ch-productos',{type:'bar',data:{labels:prodTop.map(p=>p[0]),datasets:[{label:'Alertas',data:prodTop.map(p=>p[1]),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:26}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false},ticks:{font:{size:10.5}}}}}});
 
-  mkChart('ch-motivos',{type:'doughnut',data:{labels:['Vencido','Vence ≤7d','Vence ≤15d','Averiados'],datasets:[{data:[vencidos.length,vence7.length,vence15.length,averiados.length],backgroundColor:['#e84a55','#e8a045','#f0c674','#c98a4b'],borderWidth:0}]},
+  mkChart('ch-motivos',{type:'doughnut',data:{labels:['Vencido','Vence ≤7d','Vence 8-30d','Vence +30d','Averiados'],datasets:[{data:[vencidos.length,urgente.length,proximo.length,holgado.length,averiados.length],backgroundColor:['#e84a55','#e8a045','#f0c674','#3cb3a8','#c98a4b'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}}}});
 }
 
@@ -1314,6 +1540,7 @@ function renderJornada(){
         <div class="card-hdr">
           <div><div class="card-title">Resumen por promotor</div><div class="card-sub">${jornadaDiaFiltro? 'Detalle del '+dateDisplay(jornadaDiaFiltro) : 'Agregado del período filtrado'}</div></div>
           <div style="display:flex;align-items:center;gap:8px">
+            <button class="tb-btn" id="jornada-export" style="padding:7px 10px" title="Exportar asistencia a CSV"><i class="fas fa-file-export"></i></button>
             <input type="date" id="jornada-dia" class="select-inline" value="${jornadaDiaFiltro}" min="${diaMin}" max="${diaMax}">
             ${jornadaDiaFiltro?`<button class="tb-btn" id="jornada-dia-clear" style="padding:7px 10px"><i class="fas fa-times"></i></button>`:''}
           </div>
@@ -1346,10 +1573,27 @@ function renderJornada(){
   document.getElementById('jornada-dia').onchange = e=>{ jornadaDiaFiltro=e.target.value; renderJornada(); };
   const clearBtn = document.getElementById('jornada-dia-clear');
   if(clearBtn) clearBtn.onclick = ()=>{ jornadaDiaFiltro=''; renderJornada(); };
+  document.getElementById('jornada-export').onclick = ()=>exportJornadaCSV(rows, ausencias);
 
   const top10 = porProm.slice(0,10);
   mkChart('ch-tardanzas',{type:'bar',data:{labels:top10.map(r=>r.p.name.split(' ')[0]),datasets:[{label:'Tardanzas',data:top10.map(r=>r.tardanzas),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:26}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{stepSize:1}},y:{grid:{display:false},ticks:{font:{size:10.5}}}}}});
+}
+function exportJornadaCSV(jornadas, ausencias){
+  const header = ['Fecha','Promotor','Ciudad','Entrada','EstadoEntrada','MinutosTarde','AlmuerzoSalida','AlmuerzoEntrada','DuracionAlmuerzo','Salida','EstadoSalida','HorasTrabajadas'];
+  const lineasJornada = jornadas.map(j=>{ const p=promoterById(j.promotorId);
+    return [j.fecha,p.name,p.city,j.entrada,j.tardanza?'Tarde':'A tiempo',j.minutosTarde,j.almSalida||'',j.almEntrada||'',j.duracionAlmuerzo,j.salida,j.cumplioSalida?'Cumplido':'Antes de hora',j.horasTrabajadas].join(',');
+  });
+  const lineasAusencia = ausencias.map(a=>{ const p=promoterById(a.promotorId);
+    return [a.fecha,p.name,p.city,'','Ausente','','','','','','',''].join(',');
+  });
+  const csv = [header.join(','), ...lineasJornada, ...lineasAusencia].join('\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `nova-consumo-asistencia-${isoDate(TODAY)}.csv`;
+  a.click();
+  toast(`${jornadas.length+ausencias.length} registros de asistencia exportados`, 'fa-file-csv');
 }
 
 // ============================================================
@@ -1693,10 +1937,10 @@ document.getElementById('btn-refresh').onclick = ()=>{
 };
 document.getElementById('btn-export').onclick = ()=>{
   const rows = filterVisits();
-  const header = ['Fecha','Hora','Promotor','Supervisor','PDV','Cadena','Ciudad','Categoria','Producto','CumpleCriterios','TienePOP','TienePrecios','TieneVencidos','TieneAveriados','TieneQuiebre','CumplePrecioPropio','UnidadesRepuestas','TienePromocion','GondolaPct','EspacioGanado','PrecioSugerido','PrecioNuestro','PrecioCompetidor','AccionCompetencia'];
+  const header = ['Fecha','Hora','Promotor','Supervisor','PDV','Cadena','Ciudad','Categoria','Producto','CumpleCriterios','TienePOP','TienePrecios','TieneVencidos','CantidadVencidos','TieneAveriados','CantidadAveriados','TieneQuiebre','CumplePrecioPropio','UnidadesRepuestas','TienePromocion','PresenciaCompetencia','GondolaPct','EspacioGanado','PrecioSugerido','PrecioNuestro','PrecioCompetidor','AccionCompetencia'];
   const lines = rows.map(r=>{
     const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId);
-    return [r.fecha,r.hora,prom.name,supById(prom.supervisorId).name,pdv.name,pdv.chain,pdv.city,r.categoria,r.producto,r.cumpleCriterios,r.tienePOP,r.tienePrecios,r.tieneVencidos,r.tieneAveriados,r.tieneQuiebre,r.cumplePrecioPropio,r.unidadesRepuestas,r.tienePromocion,r.gondolaPct,r.espacioGanado,r.precioSugerido,r.precioNuestro,r.precioCompetidor,r.accionCompetencia].join(',');
+    return [r.fecha,r.hora,prom.name,supById(prom.supervisorId).name,pdv.name,pdv.chain,pdv.city,r.categoria,r.producto,r.cumpleCriterios,r.tienePOP,r.tienePrecios,r.tieneVencidos,r.cantidadVencidos,r.tieneAveriados,r.cantidadAveriados,r.tieneQuiebre,r.cumplePrecioPropio,r.unidadesRepuestas,r.tienePromocion,r.presenciaCompetencia,r.gondolaPct,r.espacioGanado,r.precioSugerido,r.precioNuestro,r.precioCompetidor,r.accionCompetencia].join(',');
   });
   const csv = [header.join(','), ...lines].join('\n');
   const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
