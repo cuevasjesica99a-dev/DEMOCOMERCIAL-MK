@@ -535,6 +535,8 @@ const F = {cadena:'', ciudad:'', categoria:'', fechaDesde:`${ANIO_DEMO}-07-01`, 
 let searchTerm='';
 let recorridoPromotor = PROMOTERS[0].id;
 let jornadaDiaFiltro='';
+let coberturaVista='cadena';
+let preciosVista='categoria';
 const charts = {};
 let mapCobertura=null, mapRecorrido=null;
 const ROI = {
@@ -712,11 +714,30 @@ function rowsDelMes(mes){
 }
 function indiceCompetitividad(rows){
   if(!rows.length) return 0;
+  const conStock = rows.filter(r=>!r.tieneQuiebre);
   const gondolaProm = rows.reduce((a,r)=>a+r.gondolaPct,0)/rows.length;
   const pctSinAccion = rows.filter(r=>r.accionCompetencia==='Sin acciones').length/rows.length*100;
-  const diffPrecioProm = rows.reduce((a,r)=>a+((r.precioNuestro-r.precioCompetidor)/r.precioCompetidor*100),0)/rows.length;
+  const diffPrecioProm = conStock.length? conStock.reduce((a,r)=>a+((r.precioNuestro-r.precioCompetidor)/r.precioCompetidor*100),0)/conStock.length : 0;
   const precioScore = diffPrecioProm<=0 ? 100 : Math.max(0,100-diffPrecioProm*4);
   return Math.round(0.4*gondolaProm + 0.3*pctSinAccion + 0.3*precioScore);
+}
+function serieDiariaMes(mes, metricFn){
+  const dias = new Date(ANIO_DEMO, mes, 0).getDate();
+  const arr = [];
+  for(let d=1; d<=31; d++){
+    if(d>dias){ arr.push(null); continue; }
+    const fechaStr = `${ANIO_DEMO}-${pad2(mes)}-${pad2(d)}`;
+    const rs = VISITS.filter(v=>{
+      if(v.fecha!==fechaStr) return false;
+      const pdv = pdvById(v.pdvId);
+      if(F.cadena && pdv.chain!==F.cadena) return false;
+      if(F.ciudad && pdv.city!==F.ciudad) return false;
+      if(F.categoria && v.categoria!==F.categoria) return false;
+      return true;
+    });
+    arr.push(metricFn(rs));
+  }
+  return arr;
 }
 function metricasMes(rows){
   return {
@@ -796,6 +817,10 @@ function renderResumen(){
           <tr><td>Alertas</td><td class="mono">${junio.alertas}</td><td class="mono">${julio.alertas}</td><td>${deltaBadgePct(julio.alertas, junio.alertas)}</td></tr>
         </tbody></table></div>
       </div>
+      <div style="margin-top:18px">
+        <div class="card-sub" style="margin-bottom:8px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.3px">Cumplimiento diario, día a día</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="ch-mesalinea"></canvas></div>
+      </div>
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">Metas vs. cumplimiento</div><div class="card-sub">Objetivos comerciales definidos vs. resultado real del período</div></div></div>
@@ -827,6 +852,16 @@ function renderResumen(){
     ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
       plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}},
       scales:{x:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false}}}}});
+
+  const serieJunio = serieDiariaMes(6, rs=>rs.length? Math.round(rs.filter(r=>r.cumpleCriterios).length/rs.length*100) : null);
+  const serieJulio = serieDiariaMes(7, rs=>rs.length? Math.round(rs.filter(r=>r.cumpleCriterios).length/rs.length*100) : null);
+  mkChart('ch-mesalinea',{type:'line',data:{labels:[...Array(31)].map((_,i)=>i+1),datasets:[
+      {label:'Junio',data:serieJunio,borderColor:'#9c9494',backgroundColor:'transparent',tension:.3,pointRadius:2,spanGaps:true},
+      {label:'Julio',data:serieJulio,borderColor:brandColor2(),backgroundColor:brandColor2()+'22',fill:true,tension:.3,pointRadius:2,spanGaps:true},
+    ]},options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}},
+      scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'},title:{display:true,text:'% Cumplimiento',color:getComputedStyle(document.body).color,font:{size:10.5}}},
+        x:{grid:{display:false},title:{display:true,text:'Día del mes',color:getComputedStyle(document.body).color,font:{size:10.5}}}}}});
 
   const dias14 = [...Array(14)].map((_,i)=>isoDate(addDays(TODAY,-(13-i))));
   const conteoDias = dias14.map(d=>rows.filter(r=>r.fecha===d).length);
@@ -878,16 +913,24 @@ function renderCobertura(){
       <div class="card"><div class="card-hdr"><div><div class="card-title">Visitas por ciudad</div></div></div>
         <div class="chart-wrap"><canvas id="ch-ciudad"></canvas></div></div>
     </div>
-    <div class="grid grid-2">
-      <div class="card"><div class="card-hdr"><div class="card-title">Detalle por cadena</div></div>
-        <div class="tbl-wrap"><table><thead><tr><th>Cadena</th><th>Visitas</th><th>PDVs</th><th>Cumplimiento</th></tr></thead><tbody>
-        ${porCadena.map(c=>`<tr><td style="font-weight:700">${c.nombre}</td><td>${c.visitas}</td><td>${c.pdvs}</td><td><span class="badge ${c.cumpl>=80?'ok':c.cumpl>=60?'wa':'er'}">${c.cumpl}%</span></td></tr>`).join('')}
-        </tbody></table></div></div>
-      <div class="card"><div class="card-hdr"><div class="card-title">Detalle por ciudad</div></div>
-        <div class="tbl-wrap"><table><thead><tr><th>Ciudad</th><th>Visitas</th><th>PDVs</th><th>Cumplimiento</th></tr></thead><tbody>
-        ${porCiudad.map(c=>`<tr><td style="font-weight:700">${c.nombre}</td><td>${c.visitas}</td><td>${c.pdvs}</td><td><span class="badge ${c.cumpl>=80?'ok':c.cumpl>=60?'wa':'er'}">${c.cumpl}%</span></td></tr>`).join('')}
-        </tbody></table></div></div>
+    <div class="card">
+      <div class="card-hdr" style="align-items:center">
+        <div class="card-title">Detalle de cobertura</div>
+        <div style="display:flex;gap:6px">
+          <button class="tb-btn" id="cob-tab-cadena" style="padding:6px 12px">Por cadena</button>
+          <button class="tb-btn" id="cob-tab-ciudad" style="padding:6px 12px">Por ciudad</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>${coberturaVista==='cadena'?'Cadena':'Ciudad'}</th><th>Visitas</th><th>PDVs</th><th>Cumplimiento</th></tr></thead><tbody>
+      ${(coberturaVista==='cadena'?porCadena:porCiudad).map(c=>`<tr><td style="font-weight:700">${c.nombre}</td><td>${c.visitas}</td><td>${c.pdvs}</td><td><span class="badge ${c.cumpl>=80?'ok':c.cumpl>=60?'wa':'er'}">${c.cumpl}%</span></td></tr>`).join('')}
+      </tbody></table></div>
     </div>`;
+
+  const tabCadena = document.getElementById('cob-tab-cadena'), tabCiudad = document.getElementById('cob-tab-ciudad');
+  const marcarActivo = (btn, activo) => { if(activo){ btn.style.background='var(--brand)'; btn.style.borderColor='var(--brand)'; btn.style.color='#fff'; } else { btn.style.background=''; btn.style.borderColor=''; btn.style.color=''; } };
+  marcarActivo(tabCadena, coberturaVista==='cadena'); marcarActivo(tabCiudad, coberturaVista==='ciudad');
+  tabCadena.onclick = ()=>{ coberturaVista='cadena'; renderCobertura(); };
+  tabCiudad.onclick = ()=>{ coberturaVista='ciudad'; renderCobertura(); };
 
   mkChart('ch-ciudad',{type:'bar',data:{labels:porCiudad.map(c=>c.nombre),datasets:[{label:'Visitas',data:porCiudad.map(c=>c.visitas),backgroundColor:brandColor(),borderRadius:6,maxBarThickness:34}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false}}}}});
@@ -913,6 +956,7 @@ function renderCobertura(){
 // PÁGINA: AUDITORÍA DE PUNTO DE VENTA
 // ============================================================
 function renderAuditoria(){
+  const auditoriaSearchTenidoFoco = document.activeElement && document.activeElement.id==='aud-search';
   let rows = filterVisits();
   if(searchTerm){
     const s = searchTerm.toLowerCase();
@@ -1008,26 +1052,39 @@ function renderAuditoria(){
       </div>
     </div>
     <div class="card" style="margin-top:16px">
-      <div class="card-hdr"><div><div class="card-title">Rango de precios</div><div class="card-sub">Valores mínimo y máximo relevados en el período (excluye quiebres de stock)</div></div></div>
+      <div class="card-hdr" style="align-items:center">
+        <div><div class="card-title">Rango de precios</div><div class="card-sub">Valores mínimo y máximo relevados en el período (excluye quiebres de stock)</div></div>
+        <div style="display:flex;gap:6px">
+          <button class="tb-btn" id="prec-tab-categoria" style="padding:6px 12px">Categoría</button>
+          <button class="tb-btn" id="prec-tab-subcategoria" style="padding:6px 12px">Subcategoría</button>
+          <button class="tb-btn" id="prec-tab-producto" style="padding:6px 12px">Producto</button>
+        </div>
+      </div>
       <div class="grid grid-4" style="margin-bottom:16px">
         <div class="kpi"><div class="kpi-lbl">Mínimo — Nova Consumo</div><div class="kpi-val" style="color:var(--ok)">${fmtGs(precioNuestroMin)}</div></div>
         <div class="kpi"><div class="kpi-lbl">Máximo — Nova Consumo</div><div class="kpi-val" style="color:var(--ok)">${fmtGs(precioNuestroMax)}</div></div>
         <div class="kpi"><div class="kpi-lbl">Mínimo — Competencia</div><div class="kpi-val" style="color:var(--tx2)">${fmtGs(precioCompMin)}</div></div>
         <div class="kpi"><div class="kpi-lbl">Máximo — Competencia</div><div class="kpi-val" style="color:var(--tx2)">${fmtGs(precioCompMax)}</div></div>
       </div>
-      <div class="card-sub" style="margin-bottom:8px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.3px">Por categoría</div>
-      <div class="tbl-wrap" style="margin-bottom:18px"><table><thead><tr><th>Categoría</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
-      ${preciosRangoCat.map(p=>`<tr><td style="font-weight:700">${p.cat}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td></tr>`).join('')}
-      </tbody></table></div>
-      <div class="card-sub" style="margin-bottom:8px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.3px">Por subcategoría</div>
-      <div class="tbl-wrap" style="margin-bottom:18px"><table><thead><tr><th>Subcategoría</th><th>Categoría</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
-      ${preciosRangoSubcat.map(p=>`<tr><td style="font-weight:700">${p.sub}</td><td>${p.cat}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td></tr>`).join('')}
-      </tbody></table></div>
-      <div class="card-sub" style="margin-bottom:8px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.3px">Por producto</div>
-      <div class="tbl-wrap"><table><thead><tr><th>Producto</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
-      ${preciosRangoProducto.map(p=>`<tr><td style="font-weight:700">${p.prod}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td></tr>`).join('')}
-      </tbody></table></div>
+      <div class="tbl-wrap">${
+        preciosVista==='categoria' ? `<table><thead><tr><th>Categoría</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
+          ${preciosRangoCat.map(p=>`<tr><td style="font-weight:700">${p.cat}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td></tr>`).join('')}
+          </tbody></table>`
+        : preciosVista==='subcategoria' ? `<table><thead><tr><th>Subcategoría</th><th>Categoría</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
+          ${preciosRangoSubcat.map(p=>`<tr><td style="font-weight:700">${p.sub}</td><td>${p.cat}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td></tr>`).join('')}
+          </tbody></table>`
+        : `<table><thead><tr><th>Producto</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
+          ${preciosRangoProducto.map(p=>`<tr><td style="font-weight:700">${p.prod}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td></tr>`).join('')}
+          </tbody></table>`
+      }</div>
     </div>`;
+
+  const marcarActivoPrecio = (btn, activo) => { if(activo){ btn.style.background='var(--brand)'; btn.style.borderColor='var(--brand)'; btn.style.color='#fff'; } else { btn.style.background=''; btn.style.borderColor=''; btn.style.color=''; } };
+  ['categoria','subcategoria','producto'].forEach(v=>{
+    const btn = document.getElementById('prec-tab-'+v);
+    marcarActivoPrecio(btn, preciosVista===v);
+    btn.onclick = ()=>{ preciosVista=v; renderAuditoria(); };
+  });
 
   animateNum(document.getElementById('k-gondola2'), Math.round(gondolaProm), '%');
   animateNum(document.getElementById('k-disp'), Math.round(disponibilidad), '%');
@@ -1054,8 +1111,7 @@ function renderAuditoria(){
 
   const auSearch = document.getElementById('aud-search');
   auSearch.oninput = e=>{ searchTerm=e.target.value; renderAuditoria(); };
-  auSearch.focus();
-  auSearch.selectionStart = auSearch.value.length;
+  if(auditoriaSearchTenidoFoco){ auSearch.focus(); auSearch.selectionStart = auSearch.value.length; }
 }
 
 // ============================================================
