@@ -190,12 +190,16 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
       <div class="ni active" data-p="resumen"><i class="fas fa-chart-pie"></i>Resumen ejecutivo</div>
       <div class="ni" data-p="impacto"><i class="fas fa-rocket"></i>Impacto comercial</div>
       <div class="ni" data-p="cobertura"><i class="fas fa-store"></i>Cobertura</div>
+      <div class="ni" data-p="precios"><i class="fas fa-tags"></i>Precios</div>
       <div class="ni" data-p="auditoria"><i class="fas fa-clipboard-check"></i>Auditoría de PDV</div>
+      <div class="ni" data-p="evidencias"><i class="fas fa-images"></i>Evidencias fotográficas</div>
       <div class="ni" data-p="alertas"><i class="fas fa-exclamation-triangle"></i>Alertas y vencimientos<span class="ni-badge" id="nb-alertas">0</span></div>
+      <div class="ni" data-p="relevamientos"><i class="fas fa-clipboard-list"></i>Relevamientos</div>
     </nav>
     <div class="nav-sect">Equipo</div>
     <nav class="nav" id="nav2">
       <div class="ni" data-p="jornada"><i class="fas fa-user-clock"></i>Jornada y asistencia<span class="ni-badge" id="nb-tardanzas">0</span></div>
+      <div class="ni" data-p="recorrido"><i class="fas fa-route"></i>Recorrido por persona</div>
       <div class="ni" data-p="comisiones"><i class="fas fa-hand-holding-dollar"></i>Comisiones</div>
       <div class="ni" data-p="supervisores"><i class="fas fa-user-tie"></i>Supervisores</div>
     </nav>
@@ -956,12 +960,6 @@ function renderCobertura(){
 // PÁGINA: AUDITORÍA DE PUNTO DE VENTA
 // ============================================================
 function renderAuditoria(){
-  const auditoriaSearchTenidoFoco = document.activeElement && document.activeElement.id==='aud-search';
-  let rows = filterVisits();
-  if(searchTerm){
-    const s = searchTerm.toLowerCase();
-    rows = rows.filter(r=> pdvById(r.pdvId).name.toLowerCase().includes(s) || promoterById(r.promotorId).name.toLowerCase().includes(s));
-  }
   const all = filterVisits();
   const conStock = all.filter(r=>!r.tieneQuiebre);
   const gondolaProm = all.length? all.reduce((a,r)=>a+r.gondolaPct,0)/all.length : 0;
@@ -983,16 +981,71 @@ function renderAuditoria(){
     const rs = all.filter(r=>pdvById(r.pdvId).chain===c);
     return rs.length? Math.round((1-rs.filter(r=>r.tieneQuiebre).length/rs.length)*100):100;
   });
-  const preciosCat = CATEGORIES.map(cat=>{
-    const rs = conStock.filter(r=>r.categoria===cat);
-    return {cat, nuestro: rs.length?Math.round(rs.reduce((a,r)=>a+r.precioNuestro,0)/rs.length):0,
-      competidor: rs.length?Math.round(rs.reduce((a,r)=>a+r.precioCompetidor,0)/rs.length):0};
-  });
   const accionesCount = {};
   all.forEach(r=>accionesCount[r.accionCompetencia]=(accionesCount[r.accionCompetencia]||0)+1);
   const accionesLabels = Object.keys(accionesCount);
   const popCount = {};
   all.filter(r=>r.tienePOP).forEach(r=>popCount[r.popTipo]=(popCount[r.popTipo]||0)+1);
+
+  document.getElementById('content').innerHTML = `
+    <div class="grid grid-kpi" style="margin-bottom:18px">
+      ${kpiCard('Participación en góndola', Math.round(gondolaProm), 'promedio del período', 'fa-border-all', '--vi','k-gondola2')}
+      ${kpiCard('Disponibilidad de stock', Math.round(disponibilidad), `${quiebres} quiebres detectados`, 'fa-box-open', quiebres?'--wa':'--ok','k-disp')}
+      ${kpiCard('Cumplimiento de precio propio', Math.round(cumplePrecioPct), 'vs. precio público sugerido', 'fa-tag', '--bl','k-cumplprecio','precios')}
+      ${kpiCard('Rotación de producto', rotacionPct, `${fmtInt(unidadesRepuestasTotal)} unidades repuestas`, 'fa-arrows-rotate', '--vi','k-rotacion')}
+      ${kpiCard('Cumplimiento de promoción', Math.round(cumplePromoPct), 'promoción vigente ejecutada', 'fa-bullhorn', '--ok','k-promo')}
+      ${kpiCard('PDVs con materiales POP', Math.round(pctPOP), 'de las visitas relevadas', 'fa-tags', '--bl','k-pop')}
+      ${kpiCard('Espacios ganados', espaciosGanados, 'facings adicionales al planograma', 'fa-arrow-up-right-dots', '--ok','k-espacios')}
+      ${kpiCard('Diferencia de precio', Math.round(diffPrecioProm), 'vs. precio promedio competencia — ver Precios', diffPrecioProm<=0?'fa-arrow-down':'fa-arrow-up', diffPrecioProm<=0?'--ok':'--er','k-diffprecio','precios')}
+    </div>
+    <div class="grid grid-2e" style="margin-bottom:16px">
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Participación en góndola por cadena</div><div class="card-sub">% de espacio de exhibición ocupado por Nova Consumo</div></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-gondola"></canvas></div></div>
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Disponibilidad de stock por cadena</div><div class="card-sub">% de visitas sin quiebre de stock</div></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-disponibilidad"></canvas></div></div>
+    </div>
+    <div class="grid grid-2e">
+      <div class="card"><div class="card-hdr"><div class="card-title">Acciones de competencia detectadas</div></div>
+        <div class="chart-wrap sm"><canvas id="ch-competencia"></canvas></div></div>
+      <div class="card"><div class="card-hdr"><div class="card-title">Materiales POP instalados</div></div>
+        <div class="tbl-wrap"><table><thead><tr><th>Tipo de material</th><th>Instalaciones</th></tr></thead><tbody>
+        ${POP_TYPES.map(t=>`<tr><td>${t}</td><td style="font-weight:700">${popCount[t]||0}</td></tr>`).join('')}
+        </tbody></table></div></div>
+    </div>`;
+
+  animateNum(document.getElementById('k-gondola2'), Math.round(gondolaProm), '%');
+  animateNum(document.getElementById('k-disp'), Math.round(disponibilidad), '%');
+  animateNum(document.getElementById('k-cumplprecio'), Math.round(cumplePrecioPct), '%');
+  animateNum(document.getElementById('k-rotacion'), rotacionPct, '%');
+  animateNum(document.getElementById('k-promo'), Math.round(cumplePromoPct), '%');
+  animateNum(document.getElementById('k-pop'), Math.round(pctPOP), '%');
+  animateNum(document.getElementById('k-espacios'), espaciosGanados);
+  animateNum(document.getElementById('k-diffprecio'), Math.round(diffPrecioProm), '%');
+
+  mkChart('ch-gondola',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Góndola',data:gondolaCadena,backgroundColor:'#9b7fd4',borderRadius:6,maxBarThickness:36}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+  mkChart('ch-disponibilidad',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Disponibilidad',data:disponibilidadCadena,backgroundColor:'#3cb3a8',borderRadius:6,maxBarThickness:36}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+  mkChart('ch-competencia',{type:'doughnut',data:{labels:accionesLabels,datasets:[{data:accionesLabels.map(a=>accionesCount[a]),backgroundColor:['#5a5252','#5b9bd5','#3cb3a8','#9b7fd4','#e8a045','#e84a55'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}}}});
+}
+
+// ============================================================
+// PÁGINA: PRECIOS
+// ============================================================
+function renderPrecios(){
+  const all = filterVisits();
+  const conStock = all.filter(r=>!r.tieneQuiebre);
+  const diffPrecioProm = conStock.length? conStock.reduce((a,r)=>a+((r.precioNuestro-r.precioCompetidor)/r.precioCompetidor*100),0)/conStock.length : 0;
+  const cumplePrecioPct = conStock.length? conStock.filter(r=>r.cumplePrecioPropio).length/conStock.length*100 : 0;
+
+  const preciosCat = CATEGORIES.map(cat=>{
+    const rs = conStock.filter(r=>r.categoria===cat);
+    return {cat, nuestro: rs.length?Math.round(rs.reduce((a,r)=>a+r.precioNuestro,0)/rs.length):0,
+      competidor: rs.length?Math.round(rs.reduce((a,r)=>a+r.precioCompetidor,0)/rs.length):0};
+  });
 
   const precioNuestroMin = conStock.length? Math.min(...conStock.map(r=>r.precioNuestro)) : 0;
   const precioNuestroMax = conStock.length? Math.max(...conStock.map(r=>r.precioNuestro)) : 0;
@@ -1011,60 +1064,36 @@ function renderAuditoria(){
   const preciosRangoSubcat = SUBCATEGORIAS.map(({cat,sub})=>({cat, sub, ...rangoDe(r=>r.subcategoria===sub)}));
   const preciosRangoProducto = TODOS_PRODUCTOS.map(prod=>({prod, ...rangoDe(r=>r.producto===prod)}));
 
-  const fotos = rows.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,24);
+  const vsCompetencia = TODOS_PRODUCTOS.map(prod=>{
+    const rs = conStock.filter(r=>r.producto===prod);
+    const nuestro = rs.length? Math.round(rs.reduce((a,r)=>a+r.precioNuestro,0)/rs.length):0;
+    const competidor = rs.length? Math.round(rs.reduce((a,r)=>a+r.precioCompetidor,0)/rs.length):0;
+    const diff = competidor? Math.round((nuestro-competidor)/competidor*100):0;
+    return {prod, nuestro, competidor, diff, n:rs.length};
+  }).filter(p=>p.n>0).sort((a,b)=>b.diff-a.diff);
 
   document.getElementById('content').innerHTML = `
     <div class="grid grid-kpi" style="margin-bottom:18px">
-      ${kpiCard('Participación en góndola', Math.round(gondolaProm), 'promedio del período', 'fa-border-all', '--vi','k-gondola2')}
-      ${kpiCard('Disponibilidad de stock', Math.round(disponibilidad), `${quiebres} quiebres detectados`, 'fa-box-open', quiebres?'--wa':'--ok','k-disp')}
-      ${kpiCard('Cumplimiento de precio propio', Math.round(cumplePrecioPct), 'vs. precio público sugerido', 'fa-tag', '--bl','k-cumplprecio')}
-      ${kpiCard('Rotación de producto', rotacionPct, `${fmtInt(unidadesRepuestasTotal)} unidades repuestas`, 'fa-arrows-rotate', '--vi','k-rotacion')}
-      ${kpiCard('Cumplimiento de promoción', Math.round(cumplePromoPct), 'promoción vigente ejecutada', 'fa-bullhorn', '--ok','k-promo')}
-      ${kpiCard('PDVs con materiales POP', Math.round(pctPOP), 'de las visitas relevadas', 'fa-tags', '--bl','k-pop')}
-      ${kpiCard('Espacios ganados', espaciosGanados, 'facings adicionales al planograma', 'fa-arrow-up-right-dots', '--ok','k-espacios')}
-      ${kpiCard('Diferencia de precio', Math.round(diffPrecioProm), 'vs. precio promedio competencia', diffPrecioProm<=0?'fa-arrow-down':'fa-arrow-up', diffPrecioProm<=0?'--ok':'--er','k-diffprecio')}
-    </div>
-    <div class="grid grid-2e" style="margin-bottom:16px">
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Participación en góndola por cadena</div><div class="card-sub">% de espacio de exhibición ocupado por Nova Consumo</div></div></div>
-        <div class="chart-wrap sm"><canvas id="ch-gondola"></canvas></div></div>
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Disponibilidad de stock por cadena</div><div class="card-sub">% de visitas sin quiebre de stock</div></div></div>
-        <div class="chart-wrap sm"><canvas id="ch-disponibilidad"></canvas></div></div>
-    </div>
-    <div class="grid grid-2e" style="margin-bottom:16px">
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Precio propio vs. competencia</div><div class="card-sub">Promedio por categoría (Gs.) — excluye visitas con quiebre</div></div></div>
-        <div class="chart-wrap sm"><canvas id="ch-precios"></canvas></div></div>
-      <div class="card"><div class="card-hdr"><div class="card-title">Acciones de competencia detectadas</div></div>
-        <div class="chart-wrap sm"><canvas id="ch-competencia"></canvas></div></div>
+      ${kpiCard('Diferencia de precio', Math.round(diffPrecioProm), 'vs. precio promedio competencia', diffPrecioProm<=0?'fa-arrow-down':'fa-arrow-up', diffPrecioProm<=0?'--ok':'--er','k-diffprecio2')}
+      ${kpiCard('Cumplimiento de precio propio', Math.round(cumplePrecioPct), 'vs. precio público sugerido', 'fa-tag', '--bl','k-cumplprecio2')}
+      <div class="kpi"><div class="kpi-lbl">Mínimo — Nova Consumo</div><div class="kpi-val" style="color:var(--ok)">${fmtGs(precioNuestroMin)}</div></div>
+      <div class="kpi"><div class="kpi-lbl">Máximo — Nova Consumo</div><div class="kpi-val" style="color:var(--ok)">${fmtGs(precioNuestroMax)}</div></div>
+      <div class="kpi"><div class="kpi-lbl">Mínimo — Competencia</div><div class="kpi-val" style="color:var(--tx2)">${fmtGs(precioCompMin)}</div></div>
+      <div class="kpi"><div class="kpi-lbl">Máximo — Competencia</div><div class="kpi-val" style="color:var(--tx2)">${fmtGs(precioCompMax)}</div></div>
     </div>
     <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div class="card-title">Materiales POP instalados</div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Tipo de material</th><th>Instalaciones</th></tr></thead><tbody>
-      ${POP_TYPES.map(t=>`<tr><td>${t}</td><td style="font-weight:700">${popCount[t]||0}</td></tr>`).join('')}
-      </tbody></table></div>
+      <div class="card-hdr"><div><div class="card-title">Precio propio vs. competencia</div><div class="card-sub">Promedio por categoría (Gs.) — excluye visitas con quiebre</div></div></div>
+      <div class="chart-wrap"><canvas id="ch-precios"></canvas></div>
     </div>
     <div class="card">
       <div class="card-hdr" style="align-items:center">
-        <div><div class="card-title">Relevamiento fotográfico</div><div class="card-sub">${rows.length} evidencias en el período filtrado</div></div>
-        <input type="text" id="aud-search" placeholder="Buscar por PDV o promotor..." style="max-width:260px" value="${searchTerm}">
-      </div>
-      <div class="evid-grid">
-        ${fotos.map(buildFotoCard).join('') || `<div style="grid-column:1/-1;text-align:center;color:var(--tx3);padding:40px 0"><i class="fas fa-search" style="font-size:24px;display:block;margin-bottom:8px"></i>Sin resultados</div>`}
-      </div>
-    </div>
-    <div class="card" style="margin-top:16px">
-      <div class="card-hdr" style="align-items:center">
-        <div><div class="card-title">Rango de precios</div><div class="card-sub">Valores mínimo y máximo relevados en el período (excluye quiebres de stock)</div></div>
-        <div style="display:flex;gap:6px">
+        <div><div class="card-title">Detalle de precios</div><div class="card-sub">Valores relevados en el período (excluye quiebres de stock)</div></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="tb-btn" id="prec-tab-categoria" style="padding:6px 12px">Categoría</button>
           <button class="tb-btn" id="prec-tab-subcategoria" style="padding:6px 12px">Subcategoría</button>
           <button class="tb-btn" id="prec-tab-producto" style="padding:6px 12px">Producto</button>
+          <button class="tb-btn" id="prec-tab-competencia" style="padding:6px 12px">Vs. Competencia</button>
         </div>
-      </div>
-      <div class="grid grid-4" style="margin-bottom:16px">
-        <div class="kpi"><div class="kpi-lbl">Mínimo — Nova Consumo</div><div class="kpi-val" style="color:var(--ok)">${fmtGs(precioNuestroMin)}</div></div>
-        <div class="kpi"><div class="kpi-lbl">Máximo — Nova Consumo</div><div class="kpi-val" style="color:var(--ok)">${fmtGs(precioNuestroMax)}</div></div>
-        <div class="kpi"><div class="kpi-lbl">Mínimo — Competencia</div><div class="kpi-val" style="color:var(--tx2)">${fmtGs(precioCompMin)}</div></div>
-        <div class="kpi"><div class="kpi-lbl">Máximo — Competencia</div><div class="kpi-val" style="color:var(--tx2)">${fmtGs(precioCompMax)}</div></div>
       </div>
       <div class="tbl-wrap">${
         preciosVista==='categoria' ? `<table><thead><tr><th>Categoría</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
@@ -1073,45 +1102,99 @@ function renderAuditoria(){
         : preciosVista==='subcategoria' ? `<table><thead><tr><th>Subcategoría</th><th>Categoría</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
           ${preciosRangoSubcat.map(p=>`<tr><td style="font-weight:700">${p.sub}</td><td>${p.cat}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td></tr>`).join('')}
           </tbody></table>`
-        : `<table><thead><tr><th>Producto</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
+        : preciosVista==='producto' ? `<table><thead><tr><th>Producto</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
           ${preciosRangoProducto.map(p=>`<tr><td style="font-weight:700">${p.prod}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td></tr>`).join('')}
+          </tbody></table>`
+        : `<table><thead><tr><th>Producto</th><th>Nuestro precio prom.</th><th>Precio competencia prom.</th><th>Diferencia</th></tr></thead><tbody>
+          ${vsCompetencia.map(p=>`<tr><td style="font-weight:700">${p.prod}</td><td class="mono">${fmtGs(p.nuestro)}</td><td class="mono">${fmtGs(p.competidor)}</td><td><span class="badge ${p.diff<=0?'ok':'er'}">${p.diff>0?'+':''}${p.diff}%</span></td></tr>`).join('')}
           </tbody></table>`
       }</div>
     </div>`;
 
-  const marcarActivoPrecio = (btn, activo) => { if(activo){ btn.style.background='var(--brand)'; btn.style.borderColor='var(--brand)'; btn.style.color='#fff'; } else { btn.style.background=''; btn.style.borderColor=''; btn.style.color=''; } };
-  ['categoria','subcategoria','producto'].forEach(v=>{
-    const btn = document.getElementById('prec-tab-'+v);
-    marcarActivoPrecio(btn, preciosVista===v);
-    btn.onclick = ()=>{ preciosVista=v; renderAuditoria(); };
-  });
-
-  animateNum(document.getElementById('k-gondola2'), Math.round(gondolaProm), '%');
-  animateNum(document.getElementById('k-disp'), Math.round(disponibilidad), '%');
-  animateNum(document.getElementById('k-cumplprecio'), Math.round(cumplePrecioPct), '%');
-  animateNum(document.getElementById('k-rotacion'), rotacionPct, '%');
-  animateNum(document.getElementById('k-promo'), Math.round(cumplePromoPct), '%');
-  animateNum(document.getElementById('k-pop'), Math.round(pctPOP), '%');
-  animateNum(document.getElementById('k-espacios'), espaciosGanados);
-  animateNum(document.getElementById('k-diffprecio'), Math.round(diffPrecioProm), '%');
-
-  mkChart('ch-gondola',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Góndola',data:gondolaCadena,backgroundColor:'#9b7fd4',borderRadius:6,maxBarThickness:36}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
-
-  mkChart('ch-disponibilidad',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Disponibilidad',data:disponibilidadCadena,backgroundColor:'#3cb3a8',borderRadius:6,maxBarThickness:36}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+  animateNum(document.getElementById('k-diffprecio2'), Math.round(diffPrecioProm), '%');
+  animateNum(document.getElementById('k-cumplprecio2'), Math.round(cumplePrecioPct), '%');
 
   mkChart('ch-precios',{type:'bar',data:{labels:preciosCat.map(p=>p.cat),datasets:[
-      {label:'Nova Consumo',data:preciosCat.map(p=>p.nuestro),backgroundColor:brandColor(),borderRadius:5,maxBarThickness:22},
-      {label:'Competencia',data:preciosCat.map(p=>p.competidor),backgroundColor:'#5a5252',borderRadius:5,maxBarThickness:22},
-    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+      {label:'Nova Consumo',data:preciosCat.map(p=>p.nuestro),backgroundColor:brandColor(),borderRadius:5,maxBarThickness:36},
+      {label:'Competencia',data:preciosCat.map(p=>p.competidor),backgroundColor:'#5a5252',borderRadius:5,maxBarThickness:36},
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false}}}}});
 
-  mkChart('ch-competencia',{type:'doughnut',data:{labels:accionesLabels,datasets:[{data:accionesLabels.map(a=>accionesCount[a]),backgroundColor:['#5a5252','#5b9bd5','#3cb3a8','#9b7fd4','#e8a045','#e84a55'],borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}}}});
+  const marcarActivoPrecio = (btn, activo) => { if(activo){ btn.style.background='var(--brand)'; btn.style.borderColor='var(--brand)'; btn.style.color='#fff'; } else { btn.style.background=''; btn.style.borderColor=''; btn.style.color=''; } };
+  ['categoria','subcategoria','producto','competencia'].forEach(v=>{
+    const btn = document.getElementById('prec-tab-'+v);
+    marcarActivoPrecio(btn, preciosVista===v);
+    btn.onclick = ()=>{ preciosVista=v; renderPrecios(); };
+  });
+}
 
-  const auSearch = document.getElementById('aud-search');
-  auSearch.oninput = e=>{ searchTerm=e.target.value; renderAuditoria(); };
-  if(auditoriaSearchTenidoFoco){ auSearch.focus(); auSearch.selectionStart = auSearch.value.length; }
+// ============================================================
+// PÁGINA: EVIDENCIAS FOTOGRÁFICAS
+// ============================================================
+function renderEvidencias(){
+  const evidSearchTenidoFoco = document.activeElement && document.activeElement.id==='evid-search';
+  let rows = filterVisits();
+  if(searchTerm){
+    const s = searchTerm.toLowerCase();
+    rows = rows.filter(r=> pdvById(r.pdvId).name.toLowerCase().includes(s) || promoterById(r.promotorId).name.toLowerCase().includes(s));
+  }
+  const fotos = rows.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,30);
+
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-hdr" style="align-items:center">
+        <div><div class="card-title">Relevamiento fotográfico</div><div class="card-sub">${rows.length} evidencias en el período filtrado · mostrando ${fotos.length}</div></div>
+        <input type="text" id="evid-search" placeholder="Buscar por PDV o promotor..." style="max-width:260px" value="${searchTerm}">
+      </div>
+      <div class="evid-grid">
+        ${fotos.map(buildFotoCard).join('') || `<div style="grid-column:1/-1;text-align:center;color:var(--tx3);padding:40px 0"><i class="fas fa-search" style="font-size:24px;display:block;margin-bottom:8px"></i>Sin resultados</div>`}
+      </div>
+    </div>`;
+
+  const evidSearch = document.getElementById('evid-search');
+  evidSearch.oninput = e=>{ searchTerm=e.target.value; renderEvidencias(); };
+  if(evidSearchTenidoFoco){ evidSearch.focus(); evidSearch.selectionStart = evidSearch.value.length; }
+}
+
+// ============================================================
+// PÁGINA: RELEVAMIENTOS (log crudo de visitas)
+// ============================================================
+function renderRelevamientos(){
+  const relevSearchTenidoFoco = document.activeElement && document.activeElement.id==='relev-search';
+  let rows = filterVisits();
+  if(searchTerm){
+    const s = searchTerm.toLowerCase();
+    rows = rows.filter(r=> pdvById(r.pdvId).name.toLowerCase().includes(s) || promoterById(r.promotorId).name.toLowerCase().includes(s) || r.producto.toLowerCase().includes(s));
+  }
+  const ordenado = rows.slice().sort((a,b)=> b.fecha.localeCompare(a.fecha) || b.hora.localeCompare(a.hora));
+  const shown = ordenado.slice(0,60);
+
+  document.getElementById('content').innerHTML = `
+    <div class="banner"><i class="fas fa-database"></i> Registro crudo de cada visita relevada en el período. Para el listado completo, usá "Exportar CSV" en la barra superior.</div>
+    <div class="card">
+      <div class="card-hdr" style="align-items:center">
+        <div><div class="card-title">Relevamientos</div><div class="card-sub">${ordenado.length} registros en el período · mostrando los ${shown.length} más recientes</div></div>
+        <input type="text" id="relev-search" placeholder="Buscar por PDV, promotor o producto..." style="max-width:280px" value="${searchTerm}">
+      </div>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th>Fecha</th><th>Hora</th><th>Promotor</th><th>PDV</th><th>Cadena</th><th>Ciudad</th><th>Producto</th>
+        <th>Criterios</th><th>POP</th><th>Promoción</th><th>Góndola</th><th>Quiebre</th><th>Vencidos</th><th>Averiados</th>
+      </tr></thead><tbody>
+        ${shown.map(r=>{ const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId);
+          const si = `<span class="badge ok">Sí</span>`, no = `<span class="badge er">No</span>`;
+          return `<tr>
+            <td>${dateDisplay(r.fecha)}</td><td class="mono">${r.hora}</td><td style="font-weight:700">${prom.name}</td>
+            <td>${pdv.name}</td><td>${pdv.chain}</td><td>${pdv.city}</td><td>${r.producto}</td>
+            <td>${r.cumpleCriterios?si:no}</td><td>${r.tienePOP?si:no}</td><td>${r.tienePromocion?si:no}</td>
+            <td>${r.tieneQuiebre?'—':r.gondolaPct+'%'}</td><td>${r.tieneQuiebre?si:no}</td>
+            <td>${r.tieneVencidos?no:si}</td><td>${r.tieneAveriados?no:si}</td>
+          </tr>`;
+        }).join('') || `<tr><td colspan="14" style="text-align:center;color:var(--tx3);padding:30px">Sin registros para esta búsqueda</td></tr>`}
+      </tbody></table></div>
+    </div>`;
+
+  const relevSearch = document.getElementById('relev-search');
+  relevSearch.oninput = e=>{ searchTerm=e.target.value; renderRelevamientos(); };
+  if(relevSearchTenidoFoco){ relevSearch.focus(); relevSearch.selectionStart = relevSearch.value.length; }
 }
 
 // ============================================================
@@ -1369,21 +1452,34 @@ function renderSupervisores(){
       <div class="card"><div class="card-hdr"><div class="card-title">Cumplimiento por promotor</div></div>
         <div class="chart-wrap"><canvas id="ch-promotores"></canvas></div></div>
     </div>
-    <div class="card" style="margin-bottom:16px">
+    <div class="card">
       <div class="card-hdr"><div class="card-title">Ranking de promotores</div></div>
       <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Promotor</th><th>Supervisor</th><th>Ciudad</th><th>Visitas</th><th>PDVs</th><th>Cumplimiento</th><th>Alertas</th></tr></thead><tbody>
       ${rankProm.map((r,i)=>`<tr><td><span class="rank-medal" style="background:${medalColor(i)}">${i+1}</span></td><td style="font-weight:700">${r.p.name}</td><td>${supById(r.p.supervisorId).name}</td><td>${r.p.city}</td><td>${r.visitas}</td><td>${r.pdvs}</td><td><span class="badge ${r.cumpl>=80?'ok':r.cumpl>=60?'wa':'er'}">${r.cumpl}%</span></td><td>${r.alertas?`<span class="badge er">${r.alertas}</span>`:'—'}</td></tr>`).join('')}
       </tbody></table></div>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div><div class="card-title">Recorrido del día</div><div class="card-sub">Último día activo del promotor seleccionado</div></div>
-        <select class="select-inline" id="sel-recorrido">${PROMOTERS.map(p=>`<option value="${p.id}" ${p.id===recorridoPromotor?'selected':''}>${p.name}</option>`).join('')}</select>
-      </div>
-      <div id="map-recorrido"></div>
     </div>`;
 
   mkChart('ch-promotores',{type:'bar',data:{labels:rankProm.map(r=>r.p.name.split(' ')[0]),datasets:[{label:'% Cumplimiento',data:rankProm.map(r=>r.cumpl),backgroundColor:brandColor(),borderRadius:5,maxBarThickness:20}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
+}
+
+// ============================================================
+// PÁGINA: RECORRIDO POR PERSONA
+// ============================================================
+function renderRecorrido(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-hdr"><div><div class="card-title">Recorrido del día</div><div class="card-sub">Último día activo del promotor seleccionado</div></div>
+        <select class="select-inline" id="sel-recorrido">${PROMOTERS.map(p=>`<option value="${p.id}" ${p.id===recorridoPromotor?'selected':''}>${p.name} — ${p.city}</option>`).join('')}</select>
+      </div>
+      <div id="map-recorrido"></div>
+    </div>
+    <div class="grid grid-2" style="margin-top:16px">
+      <div class="card"><div class="card-hdr"><div class="card-title">Paradas del día</div></div>
+        <div class="tbl-wrap"><table><thead><tr><th>#</th><th>PDV</th><th>Hora</th><th>Duración</th></tr></thead><tbody id="recorrido-paradas"></tbody></table></div></div>
+      <div class="card"><div class="card-hdr"><div class="card-title">Jornada de ese día</div></div>
+        <div id="recorrido-jornada" style="font-size:12.5px;color:var(--tx2);line-height:2"></div></div>
+    </div>`;
 
   document.getElementById('sel-recorrido').onchange = e=>{ recorridoPromotor=e.target.value; drawRecorrido(); };
   drawRecorrido();
@@ -1408,6 +1504,21 @@ function drawRecorrido(){
   });
   if(latlngs.length) mapRecorrido.fitBounds(latlngs,{padding:[30,30]});
   setTimeout(()=>mapRecorrido && mapRecorrido.invalidateSize(),150);
+
+  const paradasEl = document.getElementById('recorrido-paradas');
+  if(paradasEl){
+    paradasEl.innerHTML = dia.map((r,i)=>{ const pdv=pdvById(r.pdvId); return `<tr><td>${i+1}</td><td style="font-weight:700">${pdv.name}</td><td class="mono">${r.hora}</td><td class="mono">${r.duracion} min</td></tr>`; }).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--tx3);padding:20px">Sin visitas registradas</td></tr>`;
+  }
+  const jornadaEl = document.getElementById('recorrido-jornada');
+  if(jornadaEl){
+    const j = ultimaFecha ? JORNADAS.find(x=>x.promotorId===recorridoPromotor && x.fecha===ultimaFecha) : null;
+    jornadaEl.innerHTML = !ultimaFecha ? `<span style="color:var(--tx3)">Sin datos</span>` : !j
+      ? `<span style="color:var(--er)"><i class="fas fa-user-xmark"></i> Ausente el ${dateDisplay(ultimaFecha)}</span>`
+      : `<div>Fecha: <b>${dateDisplay(ultimaFecha)}</b></div>
+         <div>Entrada: <b class="mono">${j.entrada}</b> ${badgeEntradaEstado(j)}</div>
+         <div>Almuerzo: <b class="mono">${j.almSalida||'—'} → ${j.almEntrada||'—'}</b></div>
+         <div>Salida: <b class="mono">${j.salida}</b> ${badgeSalidaEstado(j)}</div>`;
+  }
 }
 
 // ============================================================
@@ -1493,9 +1604,13 @@ const PAGES = {
   resumen:{title:'Resumen ejecutivo', icon:'fa-chart-pie', render:renderResumen},
   impacto:{title:'Impacto comercial', icon:'fa-rocket', render:renderImpacto},
   cobertura:{title:'Cobertura', icon:'fa-store', render:renderCobertura},
+  precios:{title:'Precios', icon:'fa-tags', render:renderPrecios},
   auditoria:{title:'Auditoría de punto de venta', icon:'fa-clipboard-check', render:renderAuditoria},
+  evidencias:{title:'Evidencias fotográficas', icon:'fa-images', render:renderEvidencias},
   alertas:{title:'Alertas y vencimientos', icon:'fa-exclamation-triangle', render:renderAlertas},
+  relevamientos:{title:'Relevamientos', icon:'fa-clipboard-list', render:renderRelevamientos},
   jornada:{title:'Jornada y asistencia', icon:'fa-user-clock', render:renderJornada},
+  recorrido:{title:'Recorrido por persona', icon:'fa-route', render:renderRecorrido},
   comisiones:{title:'Comisiones', icon:'fa-hand-holding-dollar', render:renderComisiones},
   supervisores:{title:'Supervisores', icon:'fa-user-tie', render:renderSupervisores},
 };
