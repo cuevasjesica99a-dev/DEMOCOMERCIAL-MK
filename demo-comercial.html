@@ -196,13 +196,13 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
       <div class="ni" data-p="cobertura"><i class="fas fa-store"></i>Cobertura</div>
       <div class="ni" data-p="precios"><i class="fas fa-tags"></i>Precios</div>
       <div class="ni" data-p="auditoria"><i class="fas fa-clipboard-check"></i>Auditoría de PDV</div>
-      <div class="ni" data-p="evidencias"><i class="fas fa-images"></i>Evidencias fotográficas</div>
       <div class="ni" data-p="alertas"><i class="fas fa-exclamation-triangle"></i>Alertas y vencimientos<span class="ni-badge" id="nb-alertas">0</span></div>
       <div class="ni" data-p="relevamientos"><i class="fas fa-clipboard-list"></i>Relevamientos</div>
     </nav>
     <div class="nav-sect">Equipo</div>
     <nav class="nav" id="nav2">
-      <div class="ni" data-p="jornada"><i class="fas fa-user-clock"></i>Jornada y asistencia<span class="ni-badge" id="nb-tardanzas">0</span></div>
+      <div class="ni" data-p="jornada"><i class="fas fa-user-clock"></i>Jornada del día<span class="ni-badge" id="nb-tardanzas">0</span></div>
+      <div class="ni" data-p="asistencia"><i class="fas fa-user-check"></i>Asistencia<span class="ni-badge" id="nb-ausentes">0</span></div>
       <div class="ni" data-p="recorrido"><i class="fas fa-route"></i>Recorrido por persona</div>
       <div class="ni" data-p="comisiones"><i class="fas fa-hand-holding-dollar"></i>Comisiones</div>
       <div class="ni" data-p="supervisores"><i class="fas fa-user-tie"></i>Supervisores</div>
@@ -501,6 +501,7 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
 const ENTRADA_PROG = 8*60; // 08:00
 const SALIDA_PROG_SEMANA = 18*60; // 18:00
 const SALIDA_PROG_SABADO = 12*60; // 12:00
+const LIMITE_ALMUERZO = 60; // minutos tope esperado de almuerzo
 const JORNADAS = [];
 const AUSENCIAS = [];
 for(let back=DIAS_HISTORIAL; back>=0; back--){
@@ -549,7 +550,9 @@ const ANIO_DEMO = TODAY.getFullYear();
 const F = {cadena:'', ciudad:'', categoria:'', fechaDesde:`${ANIO_DEMO}-07-01`, fechaHasta:`${ANIO_DEMO}-07-31`};
 let searchTerm='';
 let recorridoPromotor = PROMOTERS[0].id;
-let jornadaDiaFiltro='';
+let fechaEquipo = FECHA_MAX;
+let jornadaFiltroActivo = null;
+let asistenciaFiltroActivo = null;
 let coberturaVista='cadena';
 let preciosVista='categoria';
 let alertasTab='todos';
@@ -1081,6 +1084,7 @@ function renderCobertura(){
 // PÁGINA: AUDITORÍA DE PUNTO DE VENTA
 // ============================================================
 function renderAuditoria(){
+  const auditoriaSearchTenidoFoco = document.activeElement && document.activeElement.id==='aud-search';
   const all = filterVisits();
   const conStock = all.filter(r=>!r.tieneQuiebre);
   const gondolaProm = all.length? all.reduce((a,r)=>a+r.gondolaPct,0)/all.length : 0;
@@ -1108,6 +1112,13 @@ function renderAuditoria(){
   const popCount = {};
   all.filter(r=>r.tienePOP).forEach(r=>popCount[r.popTipo]=(popCount[r.popTipo]||0)+1);
 
+  let fotoRows = all;
+  if(searchTerm){
+    const s = searchTerm.toLowerCase();
+    fotoRows = fotoRows.filter(r=> pdvById(r.pdvId).name.toLowerCase().includes(s) || promoterById(r.promotorId).name.toLowerCase().includes(s));
+  }
+  const fotos = fotoRows.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,30);
+
   document.getElementById('content').innerHTML = `
     <div class="grid grid-kpi" style="margin-bottom:18px">
       ${kpiCard('Participación en góndola', Math.round(gondolaProm), 'promedio del período', 'fa-border-all', '--vi','k-gondola2')}
@@ -1125,14 +1136,27 @@ function renderAuditoria(){
       <div class="card"><div class="card-hdr"><div><div class="card-title">Disponibilidad de stock por cadena</div><div class="card-sub">% de visitas sin quiebre de stock</div></div></div>
         <div class="chart-wrap sm"><canvas id="ch-disponibilidad"></canvas></div></div>
     </div>
-    <div class="grid grid-2e">
+    <div class="grid grid-2e" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div class="card-title">Acciones de competencia detectadas</div></div>
         <div class="chart-wrap sm"><canvas id="ch-competencia"></canvas></div></div>
       <div class="card"><div class="card-hdr"><div class="card-title">Materiales POP instalados</div></div>
         <div class="tbl-wrap"><table><thead><tr><th>Tipo de material</th><th>Instalaciones</th></tr></thead><tbody>
         ${POP_TYPES.map(t=>`<tr><td>${t}</td><td style="font-weight:700">${popCount[t]||0}</td></tr>`).join('')}
         </tbody></table></div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr" style="align-items:center">
+        <div><div class="card-title">Relevamiento fotográfico</div><div class="card-sub">${fotoRows.length} evidencias en el período filtrado · mostrando ${fotos.length}</div></div>
+        <input type="text" id="aud-search" placeholder="Buscar por PDV o promotor..." style="max-width:260px" value="${searchTerm}">
+      </div>
+      <div class="evid-grid">
+        ${fotos.map(buildFotoCard).join('') || `<div style="grid-column:1/-1;text-align:center;color:var(--tx3);padding:40px 0"><i class="fas fa-search" style="font-size:24px;display:block;margin-bottom:8px"></i>Sin resultados</div>`}
+      </div>
     </div>`;
+
+  const auSearch = document.getElementById('aud-search');
+  auSearch.oninput = e=>{ searchTerm=e.target.value; renderAuditoria(); };
+  if(auditoriaSearchTenidoFoco){ auSearch.focus(); auSearch.selectionStart = auSearch.value.length; }
 
   animateNum(document.getElementById('k-gondola2'), Math.round(gondolaProm), '%');
   animateNum(document.getElementById('k-disp'), Math.round(disponibilidad), '%');
@@ -1240,34 +1264,6 @@ function renderPrecios(){
     marcarActivoPrecio(btn, preciosVista===v);
     btn.onclick = ()=>{ preciosVista=v; renderPrecios(); };
   });
-}
-
-// ============================================================
-// PÁGINA: EVIDENCIAS FOTOGRÁFICAS
-// ============================================================
-function renderEvidencias(){
-  const evidSearchTenidoFoco = document.activeElement && document.activeElement.id==='evid-search';
-  let rows = filterVisits();
-  if(searchTerm){
-    const s = searchTerm.toLowerCase();
-    rows = rows.filter(r=> pdvById(r.pdvId).name.toLowerCase().includes(s) || promoterById(r.promotorId).name.toLowerCase().includes(s));
-  }
-  const fotos = rows.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,30);
-
-  document.getElementById('content').innerHTML = `
-    <div class="card">
-      <div class="card-hdr" style="align-items:center">
-        <div><div class="card-title">Relevamiento fotográfico</div><div class="card-sub">${rows.length} evidencias en el período filtrado · mostrando ${fotos.length}</div></div>
-        <input type="text" id="evid-search" placeholder="Buscar por PDV o promotor..." style="max-width:260px" value="${searchTerm}">
-      </div>
-      <div class="evid-grid">
-        ${fotos.map(buildFotoCard).join('') || `<div style="grid-column:1/-1;text-align:center;color:var(--tx3);padding:40px 0"><i class="fas fa-search" style="font-size:24px;display:block;margin-bottom:8px"></i>Sin resultados</div>`}
-      </div>
-    </div>`;
-
-  const evidSearch = document.getElementById('evid-search');
-  evidSearch.oninput = e=>{ searchTerm=e.target.value; renderEvidencias(); };
-  if(evidSearchTenidoFoco){ evidSearch.focus(); evidSearch.selectionStart = evidSearch.value.length; }
 }
 
 // ============================================================
@@ -1483,101 +1479,120 @@ function renderAlertas(){
 // ============================================================
 // PÁGINA: JORNADA Y ASISTENCIA
 // ============================================================
+function promsDeCiudad(){ return PROMOTERS.filter(p=>!F.ciudad || p.city===F.ciudad); }
+function esDomingoFecha(fecha){ const [y,m,d]=fecha.split('-').map(Number); return new Date(y,m-1,d).getDay()===0; }
+
 function renderJornada(){
-  const rows = filterJornadas();
-  const ausencias = filterAusencias();
-  const tardias = rows.filter(r=>r.tardanza);
-  const pctPuntual = rows.length? Math.round((rows.length-tardias.length)/rows.length*100):100;
-  const avgTarde = tardias.length? Math.round(tardias.reduce((a,r)=>a+r.minutosTarde,0)/tardias.length):0;
-  const avgHoras = rows.length? (rows.reduce((a,r)=>a+r.horasTrabajadas,0)/rows.length).toFixed(1):'0';
-  const avgAlmuerzo = rows.length? Math.round(rows.reduce((a,r)=>a+r.duracionAlmuerzo,0)/rows.length):0;
-  const totalJornadasEsperadas = rows.length+ausencias.length;
-  const pctAsistencia = totalJornadasEsperadas? Math.round(rows.length/totalJornadasEsperadas*100):100;
+  const fecha = fechaEquipo;
+  const esDomingo = esDomingoFecha(fecha);
+  const proms = promsDeCiudad();
+  const promIds = new Set(proms.map(p=>p.id));
+  const dayJornadas = JORNADAS.filter(j=>j.fecha===fecha && promIds.has(j.promotorId));
+  const dayAusencias = AUSENCIAS.filter(a=>a.fecha===fecha && promIds.has(a.promotorId));
 
-  const porProm = PROMOTERS.map(p=>{
-    const rs = rows.filter(r=>r.promotorId===p.id);
-    const aus = ausencias.filter(a=>a.promotorId===p.id);
-    const tard = rs.filter(r=>r.tardanza);
-    return {
-      p, dias:rs.length, tardanzas:tard.length, ausencias:aus.length,
-      entradaProm: rs.length? minToHHMM(rs.reduce((a,r)=>a+hhmmToMin(r.entrada),0)/rs.length):'—',
-      salidaProm: rs.length? minToHHMM(rs.reduce((a,r)=>a+hhmmToMin(r.salida),0)/rs.length):'—',
-    };
-  }).sort((a,b)=>b.tardanzas-a.tardanzas);
+  const tarde = dayJornadas.filter(j=>j.tardanza);
+  const aTiempo = dayJornadas.filter(j=>!j.tardanza);
+  const duraciones = dayJornadas.map(j=>hhmmToMin(j.salida)-hhmmToMin(j.entrada)).filter(d=>d>0);
+  const promDur = duraciones.length? Math.round(duraciones.reduce((s,v)=>s+v,0)/duraciones.length):0;
+  const almOk = dayJornadas.filter(j=>j.almSalida && j.duracionAlmuerzo<=LIMITE_ALMUERZO);
+  const almExcedidos = dayJornadas.filter(j=>j.almSalida && j.duracionAlmuerzo>LIMITE_ALMUERZO);
+  const sinAlm = dayJornadas.filter(j=>!j.almSalida);
 
-  const recientes = tardias.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,20);
-  const ausentesRecientes = ausencias.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,20);
+  const horasDist = Array(24).fill(0), horasTarde = Array(24).fill(0);
+  dayJornadas.forEach(j=>{ const h=Math.floor(hhmmToMin(j.entrada)/60); horasDist[h]++; if(j.tardanza) horasTarde[h]++; });
+  const horasSlice = horasDist.slice(6,19), horasTardeSlice = horasTarde.slice(6,19);
+  const horasLabels = horasSlice.map((_,i)=>pad2(i+6)+':00');
 
-  const diaMin = F.fechaDesde||FECHA_MIN, diaMax = F.fechaHasta||FECHA_MAX;
-  let tablaResumen;
-  if(jornadaDiaFiltro){
-    const [dy,dm,dd] = jornadaDiaFiltro.split('-').map(Number);
-    const esDomingo = new Date(dy,dm-1,dd).getDay()===0;
-    const promsDelDia = PROMOTERS.filter(p=>!F.ciudad || p.city===F.ciudad);
-    tablaResumen = esDomingo ? `<table><tbody><tr><td style="text-align:center;color:var(--tx3);padding:30px">Domingo — día no laboral</td></tr></tbody></table>` : `<table><thead><tr><th>Promotor</th><th>Ciudad</th><th>Entrada</th><th>Estado entrada</th><th>Salida almuerzo</th><th>Regreso almuerzo</th><th>Salida</th><th>Estado salida</th></tr></thead><tbody>
-      ${promsDelDia.map(p=>{
-        const j = JORNADAS.find(x=>x.promotorId===p.id && x.fecha===jornadaDiaFiltro);
-        if(!j) return `<tr><td style="font-weight:700">${p.name}</td><td>${p.city}</td><td colspan="5" style="text-align:center;color:var(--tx3)">Sin marcaciones</td><td><span class="badge er"><i class="fas fa-user-xmark"></i> Ausente</span></td></tr>`;
-        return `<tr><td style="font-weight:700">${p.name}</td><td>${p.city}</td><td class="mono">${j.entrada}</td><td>${badgeEntradaEstado(j)}</td><td class="mono">${j.almSalida||'—'}</td><td class="mono">${j.almEntrada||'—'}</td><td class="mono">${j.salida}</td><td>${badgeSalidaEstado(j)}</td></tr>`;
-      }).join('')}
-      </tbody></table>`;
-  } else {
-    tablaResumen = `<table><thead><tr><th>Promotor</th><th>Ciudad</th><th>Días trabajados</th><th>Entrada prom.</th><th>Salida prom.</th><th>Tardanzas</th><th>Ausencias</th></tr></thead><tbody>
-      ${porProm.map(r=>`<tr><td style="font-weight:700">${r.p.name}</td><td>${r.p.city}</td><td>${r.dias}</td><td class="mono">${r.entradaProm}</td><td class="mono">${r.salidaProm}</td><td>${r.tardanzas?`<span class="badge er">${r.tardanzas}</span>`:'<span class="badge ok">0</span>'}</td><td>${r.ausencias?`<span class="badge wa">${r.ausencias}</span>`:'<span class="badge ok">0</span>'}</td></tr>`).join('')}
-      </tbody></table>`;
-  }
+  const durDist = {'<4h':0,'4-6h':0,'6-8h':0,'>8h':0};
+  duraciones.forEach(d=>{ const h=d/60; if(h<4) durDist['<4h']++; else if(h<6) durDist['4-6h']++; else if(h<8) durDist['6-8h']++; else durDist['>8h']++; });
+
+  const jornadasHist = JORNADAS.filter(j=>promIds.has(j.promotorId));
+  const puntualidadPorPersona = {};
+  jornadasHist.forEach(j=>{ if(!puntualidadPorPersona[j.promotorId]) puntualidadPorPersona[j.promotorId]={total:0,tarde:0}; puntualidadPorPersona[j.promotorId].total++; if(j.tardanza) puntualidadPorPersona[j.promotorId].tarde++; });
+  const rankingPuntualidad = Object.entries(puntualidadPorPersona).map(([id,v])=>({p:promoterById(id), pct:Math.round(100*(1-v.tarde/v.total)), total:v.total})).filter(r=>r.total>=5).sort((a,b)=>b.pct-a.pct);
+  const mejoresPuntuales = rankingPuntualidad.slice(0,3);
+  const peoresPuntuales = [...rankingPuntualidad].sort((a,b)=>a.pct-b.pct).slice(0,3);
+
+  const nombreCorto = n => n.split(' ').slice(0,2).join(' ');
 
   document.getElementById('content').innerHTML = `
+    <div class="fbar" style="padding:10px 18px">
+      <span class="fbar-label"><i class="fas fa-calendar"></i> Fecha exacta</span>
+      <input type="date" id="jornada-dia" class="select-inline" value="${fecha}" min="${FECHA_MIN}" max="${FECHA_MAX}">
+      <button class="tb-btn" id="jornada-export" style="padding:7px 12px"><i class="fas fa-file-export"></i> Exportar</button>
+    </div>
+    ${esDomingo? `<div class="banner"><i class="fas fa-store-slash"></i> Domingo — día no laboral, sin relevamiento.</div>` : `
     <div class="grid grid-kpi" style="margin-bottom:18px">
-      ${kpiCard('Asistencia', pctAsistencia, `${ausencias.length} ausencias detectadas`, 'fa-user-xmark', ausencias.length?'--wa':'--ok','k-asistencia')}
-      ${kpiCard('Asistencia puntual', pctPuntual, `sobre ${rows.length} jornadas`, 'fa-user-check', '--ok','k-puntual')}
-      ${kpiCard('Llegadas tardías', tardias.length, `promedio +${avgTarde} min`, 'fa-user-clock', '--er','k-tardias')}
-      ${kpiCard('Horas trabajadas', avgHoras, 'promedio por jornada', 'fa-hourglass-half', '--bl','k-horas')}
-      ${kpiCard('Duración de almuerzo', avgAlmuerzo, 'minutos promedio', 'fa-utensils', '--vi','k-almuerzo')}
+      <div class="kpi t-ok"><div class="kpi-lbl">En campo</div><div class="kpi-val" style="color:var(--ok)">${dayJornadas.length}</div><div class="kpi-sub">${dateDisplay(fecha)}</div><i class="fas fa-users kpi-ico"></i></div>
+      <div class="kpi" id="kpi-jornada-tardanzas" style="cursor:pointer"><div class="kpi-lbl">Tardanzas</div><div class="kpi-val" style="color:${tarde.length?'var(--er)':'var(--ok)'}">${tarde.length}</div><div class="kpi-sub">después de 08:10 · ${dayJornadas.length?Math.round(tarde.length/dayJornadas.length*100):0}%</div><i class="fas fa-clock kpi-ico"></i></div>
+      <div class="kpi"><div class="kpi-lbl">Jornada prom.</div><div class="kpi-val" style="color:var(--bl);font-size:22px">${Math.floor(promDur/60)}h ${promDur%60}m</div><div class="kpi-sub">en campo</div><i class="fas fa-hourglass-half kpi-ico"></i></div>
+      <div class="kpi"><div class="kpi-lbl">Almuerzo OK</div><div class="kpi-val" style="color:var(--ok)">${almOk.length}</div><div class="kpi-sub">dentro de ${LIMITE_ALMUERZO} min</div><i class="fas fa-utensils kpi-ico"></i></div>
+      <div class="kpi" id="kpi-jornada-almuerzo" style="cursor:pointer"><div class="kpi-lbl">Alm. excedidos</div><div class="kpi-val" style="color:${almExcedidos.length?'var(--er)':'var(--ok)'}">${almExcedidos.length}</div><div class="kpi-sub">más de ${LIMITE_ALMUERZO} min</div><i class="fas fa-exclamation-triangle kpi-ico"></i></div>
+      <div class="kpi"><div class="kpi-lbl">Sin alm. registrado</div><div class="kpi-val" style="color:${sinAlm.length?'var(--wa)':'var(--ok)'}">${sinAlm.length}</div><div class="kpi-sub">jornada corta / sábado</div><i class="fas fa-user-clock kpi-ico"></i></div>
     </div>
+    ${jornadaFiltroActivo==='tardanzas'?`<div class="tw" style="border:2px solid var(--er);margin-bottom:16px">
+      <div class="tf"><i class="fas fa-clock" style="color:var(--er)"></i><span style="font-weight:700;font-size:13px">Filtrado: Tardanzas — ${tarde.length}</span></div>
+      <div style="padding:6px 0">${tarde.length?tarde.map(j=>`<div style="display:flex;justify-content:space-between;padding:9px 20px;border-bottom:1px solid var(--bd)"><span style="font-size:12.5px;font-weight:600">${nombreCorto(promoterById(j.promotorId).name)}</span><span style="font-size:12px;color:var(--er)"><b>${j.entrada}</b> (+${j.minutosTarde}min)</span></div>`).join(''):'<div style="padding:20px;text-align:center;color:var(--tx3);font-size:12px">Sin tardanzas</div>'}</div>
+    </div>`:''}
+    ${jornadaFiltroActivo==='almuerzo'?`<div class="tw" style="border:2px solid var(--wa);margin-bottom:16px">
+      <div class="tf"><i class="fas fa-utensils" style="color:var(--wa)"></i><span style="font-weight:700;font-size:13px">Filtrado: Alertas de almuerzo — ${almExcedidos.length+sinAlm.length}</span></div>
+      <div style="padding:6px 0">
+        ${almExcedidos.map(j=>`<div style="display:flex;justify-content:space-between;padding:9px 20px;border-bottom:1px solid var(--bd)"><span style="font-size:12.5px;font-weight:600">${nombreCorto(promoterById(j.promotorId).name)}</span><span class="badge er">Excedido: ${j.duracionAlmuerzo}min</span></div>`).join('')}
+        ${sinAlm.map(j=>`<div style="display:flex;justify-content:space-between;padding:9px 20px;border-bottom:1px solid var(--bd)"><span style="font-size:12.5px;font-weight:600">${nombreCorto(promoterById(j.promotorId).name)}</span><span class="badge wa">Sin registrar</span></div>`).join('')}
+        ${!almExcedidos.length&&!sinAlm.length?'<div style="padding:20px;text-align:center;color:var(--tx3);font-size:12px">Sin alertas de almuerzo</div>':''}
+      </div>
+    </div>`:''}
     <div class="grid grid-2" style="margin-bottom:16px">
-      <div class="card">
-        <div class="card-hdr">
-          <div><div class="card-title">Resumen por promotor</div><div class="card-sub">${jornadaDiaFiltro? 'Detalle del '+dateDisplay(jornadaDiaFiltro) : 'Agregado del período filtrado'}</div></div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <button class="tb-btn" id="jornada-export" style="padding:7px 10px" title="Exportar asistencia a CSV"><i class="fas fa-file-export"></i></button>
-            <input type="date" id="jornada-dia" class="select-inline" value="${jornadaDiaFiltro}" min="${diaMin}" max="${diaMax}">
-            ${jornadaDiaFiltro?`<button class="tb-btn" id="jornada-dia-clear" style="padding:7px 10px"><i class="fas fa-times"></i></button>`:''}
-          </div>
-        </div>
-        <div class="tbl-wrap">${tablaResumen}</div></div>
-      <div class="card"><div class="card-hdr"><div class="card-title">Tardanzas por promotor</div></div>
-        <div class="chart-wrap"><canvas id="ch-tardanzas"></canvas></div></div>
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Horario de entrada</div><div class="card-sub">Distribución de check-ins · ${dateDisplay(fecha)}</div></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-horas-entry"></canvas></div>
+        <div style="display:flex;justify-content:space-around;margin-top:12px;padding-top:12px;border-top:1px solid var(--bd)">
+          <div style="text-align:center"><div style="font-size:20px;font-weight:900;color:var(--ok)">${aTiempo.length}</div><div style="font-size:10px;color:var(--tx3);text-transform:uppercase">A tiempo</div></div>
+          <div style="text-align:center"><div style="font-size:20px;font-weight:900;color:var(--er)">${tarde.length}</div><div style="font-size:10px;color:var(--tx3);text-transform:uppercase">Tarde</div></div>
+        </div></div>
+      <div class="card"><div class="card-hdr"><div class="card-title">Duración en campo</div><div class="card-sub">${duraciones.length} promotores con checkout</div></div>
+        <div class="chart-wrap sm"><canvas id="ch-duracion"></canvas></div></div>
     </div>
-    <div class="grid grid-2">
-      <div class="card">
-        <div class="card-hdr"><div><div class="card-title">Llegadas tardías recientes</div><div class="card-sub">${tardias.length} registros en el período</div></div></div>
-        <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Promotor</th><th>Hora de entrada</th><th>Programado</th><th>Estado</th></tr></thead><tbody>
-        ${recientes.map(r=>`<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${promoterById(r.promotorId).name}</td><td class="mono">${r.entrada}</td><td class="mono">08:00</td><td>${badgeTardanza(r.minutosTarde)}</td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:30px">Sin llegadas tardías en el período</td></tr>`}
-        </tbody></table></div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr"><div><div class="card-title">Puntualidad del período</div><div class="card-sub">Todo el histórico cargado, no solo ${dateDisplay(fecha)} — para coaching sostenido</div></div></div>
+      <div class="grid grid-2e">
+        <div><div style="font-size:9.5px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Más puntuales</div>
+          ${mejoresPuntuales.map(r=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${nombreCorto(r.p.name)}</span><span style="font-weight:700;color:var(--ok)">${r.pct}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Sin datos suficientes</div>`}
+        </div>
+        <div><div style="font-size:9.5px;font-weight:700;color:var(--er);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Necesitan acompañamiento</div>
+          ${peoresPuntuales.map(r=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${nombreCorto(r.p.name)}</span><span style="font-weight:700;color:var(--er)">${r.pct}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Sin datos suficientes</div>`}
+        </div>
       </div>
-      <div class="card">
-        <div class="card-hdr"><div><div class="card-title">Ausencias recientes</div><div class="card-sub">${ausencias.length} registros en el período</div></div></div>
-        <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Promotor</th><th>Ciudad</th></tr></thead><tbody>
-        ${ausentesRecientes.map(a=>{ const p=promoterById(a.promotorId); return `<tr><td>${dateDisplay(a.fecha)}</td><td style="font-weight:700">${p.name}</td><td>${p.city}</td></tr>`; }).join('') || `<tr><td colspan="3" style="text-align:center;color:var(--tx3);padding:30px">Sin ausencias en el período</td></tr>`}
-        </tbody></table></div>
-      </div>
-    </div>`;
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">${proms.length} promotores · ${dateDisplay(fecha)}</div><div style="display:flex;gap:8px">
+        <span class="badge ${tarde.length?'er':'ok'}">${tarde.length} tardanzas</span>
+        <span class="badge ${almExcedidos.length?'er':'ok'}">${almExcedidos.length} alm. excedidos</span>
+      </div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Promotor</th><th>Entrada</th><th>Checkout</th><th>Jornada</th><th>Estado</th><th>Alm. inicio</th><th>Alm. fin</th><th>Alm. duración</th><th>PDVs</th></tr></thead><tbody>
+        ${proms.map((p,i)=>{
+          const j = dayJornadas.find(x=>x.promotorId===p.id);
+          if(!j) return `<tr><td>${i+1}</td><td style="font-weight:700">${p.name}</td><td colspan="7" style="text-align:center;color:var(--tx3)">Sin marcaciones</td><td><span class="badge er"><i class="fas fa-user-xmark"></i> Ausente</span></td></tr>`;
+          const dur = hhmmToMin(j.salida)-hhmmToMin(j.entrada);
+          const durStr = dur>0? Math.floor(dur/60)+'h '+(dur%60)+'m' : '—';
+          const nPdv = VISITS.filter(v=>v.promotorId===p.id && v.fecha===fecha).length;
+          return `<tr><td>${i+1}</td><td style="font-weight:700">${p.name}</td><td class="mono">${j.entrada}</td><td class="mono">${j.salida}</td><td class="mono" style="color:var(--bl);font-weight:700">${durStr}</td><td>${badgeTardanza(j.minutosTarde)}</td>
+            <td class="mono">${j.almSalida||'—'}</td><td class="mono">${j.almEntrada||'—'}</td>
+            <td class="mono" style="color:${j.duracionAlmuerzo>LIMITE_ALMUERZO?'var(--er)':'var(--ok)'}">${j.almSalida?j.duracionAlmuerzo+'min':'—'}</td>
+            <td style="text-align:center"><span class="badge bl">${nPdv}</span></td></tr>`;
+        }).join('') || `<tr><td colspan="10" style="text-align:center;color:var(--tx3);padding:24px">Sin datos para esta fecha</td></tr>`}
+      </tbody></table></div>
+    </div>`}`;
 
-  animateNum(document.getElementById('k-asistencia'), pctAsistencia, '%');
-  animateNum(document.getElementById('k-puntual'), pctPuntual, '%');
-  animateNum(document.getElementById('k-tardias'), tardias.length);
-  document.getElementById('k-horas').textContent = avgHoras;
-  animateNum(document.getElementById('k-almuerzo'), avgAlmuerzo);
-
-  document.getElementById('jornada-dia').onchange = e=>{ jornadaDiaFiltro=e.target.value; renderJornada(); };
-  const clearBtn = document.getElementById('jornada-dia-clear');
-  if(clearBtn) clearBtn.onclick = ()=>{ jornadaDiaFiltro=''; renderJornada(); };
-  document.getElementById('jornada-export').onclick = ()=>exportJornadaCSV(rows, ausencias);
-
-  const top10 = porProm.slice(0,10);
-  mkChart('ch-tardanzas',{type:'bar',data:{labels:top10.map(r=>r.p.name.split(' ')[0]),datasets:[{label:'Tardanzas',data:top10.map(r=>r.tardanzas),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:26}]},
-    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{stepSize:1}},y:{grid:{display:false},ticks:{font:{size:10.5}}}}}});
+  document.getElementById('jornada-dia').onchange = e=>{ fechaEquipo=e.target.value; jornadaFiltroActivo=null; renderJornada(); };
+  document.getElementById('jornada-export').onclick = ()=>exportJornadaCSV(dayJornadas, dayAusencias);
+  if(!esDomingo){
+    document.getElementById('kpi-jornada-tardanzas').onclick = ()=>{ jornadaFiltroActivo = jornadaFiltroActivo==='tardanzas'?null:'tardanzas'; renderJornada(); };
+    document.getElementById('kpi-jornada-almuerzo').onclick = ()=>{ jornadaFiltroActivo = jornadaFiltroActivo==='almuerzo'?null:'almuerzo'; renderJornada(); };
+    mkChart('ch-horas-entry',{type:'bar',data:{labels:horasLabels,datasets:[{label:'A tiempo',data:horasSlice.map((v,i)=>v-horasTardeSlice[i]),backgroundColor:'#3cb3a8',borderRadius:4},{label:'Tarde',data:horasTardeSlice,backgroundColor:'#e84a55',borderRadius:4}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:9}}},y:{stacked:true,beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{stepSize:1}}}}});
+    mkChart('ch-duracion',{type:'doughnut',data:{labels:Object.keys(durDist),datasets:[{data:Object.values(durDist),backgroundColor:['#e0722a','#5b9bd5','#3cb3a8','#9b7fd4'],borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'right',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}}}});
+  }
 }
 function exportJornadaCSV(jornadas, ausencias){
   const header = ['Fecha','Promotor','Ciudad','Entrada','EstadoEntrada','MinutosTarde','AlmuerzoSalida','AlmuerzoEntrada','DuracionAlmuerzo','Salida','EstadoSalida','HorasTrabajadas'];
@@ -1594,6 +1609,106 @@ function exportJornadaCSV(jornadas, ausencias){
   a.download = `nova-consumo-asistencia-${isoDate(TODAY)}.csv`;
   a.click();
   toast(`${jornadas.length+ausencias.length} registros de asistencia exportados`, 'fa-file-csv');
+}
+
+// ============================================================
+// PÁGINA: ASISTENCIA
+// ============================================================
+function renderAsistencia(){
+  const fecha = fechaEquipo;
+  const esDomingo = esDomingoFecha(fecha);
+  const proms = promsDeCiudad();
+  const promIds = new Set(proms.map(p=>p.id));
+  const total = proms.length;
+  const dayAusencias = AUSENCIAS.filter(a=>a.fecha===fecha && promIds.has(a.promotorId));
+  const ausentesIds = new Set(dayAusencias.map(a=>a.promotorId));
+  const presentes = proms.filter(p=>!ausentesIds.has(p.id));
+  const dayJornadas = JORNADAS.filter(j=>j.fecha===fecha && promIds.has(j.promotorId));
+  const tarde = dayJornadas.filter(j=>j.tardanza);
+  const aTiempo = dayJornadas.filter(j=>!j.tardanza);
+  const pct = total? Math.round(presentes.length/total*100):100;
+  const pctTarde = presentes.length? Math.round(tarde.length/presentes.length*100):0;
+
+  const ultimaJornadaPorPersona = {};
+  JORNADAS.filter(j=>promIds.has(j.promotorId)).forEach(j=>{ if(!ultimaJornadaPorPersona[j.promotorId]||j.fecha>ultimaJornadaPorPersona[j.promotorId]) ultimaJornadaPorPersona[j.promotorId]=j.fecha; });
+  const diasDesde = fUlt => {
+    if(!fUlt) return null;
+    const [y,m,d]=fUlt.split('-').map(Number), [y2,m2,d2]=fecha.split('-').map(Number);
+    return Math.round((new Date(y2,m2-1,d2)-new Date(y,m-1,d))/86400000);
+  };
+
+  const dias14 = [...Array(14)].map((_,i)=>isoDate(addDays(TODAY,-(13-i))));
+  const asistenciaPorDia = dias14.map(f=>{
+    const ausF = new Set(AUSENCIAS.filter(a=>a.fecha===f && promIds.has(a.promotorId)).map(a=>a.promotorId));
+    return {fecha:f, pct: total? Math.round(100*(total-ausF.size)/total):100};
+  });
+
+  const riesgoAusentismo = proms.map(p=>{
+    const jCount = JORNADAS.filter(j=>j.promotorId===p.id).length;
+    const aCount = AUSENCIAS.filter(a=>a.promotorId===p.id).length;
+    return {p, ausencias:aCount, pct: (jCount+aCount)? Math.round(100*aCount/(jCount+aCount)):0};
+  }).filter(r=>r.ausencias>0).sort((a,b)=>b.ausencias-a.ausencias).slice(0,5);
+
+  document.getElementById('content').innerHTML = `
+    <div class="fbar" style="padding:10px 18px">
+      <span class="fbar-label"><i class="fas fa-calendar"></i> Fecha exacta</span>
+      <input type="date" id="asist-dia" class="select-inline" value="${fecha}" min="${FECHA_MIN}" max="${FECHA_MAX}">
+      ${asistenciaFiltroActivo?`<span class="fbar-chip" id="asist-clear"><i class="fas fa-times" style="font-size:9px"></i>Ver todos (quitar filtro ausentes)</span>`:''}
+    </div>
+    ${esDomingo?`<div class="banner"><i class="fas fa-store-slash"></i> Domingo — día no laboral, sin relevamiento.</div>`:`
+    <div class="grid grid-kpi" style="margin-bottom:18px">
+      <div class="kpi t-ok"><div class="kpi-lbl">Presentes</div><div class="kpi-val" style="color:var(--ok)">${presentes.length}<span style="font-size:14px;font-weight:600;color:var(--tx3)"> / ${total}</span></div><div class="kpi-sub">${pct}% de nómina</div><i class="fas fa-user-check kpi-ico"></i></div>
+      <div class="kpi" id="kpi-asist-ausentes" style="cursor:pointer"><div class="kpi-lbl">Ausentes</div><div class="kpi-val" style="color:${dayAusencias.length?'var(--er)':'var(--ok)'}">${dayAusencias.length}</div><div class="kpi-sub">sin marcaciones hoy</div><i class="fas fa-user-times kpi-ico"></i></div>
+      <div class="kpi t-ok"><div class="kpi-lbl">A tiempo</div><div class="kpi-val" style="color:var(--ok)">${aTiempo.length}</div><div class="kpi-sub">antes de 08:10 hs</div><i class="fas fa-check-circle kpi-ico"></i></div>
+      <div class="kpi"><div class="kpi-lbl">Tardanzas</div><div class="kpi-val" style="color:${tarde.length?'var(--wa)':'var(--ok)'}">${tarde.length}</div><div class="kpi-sub">${pctTarde}% del equipo presente</div><i class="fas fa-clock kpi-ico"></i></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr" style="align-items:center"><div class="card-title">Cobertura de nómina — ${dateDisplay(fecha)}</div><span style="font-size:24px;font-weight:900;color:${pct>=85?'var(--ok)':pct>=60?'var(--wa)':'var(--er)'}">${pct}%</span></div>
+      <div style="height:14px;border-radius:7px;overflow:hidden;display:flex;gap:2px;margin-bottom:14px">
+        ${aTiempo.length?`<div style="flex:${aTiempo.length};background:var(--ok);border-radius:7px 0 0 7px"></div>`:''}
+        ${tarde.length?`<div style="flex:${tarde.length};background:var(--wa)"></div>`:''}
+        ${dayAusencias.length?`<div style="flex:${dayAusencias.length};background:var(--er);opacity:.5;border-radius:0 7px 7px 0"></div>`:''}
+      </div>
+      <div style="display:flex;gap:16px;font-size:11px;flex-wrap:wrap">
+        <span><span class="dot ok"></span> A tiempo (${aTiempo.length})</span>
+        <span><span class="dot wa"></span> Tarde (${tarde.length})</span>
+        <span style="cursor:pointer" id="asist-leyenda-ausentes"><span class="dot er"></span> Ausentes (${dayAusencias.length})</span>
+      </div>
+    </div>
+    <div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Tendencia de asistencia</div><div class="card-sub">% de la nómina presente, últimos 14 días</div></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-asist-tendencia"></canvas></div></div>
+      <div class="card"><div class="card-hdr"><div class="card-title">Riesgo de ausentismo</div><div class="card-sub">Más días sin marcar en todo el período cargado</div></div>
+        ${riesgoAusentismo.map(r=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd)"><span style="font-size:11.5px;font-weight:600">${r.p.name}</span><span style="font-weight:700;font-size:11.5px;color:${r.pct>20?'var(--er)':'var(--wa)'}">${r.ausencias} días · ${r.pct}%</span></div>`).join('') || `<div style="color:var(--ok);font-size:12px"><i class="fas fa-check-circle" style="margin-right:5px"></i>Sin ausencias relevantes en el período</div>`}
+      </div>
+    </div>
+    ${asistenciaFiltroActivo==='ausentes' ? `
+    <div class="tw">
+      <div class="tf"><i class="fas fa-user-times" style="color:var(--er)"></i><span style="font-weight:700;font-size:13px">Ausentes — ${dayAusencias.length} de ${total}</span></div>
+      <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Promotor</th><th>Ciudad</th><th>Última marcación</th><th>Días sin marcar</th></tr></thead><tbody>
+      ${dayAusencias.map((a,i)=>{ const p=promoterById(a.promotorId); const ult=ultimaJornadaPorPersona[p.id]; const dias=diasDesde(ult);
+        const diasTxt = dias==null?'Sin registro histórico':dias===0?'Hoy':dias===1?'Ayer':`Hace ${dias} días`;
+        return `<tr><td>${i+1}</td><td style="font-weight:700">${p.name}</td><td>${p.city}</td><td>${ult?dateDisplay(ult):'—'}</td><td><span class="badge er">${diasTxt}</span></td></tr>`;
+      }).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:24px">Sin ausentes</td></tr>`}
+      </tbody></table></div>
+    </div>` : `
+    <div class="tw">
+      <div class="tf"><i class="fas fa-check" style="color:var(--ok)"></i><span style="font-weight:700;font-size:13px">Presentes — ${presentes.length} promotores</span></div>
+      <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Promotor</th><th>Ciudad</th><th>Entrada</th><th>PDVs visitados</th><th>Estado</th></tr></thead><tbody>
+      ${presentes.map((p,i)=>{ const j=dayJornadas.find(x=>x.promotorId===p.id); const nPdv=VISITS.filter(v=>v.promotorId===p.id&&v.fecha===fecha).length;
+        return `<tr><td>${i+1}</td><td style="font-weight:700">${p.name}</td><td>${p.city}</td><td>${j?'<span class="mono">'+j.entrada+'</span>':'—'}</td><td>${nPdv}</td><td>${j&&j.tardanza?'<span class="badge wa">Tarde</span>':'<span class="badge ok">A tiempo</span>'}</td></tr>`;
+      }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:24px">Sin presentes</td></tr>`}
+      </tbody></table></div>
+    </div>`}`}`;
+
+  document.getElementById('asist-dia').onchange = e=>{ fechaEquipo=e.target.value; renderAsistencia(); };
+  if(!esDomingo){
+    document.getElementById('kpi-asist-ausentes').onclick = ()=>{ asistenciaFiltroActivo = asistenciaFiltroActivo==='ausentes'?null:'ausentes'; renderAsistencia(); };
+    const leyenda = document.getElementById('asist-leyenda-ausentes'); if(leyenda) leyenda.onclick = ()=>{ asistenciaFiltroActivo='ausentes'; renderAsistencia(); };
+    const clearChip = document.getElementById('asist-clear'); if(clearChip) clearChip.onclick = ()=>{ asistenciaFiltroActivo=null; renderAsistencia(); };
+    mkChart('ch-asist-tendencia',{type:'line',data:{labels:dias14.map(dateDisplay),datasets:[{data:asistenciaPorDia.map(d=>d.pct),borderColor:'#3cb3a8',backgroundColor:'rgba(60,179,168,.15)',tension:.35,fill:true,pointRadius:3}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}% de la nómina`}}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});
+  }
 }
 
 // ============================================================
@@ -1850,10 +1965,10 @@ const PAGES = {
   cobertura:{title:'Cobertura', icon:'fa-store', render:renderCobertura},
   precios:{title:'Precios', icon:'fa-tags', render:renderPrecios},
   auditoria:{title:'Auditoría de punto de venta', icon:'fa-clipboard-check', render:renderAuditoria},
-  evidencias:{title:'Evidencias fotográficas', icon:'fa-images', render:renderEvidencias},
   alertas:{title:'Alertas y vencimientos', icon:'fa-exclamation-triangle', render:renderAlertas},
   relevamientos:{title:'Relevamientos', icon:'fa-clipboard-list', render:renderRelevamientos},
-  jornada:{title:'Jornada y asistencia', icon:'fa-user-clock', render:renderJornada},
+  jornada:{title:'Jornada del día', icon:'fa-user-clock', render:renderJornada},
+  asistencia:{title:'Asistencia', icon:'fa-user-check', render:renderAsistencia},
   recorrido:{title:'Recorrido por persona', icon:'fa-route', render:renderRecorrido},
   comisiones:{title:'Comisiones', icon:'fa-hand-holding-dollar', render:renderComisiones},
   supervisores:{title:'Supervisores', icon:'fa-user-tie', render:renderSupervisores},
@@ -1900,7 +2015,9 @@ function setDateRange(desde,hasta){
 }
 function updateBadges(){
   document.getElementById('nb-alertas').textContent = filterVisits().filter(r=>r.tieneVencidos||r.tieneAveriados).length;
-  document.getElementById('nb-tardanzas').textContent = filterJornadas().filter(r=>r.tardanza).length;
+  const promIds = new Set(promsDeCiudad().map(p=>p.id));
+  document.getElementById('nb-tardanzas').textContent = JORNADAS.filter(j=>j.fecha===fechaEquipo && j.tardanza && promIds.has(j.promotorId)).length;
+  document.getElementById('nb-ausentes').textContent = AUSENCIAS.filter(a=>a.fecha===fechaEquipo && promIds.has(a.promotorId)).length;
 }
 function applyFilters(){
   renderFbarChips();
