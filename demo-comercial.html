@@ -201,17 +201,9 @@ tr:hover td{background:var(--bg3)}
       </div>
     </div>
     <div class="fbar">
-      <span class="fbar-label"><i class="fas fa-calendar"></i> Período</span>
-      <select id="f-dias" class="select-inline">
-        <option value="7">Últimos 7 días</option>
-        <option value="14">Últimos 14 días</option>
-        <option value="30">Últimos 30 días</option>
-        <option value="45" selected>Últimos 45 días</option>
-      </select>
       <select id="f-cadena" class="select-inline"><option value="">Todas las cadenas</option></select>
       <select id="f-ciudad" class="select-inline"><option value="">Todas las ciudades</option></select>
       <select id="f-categoria" class="select-inline"><option value="">Todas las categorías</option></select>
-      <select id="f-supervisor" class="select-inline"><option value="">Todos los supervisores</option></select>
       <span class="fbar-label" style="margin-left:6px"><i class="fas fa-calendar-week"></i> Rango</span>
       <input type="date" id="f-desde" class="select-inline">
       <span style="color:var(--tx3)">→</span>
@@ -314,8 +306,8 @@ CITY_CONFIG.forEach(city=>{
       PDVS.push({
         id, chain, city:city.name, zone,
         name:`${chain} — ${city.name} (${zone})`,
-        lat: city.lat + Math.cos(angle)*0.045 + (rnd()-0.5)*0.012,
-        lng: city.lng + Math.sin(angle)*0.045 + (rnd()-0.5)*0.012,
+        lat: city.lat + Math.cos(angle)*0.012 + (rnd()-0.5)*0.004,
+        lng: city.lng + Math.sin(angle)*0.012 + (rnd()-0.5)*0.004,
       });
       portfolio.push(id);
     });
@@ -391,24 +383,40 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
 }
 
 // ---- Generación de jornadas (entrada / almuerzo / salida) ----
+// Horario: lunes a viernes 08:00-18:00, sábados 08:00-12:00 (sin almuerzo), domingo cerrado.
+const ENTRADA_PROG = 8*60; // 08:00
+const SALIDA_PROG_SEMANA = 18*60; // 18:00
+const SALIDA_PROG_SABADO = 12*60; // 12:00
 const JORNADAS = [];
 for(let back=DIAS_HISTORIAL; back>=0; back--){
   const day = addDays(TODAY, -back);
   if(day.getDay()===0) continue;
+  const esSabado = day.getDay()===6;
   PROMOTERS.forEach(prom=>{
-    const entradaMin = 495 + Math.floor(rnd()*65); // 08:15 - 09:20
-    const minutosTardeRaw = entradaMin - 510; // programado 08:30
+    const entradaMin = ENTRADA_PROG - 15 + Math.floor(rnd()*70); // 07:45 - 08:55
+    const minutosTardeRaw = entradaMin - ENTRADA_PROG;
     const tardanza = minutosTardeRaw > 10;
     const minutosTarde = tardanza ? minutosTardeRaw : 0;
-    const almSalidaMin = 720 + Math.floor(rnd()*90); // 12:00 - 13:30
-    const duracionAlmuerzo = 40 + Math.floor(rnd()*35);
-    const almEntradaMin = almSalidaMin + duracionAlmuerzo;
-    const salidaMin = entradaMin + duracionAlmuerzo + 8*60 + Math.floor(rnd()*60-20);
+    const salidaProgramada = esSabado ? SALIDA_PROG_SABADO : SALIDA_PROG_SEMANA;
+
+    let almSalidaMin=null, almEntradaMin=null, duracionAlmuerzo=0;
+    if(!esSabado){
+      almSalidaMin = 720 + Math.floor(rnd()*90); // 12:00 - 13:30
+      duracionAlmuerzo = 40 + Math.floor(rnd()*35);
+      almEntradaMin = almSalidaMin + duracionAlmuerzo;
+    }
+    const salidaMin = chance(0.6)
+      ? salidaProgramada + Math.floor(rnd()*20)
+      : salidaProgramada - (10 + Math.floor(rnd()*(esSabado?30:50)));
+    const cumplioSalida = salidaMin >= salidaProgramada;
+
     JORNADAS.push({
-      id:'j'+prom.id+'_'+isoDate(day), promotorId:prom.id, fecha:isoDate(day),
-      entrada:minToHHMM(entradaMin), almSalida:minToHHMM(almSalidaMin),
-      almEntrada:minToHHMM(almEntradaMin), salida:minToHHMM(salidaMin),
-      tardanza, minutosTarde, duracionAlmuerzo,
+      id:'j'+prom.id+'_'+isoDate(day), promotorId:prom.id, fecha:isoDate(day), esSabado,
+      entrada:minToHHMM(entradaMin),
+      almSalida: almSalidaMin!=null ? minToHHMM(almSalidaMin) : null,
+      almEntrada: almEntradaMin!=null ? minToHHMM(almEntradaMin) : null,
+      salida:minToHHMM(salidaMin), salidaProgramada:minToHHMM(salidaProgramada),
+      tardanza, minutosTarde, duracionAlmuerzo, cumplioSalida,
       horasTrabajadas: Math.round(((salidaMin-entradaMin-duracionAlmuerzo)/60)*10)/10,
     });
   });
@@ -418,21 +426,26 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
 // ESTADO / FILTROS
 // ============================================================
 let currentPage='resumen';
-const F = {dias:45, cadena:'', ciudad:'', categoria:'', supervisor:'', fechaDesde:'', fechaHasta:''};
-let searchTerm='';
-let recorridoPromotor = PROMOTERS[0].id;
-const charts = {};
-let mapCobertura=null, mapRecorrido=null;
 const FECHA_MIN = isoDate(addDays(TODAY,-DIAS_HISTORIAL));
 const FECHA_MAX = isoDate(TODAY);
+const ANIO_DEMO = TODAY.getFullYear();
+const F = {cadena:'', ciudad:'', categoria:'', fechaDesde:`${ANIO_DEMO}-07-01`, fechaHasta:`${ANIO_DEMO}-07-31`};
+let searchTerm='';
+let recorridoPromotor = PROMOTERS[0].id;
+let jornadaDiaFiltro='';
+const charts = {};
+let mapCobertura=null, mapRecorrido=null;
 
+function rangoLabel(){
+  if(F.fechaDesde && F.fechaHasta) return `${dateDisplay(F.fechaDesde)} → ${dateDisplay(F.fechaHasta)}`;
+  if(F.fechaDesde) return `desde ${dateDisplay(F.fechaDesde)}`;
+  if(F.fechaHasta) return `hasta ${dateDisplay(F.fechaHasta)}`;
+  return 'todo el período';
+}
 function fechaEnRango(fecha){
-  if(F.fechaDesde || F.fechaHasta){
-    if(F.fechaDesde && fecha < F.fechaDesde) return false;
-    if(F.fechaHasta && fecha > F.fechaHasta) return false;
-    return true;
-  }
-  return fecha >= isoDate(addDays(TODAY, -F.dias));
+  if(F.fechaDesde && fecha < F.fechaDesde) return false;
+  if(F.fechaHasta && fecha > F.fechaHasta) return false;
+  return true;
 }
 function filterVisits(){
   return VISITS.filter(v=>{
@@ -441,7 +454,6 @@ function filterVisits(){
     if(F.cadena && pdv.chain!==F.cadena) return false;
     if(F.ciudad && pdv.city!==F.ciudad) return false;
     if(F.categoria && v.categoria!==F.categoria) return false;
-    if(F.supervisor && promoterById(v.promotorId).supervisorId!==F.supervisor) return false;
     return true;
   });
 }
@@ -450,7 +462,6 @@ function filterJornadas(){
     if(!fechaEnRango(j.fecha)) return false;
     const prom = promoterById(j.promotorId);
     if(F.ciudad && prom.city!==F.ciudad) return false;
-    if(F.supervisor && prom.supervisorId!==F.supervisor) return false;
     return true;
   });
 }
@@ -501,6 +512,14 @@ function badgeVenc(estado){
 }
 function badgeAveria(motivo){
   return `<span class="badge br"><i class="fas fa-box-open"></i> Averiado${motivo?': '+motivo:''}</span>`;
+}
+function badgeEntradaEstado(j){
+  if(j.tardanza) return `<span class="badge er"><i class="fas fa-clock"></i> Llegada tardía</span>`;
+  return `<span class="badge ok"><i class="fas fa-check"></i> A tiempo</span>`;
+}
+function badgeSalidaEstado(j){
+  if(j.cumplioSalida) return `<span class="badge ok"><i class="fas fa-check-double"></i> Cumplido</span>`;
+  return `<span class="badge wa"><i class="fas fa-arrow-left"></i> Antes de hora</span>`;
 }
 function badgeTardanza(min){
   if(!min || min<=10) return `<span class="badge ok"><i class="fas fa-check-circle"></i> A horario</span>`;
@@ -568,7 +587,7 @@ function renderResumen(){
   const promotoresActivos = new Set(rows.map(r=>r.promotorId)).size;
   const gondolaProm = rows.length? rows.reduce((a,r)=>a+r.gondolaPct,0)/rows.length : 0;
   const pctPuntual = jrows.length? Math.round(jrows.filter(r=>!r.tardanza).length/jrows.length*100) : 100;
-  const periodoLabel = (F.fechaDesde||F.fechaHasta) ? 'rango seleccionado' : `período de ${F.dias} días`;
+  const periodoLabel = rangoLabel();
 
   const metas = [
     {label:'Cumplimiento de criterios', meta:90, real:Math.round(cumplPct)},
@@ -730,6 +749,17 @@ function renderAuditoria(){
   const popCount = {};
   all.filter(r=>r.tienePOP).forEach(r=>popCount[r.popTipo]=(popCount[r.popTipo]||0)+1);
 
+  const precioNuestroMin = all.length? Math.min(...all.map(r=>r.precioNuestro)) : 0;
+  const precioNuestroMax = all.length? Math.max(...all.map(r=>r.precioNuestro)) : 0;
+  const precioCompMin = all.length? Math.min(...all.map(r=>r.precioCompetidor)) : 0;
+  const precioCompMax = all.length? Math.max(...all.map(r=>r.precioCompetidor)) : 0;
+  const preciosRangoCat = CATEGORIES.map(cat=>{
+    const rs = all.filter(r=>r.categoria===cat);
+    return {cat,
+      nMin: rs.length?Math.min(...rs.map(r=>r.precioNuestro)):0, nMax: rs.length?Math.max(...rs.map(r=>r.precioNuestro)):0,
+      cMin: rs.length?Math.min(...rs.map(r=>r.precioCompetidor)):0, cMax: rs.length?Math.max(...rs.map(r=>r.precioCompetidor)):0};
+  });
+
   const fotos = rows.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,24);
 
   document.getElementById('content').innerHTML = `
@@ -761,7 +791,24 @@ function renderAuditoria(){
       <div class="evid-grid">
         ${fotos.map(buildFotoCard).join('') || `<div style="grid-column:1/-1;text-align:center;color:var(--tx3);padding:40px 0"><i class="fas fa-search" style="font-size:24px;display:block;margin-bottom:8px"></i>Sin resultados</div>`}
       </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-hdr"><div><div class="card-title">Rango de precios</div><div class="card-sub">Valores mínimo y máximo relevados en el período</div></div></div>
+      <div class="grid grid-4" style="margin-bottom:16px">
+        <div class="kpi"><div class="kpi-lbl">Mínimo — Nova Consumo</div><div class="kpi-val" style="color:var(--ok)">${fmtGs(precioNuestroMin)}</div></div>
+        <div class="kpi"><div class="kpi-lbl">Máximo — Nova Consumo</div><div class="kpi-val" style="color:var(--ok)">${fmtGs(precioNuestroMax)}</div></div>
+        <div class="kpi"><div class="kpi-lbl">Mínimo — Competencia</div><div class="kpi-val" style="color:var(--tx2)">${fmtGs(precioCompMin)}</div></div>
+        <div class="kpi"><div class="kpi-lbl">Máximo — Competencia</div><div class="kpi-val" style="color:var(--tx2)">${fmtGs(precioCompMax)}</div></div>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>Categoría</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
+      ${preciosRangoCat.map(p=>`<tr><td style="font-weight:700">${p.cat}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td></tr>`).join('')}
+      </tbody></table></div>
     </div>`;
+
+  animateNum(document.getElementById('k-gondola2'), Math.round(gondolaProm), '%');
+  animateNum(document.getElementById('k-pop'), Math.round(pctPOP), '%');
+  animateNum(document.getElementById('k-espacios'), espaciosGanados);
+  animateNum(document.getElementById('k-diffprecio'), Math.round(diffPrecioProm), '%');
 
   mkChart('ch-gondola',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Góndola',data:gondolaCadena,backgroundColor:'#9b7fd4',borderRadius:6,maxBarThickness:36}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
@@ -796,6 +843,11 @@ function renderAlertas(){
   averiados.forEach(r=>r.productosAveriados.forEach(p=>prodCounts[p]=(prodCounts[p]||0)+1));
   const prodTop = Object.entries(prodCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
 
+  const porLocal = PDVS.map(pdv=>{
+    const rs = rows.filter(r=>r.pdvId===pdv.id);
+    return {pdv, vencidos:rs.filter(r=>r.tieneVencidos).length, averiados:rs.filter(r=>r.tieneAveriados).length};
+  }).filter(l=>l.vencidos>0 || l.averiados>0).sort((a,b)=>(b.vencidos+b.averiados)-(a.vencidos+a.averiados));
+
   document.getElementById('content').innerHTML = `
     <div class="semaforo">
       <div class="sf-card rojo"><div class="sf-val" style="color:var(--er)">${vencidos.length}</div><div class="sf-lbl">Ya vencidos</div></div>
@@ -808,6 +860,12 @@ function renderAlertas(){
         <div class="chart-wrap sm"><canvas id="ch-productos"></canvas></div></div>
       <div class="card"><div class="card-hdr"><div class="card-title">Motivos de alerta</div></div>
         <div class="chart-wrap sm"><canvas id="ch-motivos"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr"><div><div class="card-title">Alertas por local</div><div class="card-sub">Cantidad de productos vencidos y averiados detectados por PDV</div></div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>PDV</th><th>Cadena</th><th>Ciudad</th><th>Vencidos</th><th>Averiados</th><th>Total</th></tr></thead><tbody>
+        ${porLocal.slice(0,20).map(l=>`<tr><td style="font-weight:700">${l.pdv.name}</td><td>${l.pdv.chain}</td><td>${l.pdv.city}</td><td>${l.vencidos?`<span class="badge er">${l.vencidos}</span>`:'—'}</td><td>${l.averiados?`<span class="badge br">${l.averiados}</span>`:'—'}</td><td style="font-weight:800">${l.vencidos+l.averiados}</td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:30px">Sin locales con alertas en el período</td></tr>`}
+      </tbody></table></div>
     </div>
     <div class="card">
       <div class="card-hdr"><div><div class="card-title">Detalle de alertas</div><div class="card-sub">${alertRows.length} registros en el período</div></div></div>
@@ -849,6 +907,21 @@ function renderJornada(){
 
   const recientes = tardias.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,20);
 
+  const diaMin = F.fechaDesde||FECHA_MIN, diaMax = F.fechaHasta||FECHA_MAX;
+  let tablaResumen;
+  if(jornadaDiaFiltro){
+    const diaRows = JORNADAS.filter(j=>j.fecha===jornadaDiaFiltro && (!F.ciudad || promoterById(j.promotorId).city===F.ciudad));
+    tablaResumen = `<table><thead><tr><th>Promotor</th><th>Ciudad</th><th>Entrada</th><th>Estado entrada</th><th>Salida almuerzo</th><th>Regreso almuerzo</th><th>Salida</th><th>Estado salida</th></tr></thead><tbody>
+      ${diaRows.map(j=>{ const p=promoterById(j.promotorId);
+        return `<tr><td style="font-weight:700">${p.name}</td><td>${p.city}</td><td class="mono">${j.entrada}</td><td>${badgeEntradaEstado(j)}</td><td class="mono">${j.almSalida||'—'}</td><td class="mono">${j.almEntrada||'—'}</td><td class="mono">${j.salida}</td><td>${badgeSalidaEstado(j)}</td></tr>`;
+      }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--tx3);padding:30px">Sin jornadas registradas ese día (domingo cerrado)</td></tr>`}
+      </tbody></table>`;
+  } else {
+    tablaResumen = `<table><thead><tr><th>Promotor</th><th>Ciudad</th><th>Días trabajados</th><th>Entrada prom.</th><th>Salida prom.</th><th>Tardanzas</th></tr></thead><tbody>
+      ${porProm.map(r=>`<tr><td style="font-weight:700">${r.p.name}</td><td>${r.p.city}</td><td>${r.dias}</td><td class="mono">${r.entradaProm}</td><td class="mono">${r.salidaProm}</td><td>${r.tardanzas?`<span class="badge er">${r.tardanzas}</span>`:'<span class="badge ok">0</span>'}</td></tr>`).join('')}
+      </tbody></table>`;
+  }
+
   document.getElementById('content').innerHTML = `
     <div class="grid grid-kpi" style="margin-bottom:18px">
       ${kpiCard('Asistencia puntual', pctPuntual, `sobre ${rows.length} jornadas`, 'fa-user-check', '--ok','k-puntual')}
@@ -857,19 +930,33 @@ function renderJornada(){
       ${kpiCard('Duración de almuerzo', avgAlmuerzo, 'minutos promedio', 'fa-utensils', '--vi','k-almuerzo')}
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
-      <div class="card"><div class="card-hdr"><div class="card-title">Resumen por promotor</div></div>
-        <div class="tbl-wrap"><table><thead><tr><th>Promotor</th><th>Ciudad</th><th>Días trabajados</th><th>Entrada prom.</th><th>Salida prom.</th><th>Tardanzas</th></tr></thead><tbody>
-        ${porProm.map(r=>`<tr><td style="font-weight:700">${r.p.name}</td><td>${r.p.city}</td><td>${r.dias}</td><td class="mono">${r.entradaProm}</td><td class="mono">${r.salidaProm}</td><td>${r.tardanzas?`<span class="badge er">${r.tardanzas}</span>`:'<span class="badge ok">0</span>'}</td></tr>`).join('')}
-        </tbody></table></div></div>
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-title">Resumen por promotor</div><div class="card-sub">${jornadaDiaFiltro? 'Detalle del '+dateDisplay(jornadaDiaFiltro) : 'Agregado del período filtrado'}</div></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="date" id="jornada-dia" class="select-inline" value="${jornadaDiaFiltro}" min="${diaMin}" max="${diaMax}">
+            ${jornadaDiaFiltro?`<button class="tb-btn" id="jornada-dia-clear" style="padding:7px 10px"><i class="fas fa-times"></i></button>`:''}
+          </div>
+        </div>
+        <div class="tbl-wrap">${tablaResumen}</div></div>
       <div class="card"><div class="card-hdr"><div class="card-title">Tardanzas por promotor</div></div>
         <div class="chart-wrap"><canvas id="ch-tardanzas"></canvas></div></div>
     </div>
     <div class="card">
       <div class="card-hdr"><div><div class="card-title">Llegadas tardías recientes</div><div class="card-sub">${tardias.length} registros en el período</div></div></div>
       <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Promotor</th><th>Hora de entrada</th><th>Programado</th><th>Estado</th></tr></thead><tbody>
-      ${recientes.map(r=>`<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${promoterById(r.promotorId).name}</td><td class="mono">${r.entrada}</td><td class="mono">08:30</td><td>${badgeTardanza(r.minutosTarde)}</td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:30px">Sin llegadas tardías en el período</td></tr>`}
+      ${recientes.map(r=>`<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${promoterById(r.promotorId).name}</td><td class="mono">${r.entrada}</td><td class="mono">08:00</td><td>${badgeTardanza(r.minutosTarde)}</td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:30px">Sin llegadas tardías en el período</td></tr>`}
       </tbody></table></div>
     </div>`;
+
+  animateNum(document.getElementById('k-puntual'), pctPuntual, '%');
+  animateNum(document.getElementById('k-tardias'), tardias.length);
+  document.getElementById('k-horas').textContent = avgHoras;
+  animateNum(document.getElementById('k-almuerzo'), avgAlmuerzo);
+
+  document.getElementById('jornada-dia').onchange = e=>{ jornadaDiaFiltro=e.target.value; renderJornada(); };
+  const clearBtn = document.getElementById('jornada-dia-clear');
+  if(clearBtn) clearBtn.onclick = ()=>{ jornadaDiaFiltro=''; renderJornada(); };
 
   const top10 = porProm.slice(0,10);
   mkChart('ch-tardanzas',{type:'bar',data:{labels:top10.map(r=>r.p.name.split(' ')[0]),datasets:[{label:'Tardanzas',data:top10.map(r=>r.tardanzas),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:26}]},
@@ -905,7 +992,7 @@ function renderComisiones(){
   document.getElementById('content').innerHTML = `
     <div class="banner"><i class="fas fa-calculator"></i> Cálculo estimado: comisión base prorrateada por días trabajados + bono por cumplimiento + bono por góndola − penalización por tardanzas.</div>
     <div class="grid grid-kpi" style="margin-bottom:18px">
-      ${kpiCard('Total a pagar', 0, `período de ${F.dias} días`, 'fa-sack-dollar', '--brand2','k-total')}
+      ${kpiCard('Total a pagar', 0, rangoLabel(), 'fa-sack-dollar', '--brand2','k-total')}
       ${kpiCard('Comisión promedio', 0, 'por promotor', 'fa-hand-holding-dollar', '--ok','k-promedio')}
       ${kpiCard('Con bono de cumplimiento', conBono, `de ${data.length} promotores`, 'fa-medal', '--vi','k-conbono')}
       ${kpiCard('Mejor comisión', 0, data[0]?data[0].p.name:'—', 'fa-trophy', '--wa','k-mejor')}
@@ -1038,7 +1125,6 @@ function renderFbarChips(){
   if(F.cadena) chips.push(chip(F.cadena, `clearFilter('cadena')`));
   if(F.ciudad) chips.push(chip(F.ciudad, `clearFilter('ciudad')`));
   if(F.categoria) chips.push(chip(F.categoria, `clearFilter('categoria')`));
-  if(F.supervisor) chips.push(chip(supById(F.supervisor).name, `clearFilter('supervisor')`));
   if(F.fechaDesde || F.fechaHasta){
     const lbl = `${F.fechaDesde?dateDisplay(F.fechaDesde):dateDisplay(FECHA_MIN)} → ${F.fechaHasta?dateDisplay(F.fechaHasta):dateDisplay(FECHA_MAX)}`;
     chips.push(chip(lbl, `clearDateRange()`));
@@ -1079,24 +1165,19 @@ function initFilterOptions(){
   CITIES.forEach(c=> selCi.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`));
   const selCat = document.getElementById('f-categoria');
   CATEGORIES.forEach(c=> selCat.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`));
-  const selSup = document.getElementById('f-supervisor');
-  SUPERVISORS.forEach(s=> selSup.insertAdjacentHTML('beforeend', `<option value="${s.id}">${s.name}</option>`));
 
-  document.getElementById('f-dias').value = String(F.dias);
-  document.getElementById('f-dias').onchange = e=>{ F.dias=+e.target.value; F.fechaDesde=''; F.fechaHasta=''; document.getElementById('f-desde').value=''; document.getElementById('f-hasta').value=''; applyFilters(); };
   selC.onchange = e=>{ F.cadena=e.target.value; applyFilters(); };
   selCi.onchange = e=>{ F.ciudad=e.target.value; applyFilters(); };
   selCat.onchange = e=>{ F.categoria=e.target.value; applyFilters(); };
-  selSup.onchange = e=>{ F.supervisor=e.target.value; applyFilters(); };
 
   const selDesde = document.getElementById('f-desde'), selHasta = document.getElementById('f-hasta');
   [selDesde,selHasta].forEach(el=>{ el.min=FECHA_MIN; el.max=FECHA_MAX; });
+  selDesde.value = F.fechaDesde; selHasta.value = F.fechaHasta;
   selDesde.onchange = e=>{ F.fechaDesde=e.target.value; applyFilters(); };
   selHasta.onchange = e=>{ F.fechaHasta=e.target.value; applyFilters(); };
 
-  const anio = TODAY.getFullYear();
-  document.getElementById('btn-junio').onclick = ()=> setDateRange(`${anio}-06-01`, `${anio}-06-30`);
-  document.getElementById('btn-julio').onclick = ()=> setDateRange(`${anio}-07-01`, `${anio}-07-31`);
+  document.getElementById('btn-junio').onclick = ()=> setDateRange(`${ANIO_DEMO}-06-01`, `${ANIO_DEMO}-06-30`);
+  document.getElementById('btn-julio').onclick = ()=> setDateRange(`${ANIO_DEMO}-07-01`, `${ANIO_DEMO}-07-31`);
 }
 
 document.getElementById('btn-refresh').onclick = ()=>{
