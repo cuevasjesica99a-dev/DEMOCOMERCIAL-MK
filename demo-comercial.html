@@ -465,6 +465,8 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
       const tieneQuiebre = chance(0.08-boost*0.03);
       const tipoQuiebre = tieneQuiebre ? (chance(0.65)?'Góndola':'Total') : null;
       const unidadesPerdidasEstimadas = tieneQuiebre ? (tipoQuiebre==='Total'?4:2)+Math.floor(rnd()*6) : 0;
+      const cantidadEnGondola = tieneQuiebre ? 0 : null;
+      const cantidadEnDeposito = tieneQuiebre ? (tipoQuiebre==='Góndola' ? 3+Math.floor(rnd()*15) : 0) : null;
       const valorPerdidoEstimadoQuiebre = unidadesPerdidasEstimadas * precioSugerido;
       const variacionPrecio = (rnd()-0.5)*0.16; // +/-8% vs. el precio sugerido
       const precioNuestro = tieneQuiebre ? null : Math.round(precioSugerido*(1+variacionPrecio)/100)*100;
@@ -489,6 +491,7 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
         competidorNombre: pick(COMPETIDORES),
         precioSugerido, precioNuestro, precioCompetidor, cumplePrecioPropio,
         tieneQuiebre, tipoQuiebre, unidadesPerdidasEstimadas, valorPerdidoEstimadoQuiebre, unidadesRepuestas,
+        cantidadEnGondola, cantidadEnDeposito,
         tienePromocion, motivoIncumplimientoPromo,
         accionCompetencia: pickAccionCompetencia(boost),
         fotoSeed,
@@ -562,6 +565,7 @@ let asistenciaFiltroActivo = null;
 let coberturaVista='cadena';
 let preciosVista='categoria';
 let alertasTab='todos';
+let accionarTab='vencidos';
 let auditoriaPdvFiltro='';
 const charts = {};
 let mapCobertura=null, mapRecorrido=null;
@@ -1444,6 +1448,20 @@ function renderAlertas(){
   });
   const topCombos = Object.values(comboMap).sort((a,b)=>b.unid-a.unid).slice(0,8);
 
+  const comboQuiebreMap = {};
+  quiebresRows.forEach(r=>{
+    const pdv = pdvById(r.pdvId);
+    const k = r.pdvId+'|'+r.producto;
+    if(!comboQuiebreMap[k]) comboQuiebreMap[k] = {pdv:pdv.name, cadena:pdv.chain, producto:r.producto, unid:0, tipoQuiebre:r.tipoQuiebre};
+    comboQuiebreMap[k].unid += r.unidadesPerdidasEstimadas;
+    if(r.tipoQuiebre==='Total') comboQuiebreMap[k].tipoQuiebre = 'Total';
+  });
+  const topCombosQuiebre = Object.values(comboQuiebreMap).sort((a,b)=>b.unid-a.unid).slice(0,8);
+
+  const proximosTotal = urgente.length+proximo.length+holgado.length;
+
+  const fechaVencimiento = r => { const [y,m,d]=r.fecha.split('-').map(Number); return dateDisplay(isoDate(addDays(new Date(y,m-1,d), r.diasVenc))); };
+
   const tabRows = alertasTab==='todos' ? alertRows
     : alertasTab==='vencidos' ? rows.filter(r=>r.estadoVenc==='vencido').sort((a,b)=>b.fecha.localeCompare(a.fecha))
     : alertasTab==='proximos' ? rows.filter(r=>['urgente','proximo','holgado'].includes(r.estadoVenc)).sort((a,b)=>b.fecha.localeCompare(a.fecha))
@@ -1458,11 +1476,9 @@ function renderAlertas(){
       <div class="kpi"><div class="kpi-lbl">Valor en averías</div><div class="kpi-val" style="color:var(--br)">${fmtGs(valorAveriado)}</div></div>
       <div class="kpi"><div class="kpi-lbl">Valor total en riesgo</div><div class="kpi-val" style="color:var(--vi)">${fmtGs(valorEnRiesgo)}</div><div class="kpi-sub">a precio público sugerido</div></div>
     </div>
-    <div class="semaforo" style="grid-template-columns:repeat(6,1fr)">
+    <div class="semaforo" style="grid-template-columns:repeat(4,1fr)">
       <div class="sf-card rojo"><div class="sf-val" style="color:var(--er)">${vencidos.length}</div><div class="sf-lbl">Ya vencido</div></div>
-      <div class="sf-card naranja"><div class="sf-val" style="color:var(--wa)">${urgente.length}</div><div class="sf-lbl">Vence ≤7 días</div></div>
-      <div class="sf-card amarillo"><div class="sf-val" style="color:var(--wa)">${proximo.length}</div><div class="sf-lbl">Vence 8-30 días</div></div>
-      <div class="sf-card ok"><div class="sf-val" style="color:var(--ok)">${holgado.length}</div><div class="sf-lbl">Vence +30 días</div></div>
+      <div class="sf-card amarillo"><div class="sf-val" style="color:var(--wa)">${proximosTotal}</div><div class="sf-lbl">Próximos a vencer (&lt;90 días)</div></div>
       <div class="sf-card" style="background:var(--bl-d)"><div class="sf-val" style="color:var(--bl)">${pctCobertura}%</div><div class="sf-lbl">PDVs con alerta</div></div>
       <div class="sf-card" style="background:${tendenciaPct>0?'var(--er-d)':'var(--ok-d)'}"><div class="sf-val" style="color:${tendenciaPct>0?'var(--er)':'var(--ok)'}">${tendenciaPct>0?'+':''}${tendenciaPct}%</div><div class="sf-lbl">Tendencia semanal</div></div>
     </div>
@@ -1473,9 +1489,18 @@ function renderAlertas(){
         <div class="chart-wrap sm"><canvas id="ch-motivos"></canvas></div></div>
     </div>
     <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div><div class="card-title">Dónde accionar</div><div class="card-sub">Cruce PDV × Producto, ordenado por unidades en riesgo</div></div></div>
+      <div class="card-hdr" style="align-items:center">
+        <div><div class="card-title">Dónde accionar</div><div class="card-sub">Cruce PDV × Producto, ordenado por unidades en riesgo</div></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span class="fbar-chip" id="acc-tab-vencidos" style="cursor:pointer">Vencidos (${topCombos.length})</span>
+          <span class="fbar-chip" id="acc-tab-quiebres" style="cursor:pointer">Quiebres (${topCombosQuiebre.length})</span>
+        </div>
+      </div>
       <div class="tbl-wrap"><table><thead><tr><th>PDV</th><th>Cadena</th><th>Producto</th><th>Estado</th><th>Unidades</th></tr></thead><tbody>
-        ${topCombos.map(x=>`<tr><td style="font-weight:700">${x.pdv}</td><td>${x.cadena}</td><td>${x.producto}</td><td><span class="badge ${x.vencido?'er':'wa'}">${x.vencido?'Vencido':'Próximo'}</span></td><td style="font-weight:800;color:var(--er)">${x.unid}</td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:30px">Sin datos</td></tr>`}
+        ${accionarTab==='vencidos'
+          ? (topCombos.map(x=>`<tr><td style="font-weight:700">${x.pdv}</td><td>${x.cadena}</td><td>${x.producto}</td><td><span class="badge ${x.vencido?'er':'wa'}">${x.vencido?'Vencido':'Próximo'}</span></td><td style="font-weight:800;color:var(--er)">${x.unid}</td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:30px">Sin datos</td></tr>`)
+          : (topCombosQuiebre.map(x=>`<tr><td style="font-weight:700">${x.pdv}</td><td>${x.cadena}</td><td>${x.producto}</td><td><span class="badge ${x.tipoQuiebre==='Total'?'er':'wa'}">${x.tipoQuiebre}</span></td><td style="font-weight:800;color:var(--er)">${x.unid}</td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:30px">Sin datos</td></tr>`)
+        }
       </tbody></table></div>
     </div>
     <div class="card">
@@ -1488,11 +1513,11 @@ function renderAlertas(){
           <span class="fbar-chip" id="tab-averiados" style="cursor:pointer">Averiados (${averiados.length})</span>
         </div>
       </div>
-      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Ciudad</th><th>Promotor</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Motivo</th><th>Estado</th></tr></thead><tbody>
+      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Ciudad</th><th>Promotor</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Fecha de vencimiento</th><th>Motivo</th><th>Estado</th></tr></thead><tbody>
         ${tabRows.slice(0,25).map(r=>{ const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId);
-          if(r.tieneVencidos && (alertasTab!=='averiados')) return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge er">Vencimiento</span></td><td>${r.productos.join(', ')}</td><td style="font-weight:700">${r.cantidadVencidos} u.</td><td style="font-size:11px;color:var(--tx2)">${r.motivoVencido}</td><td>${badgeVenc(r.estadoVenc)}</td></tr>`;
-          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge br">Avería</span></td><td>${r.productosAveriados.join(', ')}</td><td style="font-weight:700">${r.cantidadAveriados} u.</td><td style="font-size:11px;color:var(--tx2)">${r.motivoAveriado}</td><td>${badgeAveria()}</td></tr>`;
-        }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--tx3);padding:30px">Sin alertas en el período seleccionado</td></tr>`}
+          if(r.tieneVencidos && (alertasTab!=='averiados')) return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge er">Vencimiento</span></td><td>${r.productos.join(', ')}</td><td style="font-weight:700">${r.cantidadVencidos} u.</td><td class="mono">${fechaVencimiento(r)}</td><td style="font-size:11px;color:var(--tx2)">${r.motivoVencido}</td><td>${badgeVenc(r.estadoVenc)}</td></tr>`;
+          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge br">Avería</span></td><td>${r.productosAveriados.join(', ')}</td><td style="font-weight:700">${r.cantidadAveriados} u.</td><td style="color:var(--tx3)">—</td><td style="font-size:11px;color:var(--tx2)">${r.motivoAveriado}</td><td>${badgeAveria()}</td></tr>`;
+        }).join('') || `<tr><td colspan="10" style="text-align:center;color:var(--tx3);padding:30px">Sin alertas en el período seleccionado</td></tr>`}
       </tbody></table></div>
     </div>
 
@@ -1505,11 +1530,10 @@ function renderAlertas(){
     </div>
     <div class="card">
       <div class="card-hdr"><div><div class="card-title">Detalle de quiebres</div><div class="card-sub">${quiebresRows.length} quiebres detectados en ${pdvsConQuiebre} PDVs</div></div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Cadena</th><th>Producto</th><th>Tipo de quiebre</th><th>Detalle</th><th>Unid. no vendidas (est.)</th><th>Valor perdido (est.)</th></tr></thead><tbody>
+      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Cadena</th><th>Producto</th><th>Observación</th><th>Cantidad en góndola</th><th>Cantidad en depósito</th><th>Unid. no vendidas (est.)</th><th>Valor perdido (est.)</th></tr></thead><tbody>
         ${quiebresRows.slice(0,15).map(r=>{ const pdv=pdvById(r.pdvId);
-          const detalle = r.tipoQuiebre==='Góndola' ? 'Hay stock en depósito, falta reponer en góndola' : 'No hay stock ni en góndola ni en depósito';
-          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.chain}</td><td>${r.producto}</td><td><span class="badge ${r.tipoQuiebre==='Total'?'er':'wa'}">${r.tipoQuiebre}</span></td><td style="font-size:11px;color:var(--tx2)">${detalle}</td><td>${r.unidadesPerdidasEstimadas}</td><td class="mono">${fmtGs(r.valorPerdidoEstimadoQuiebre)}</td></tr>`;
-        }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--tx3);padding:30px">Sin quiebres en el período seleccionado</td></tr>`}
+          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.chain}</td><td>${r.producto}</td><td><span class="badge ${r.tipoQuiebre==='Total'?'er':'wa'}">${r.tipoQuiebre}</span></td><td style="text-align:center;font-weight:700;color:var(--er)">${r.cantidadEnGondola}</td><td style="text-align:center;font-weight:700;color:${r.cantidadEnDeposito>0?'var(--wa)':'var(--er)'}">${r.cantidadEnDeposito}</td><td>${r.unidadesPerdidasEstimadas}</td><td class="mono">${fmtGs(r.valorPerdidoEstimadoQuiebre)}</td></tr>`;
+        }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--tx3);padding:30px">Sin quiebres en el período seleccionado</td></tr>`}
       </tbody></table></div>
     </div>`;
 
@@ -1517,6 +1541,10 @@ function renderAlertas(){
   [['todos','tab-todos'],['vencidos','tab-vencidos'],['proximos','tab-proximos'],['averiados','tab-averiados']].forEach(([tab,id])=>{
     marcarTab(id, alertasTab===tab);
     document.getElementById(id).onclick = ()=>{ alertasTab=tab; renderAlertas(); };
+  });
+  [['vencidos','acc-tab-vencidos'],['quiebres','acc-tab-quiebres']].forEach(([tab,id])=>{
+    marcarTab(id, accionarTab===tab);
+    document.getElementById(id).onclick = ()=>{ accionarTab=tab; renderAlertas(); };
   });
 
   mkChart('ch-productos',{type:'bar',data:{labels:prodTop.map(p=>p[0]),datasets:[{label:'Alertas',data:prodTop.map(p=>p[1]),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:26}]},
