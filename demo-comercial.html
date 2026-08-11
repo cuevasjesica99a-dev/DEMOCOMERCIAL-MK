@@ -199,7 +199,8 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
       <div class="ni" data-p="cobertura"><i class="fas fa-store"></i>Cobertura</div>
       <div class="ni" data-p="precios"><i class="fas fa-tags"></i>Precios</div>
       <div class="ni" data-p="auditoria"><i class="fas fa-clipboard-check"></i>Auditoría de PDV</div>
-      <div class="ni" data-p="alertas"><i class="fas fa-exclamation-triangle"></i>Alertas y vencimientos<span class="ni-badge" id="nb-alertas">0</span></div>
+      <div class="ni" data-p="alertas"><i class="fas fa-exclamation-triangle"></i>Averiados y Vencimientos<span class="ni-badge" id="nb-alertas">0</span></div>
+      <div class="ni" data-p="quiebres"><i class="fas fa-box-open"></i>Quiebres de stock</div>
       <div class="ni" data-p="relevamientos"><i class="fas fa-clipboard-list"></i>Relevamientos</div>
     </nav>
     <div class="nav-sect">Equipo</div>
@@ -1430,11 +1431,6 @@ function renderAlertas(){
   const prodTop = Object.entries(prodCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
 
   const quiebresRows = rows.filter(r=>r.tieneQuiebre).sort((a,b)=>b.fecha.localeCompare(a.fecha));
-  const quiebresGondola = quiebresRows.filter(r=>r.tipoQuiebre==='Góndola');
-  const quiebresTotal = quiebresRows.filter(r=>r.tipoQuiebre==='Total');
-  const unidadesPerdidasQuiebre = quiebresRows.reduce((s,r)=>s+r.unidadesPerdidasEstimadas,0);
-  const valorPerdidoQuiebre = quiebresRows.reduce((s,r)=>s+r.valorPerdidoEstimadoQuiebre,0);
-  const pdvsConQuiebre = new Set(quiebresRows.map(r=>r.pdvId)).size;
 
   const comboMap = {};
   rows.filter(r=>r.tieneVencidos).forEach(r=>{
@@ -1519,22 +1515,6 @@ function renderAlertas(){
           return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge br">Avería</span></td><td>${r.productosAveriados.join(', ')}</td><td style="font-weight:700">${r.cantidadAveriados} u.</td><td style="color:var(--tx3)">—</td><td style="font-size:11px;color:var(--tx2)">${r.motivoAveriado}</td><td>${badgeAveria()}</td></tr>`;
         }).join('') || `<tr><td colspan="10" style="text-align:center;color:var(--tx3);padding:30px">Sin alertas en el período seleccionado</td></tr>`}
       </tbody></table></div>
-    </div>
-
-    <div class="section-divider"><i class="fas fa-box-open"></i> Quiebres de stock</div>
-    <div class="grid grid-4" style="margin-bottom:16px">
-      <div class="kpi"><div class="kpi-lbl">Quiebre de góndola</div><div class="kpi-val" style="color:var(--wa)">${quiebresGondola.length}</div><div class="kpi-sub">hay stock en depósito</div></div>
-      <div class="kpi"><div class="kpi-lbl">Quiebre total</div><div class="kpi-val" style="color:var(--er)">${quiebresTotal.length}</div><div class="kpi-sub">sin stock en depósito</div></div>
-      <div class="kpi"><div class="kpi-lbl">Unidades no vendidas (est.)</div><div class="kpi-val" style="color:var(--tx2)">${fmtInt(unidadesPerdidasQuiebre)}</div></div>
-      <div class="kpi"><div class="kpi-lbl">Valor perdido estimado</div><div class="kpi-val" style="color:var(--vi)">${fmtGs(valorPerdidoQuiebre)}</div><div class="kpi-sub">a precio público sugerido</div></div>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div><div class="card-title">Detalle de quiebres</div><div class="card-sub">${quiebresRows.length} quiebres detectados en ${pdvsConQuiebre} PDVs</div></div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Cadena</th><th>Producto</th><th>Observación</th><th>Cantidad en góndola</th><th>Cantidad en depósito</th><th>Unid. no vendidas (est.)</th><th>Valor perdido (est.)</th></tr></thead><tbody>
-        ${quiebresRows.slice(0,15).map(r=>{ const pdv=pdvById(r.pdvId);
-          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.chain}</td><td>${r.producto}</td><td><span class="badge ${r.tipoQuiebre==='Total'?'er':'wa'}">${r.tipoQuiebre}</span></td><td style="text-align:center;font-weight:700;color:var(--er)">${r.cantidadEnGondola}</td><td style="text-align:center;font-weight:700;color:${r.cantidadEnDeposito>0?'var(--wa)':'var(--er)'}">${r.cantidadEnDeposito}</td><td>${r.unidadesPerdidasEstimadas}</td><td class="mono">${fmtGs(r.valorPerdidoEstimadoQuiebre)}</td></tr>`;
-        }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--tx3);padding:30px">Sin quiebres en el período seleccionado</td></tr>`}
-      </tbody></table></div>
     </div>`;
 
   const marcarTab = (id, activo) => { const el=document.getElementById(id); if(activo){ el.style.background='var(--brand-d)'; el.style.color='var(--brand2)'; el.style.borderColor='var(--brand-d)'; } else { el.style.background=''; el.style.color=''; el.style.borderColor=''; } };
@@ -1552,6 +1532,75 @@ function renderAlertas(){
 
   mkChart('ch-motivos',{type:'doughnut',data:{labels:['Vencido','Vence ≤7d','Vence 8-30d','Vence +30d','Averiados'],datasets:[{data:[vencidos.length,urgente.length,proximo.length,holgado.length,averiados.length],backgroundColor:['#e84a55','#e8a045','#f0c674','#3cb3a8','#c98a4b'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}}}});
+}
+
+// ============================================================
+// PÁGINA: QUIEBRES DE STOCK
+// ============================================================
+function renderQuiebres(){
+  const rows = filterVisits();
+  const quiebresRows = rows.filter(r=>r.tieneQuiebre).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const quiebresGondola = quiebresRows.filter(r=>r.tipoQuiebre==='Góndola');
+  const quiebresTotal = quiebresRows.filter(r=>r.tipoQuiebre==='Total');
+  const unidadesPerdidasQuiebre = quiebresRows.reduce((s,r)=>s+r.unidadesPerdidasEstimadas,0);
+  const valorPerdidoQuiebre = quiebresRows.reduce((s,r)=>s+r.valorPerdidoEstimadoQuiebre,0);
+  const pdvsConQuiebre = new Set(quiebresRows.map(r=>r.pdvId)).size;
+
+  const porPdvMap = {};
+  quiebresRows.forEach(r=>{ const pdv=pdvById(r.pdvId); porPdvMap[pdv.name]=(porPdvMap[pdv.name]||0)+1; });
+  const porPdvTop = Object.entries(porPdvMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  const porProductoMap = {};
+  quiebresRows.forEach(r=>{ porProductoMap[r.producto]=(porProductoMap[r.producto]||0)+1; });
+  const porProductoTop = Object.entries(porProductoMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  const porCategoriaMap = {};
+  quiebresRows.forEach(r=>{ porCategoriaMap[r.categoria]=(porCategoriaMap[r.categoria]||0)+1; });
+  const porCategoria = CATEGORIES.map(c=>({cat:c, n:porCategoriaMap[c]||0}));
+
+  const porCadenaMap = {};
+  quiebresRows.forEach(r=>{ const pdv=pdvById(r.pdvId); porCadenaMap[pdv.chain]=(porCadenaMap[pdv.chain]||0)+1; });
+  const porCadena = CHAINS.map(c=>({cadena:c, n:porCadenaMap[c]||0}));
+
+  document.getElementById('content').innerHTML = `
+    <div class="grid grid-4" style="margin-bottom:18px">
+      <div class="kpi"><div class="kpi-lbl">Quiebre de góndola</div><div class="kpi-val" style="color:var(--wa)">${quiebresGondola.length}</div><div class="kpi-sub">hay stock en depósito</div></div>
+      <div class="kpi"><div class="kpi-lbl">Quiebre total</div><div class="kpi-val" style="color:var(--er)">${quiebresTotal.length}</div><div class="kpi-sub">sin stock en depósito</div></div>
+      <div class="kpi"><div class="kpi-lbl">Unidades no vendidas (est.)</div><div class="kpi-val" style="color:var(--tx2)">${fmtInt(unidadesPerdidasQuiebre)}</div></div>
+      <div class="kpi"><div class="kpi-lbl">Valor perdido estimado</div><div class="kpi-val" style="color:var(--vi)">${fmtGs(valorPerdidoQuiebre)}</div><div class="kpi-sub">a precio público sugerido</div></div>
+    </div>
+    <div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Quiebres por PDV</div><div class="card-sub">Top 10 locales con más quiebres detectados</div></div></div>
+        <div class="chart-wrap"><canvas id="ch-quiebrepdv"></canvas></div></div>
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Quiebres por producto</div><div class="card-sub">Top 10 productos más afectados</div></div></div>
+        <div class="chart-wrap"><canvas id="ch-quiebreproducto"></canvas></div></div>
+    </div>
+    <div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card"><div class="card-hdr"><div class="card-title">Quiebres por categoría</div></div>
+        <div class="chart-wrap sm"><canvas id="ch-quiebrecategoria"></canvas></div></div>
+      <div class="card"><div class="card-hdr"><div class="card-title">Quiebres por cadena</div></div>
+        <div class="chart-wrap sm"><canvas id="ch-quiebrecadena"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div><div class="card-title">Detalle de quiebres</div><div class="card-sub">${quiebresRows.length} quiebres detectados en ${pdvsConQuiebre} PDVs</div></div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Cadena</th><th>Producto</th><th>Observación</th><th>Cantidad en góndola</th><th>Cantidad en depósito</th><th>Unid. no vendidas (est.)</th><th>Valor perdido (est.)</th></tr></thead><tbody>
+        ${quiebresRows.slice(0,15).map(r=>{ const pdv=pdvById(r.pdvId);
+          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.chain}</td><td>${r.producto}</td><td><span class="badge ${r.tipoQuiebre==='Total'?'er':'wa'}">${r.tipoQuiebre}</span></td><td style="text-align:center;font-weight:700;color:var(--er)">${r.cantidadEnGondola}</td><td style="text-align:center;font-weight:700;color:${r.cantidadEnDeposito>0?'var(--wa)':'var(--er)'}">${r.cantidadEnDeposito}</td><td>${r.unidadesPerdidasEstimadas}</td><td class="mono">${fmtGs(r.valorPerdidoEstimadoQuiebre)}</td></tr>`;
+        }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--tx3);padding:30px">Sin quiebres en el período seleccionado</td></tr>`}
+      </tbody></table></div>
+    </div>`;
+
+  mkChart('ch-quiebrepdv',{type:'bar',data:{labels:porPdvTop.map(p=>p[0]),datasets:[{label:'Quiebres',data:porPdvTop.map(p=>p[1]),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:22}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+  mkChart('ch-quiebreproducto',{type:'bar',data:{labels:porProductoTop.map(p=>p[0]),datasets:[{label:'Quiebres',data:porProductoTop.map(p=>p[1]),backgroundColor:'#e8a045',borderRadius:6,maxBarThickness:22}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+  mkChart('ch-quiebrecategoria',{type:'doughnut',data:{labels:porCategoria.map(c=>c.cat),datasets:[{data:porCategoria.map(c=>c.n),backgroundColor:['#5b9bd5','#3cb3a8','#9b7fd4','#e8a045'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}}}});
+
+  mkChart('ch-quiebrecadena',{type:'bar',data:{labels:porCadena.map(c=>c.cadena),datasets:[{label:'Quiebres',data:porCadena.map(c=>c.n),backgroundColor:'#9b7fd4',borderRadius:6,maxBarThickness:36}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
 }
 
 // ============================================================
@@ -1826,7 +1875,7 @@ function renderComisiones(){
       ${kpiCard('Comisión total de la pauta', 0, `${Object.keys(COMISION_KPIS).length} KPIs, 100% medibles con datos de campo`, 'fa-coins', '--brand2','k-total')}
       ${kpiCard('Promedio del equipo', 0, `${data.length} promotores con datos en el período`, 'fa-chart-bar', '--ok','k-promedio')}
       ${kpiCard('Cumplimiento de precio (equipo)', promPreciosGlobal, 'vs. precio público sugerido', 'fa-tag', '--bl','k-precioequipo')}
-      ${kpiCard('Quiebres de stock', quiebresTotal, `de ${totalControles} visitas — ver Alertas`, 'fa-box-open', quiebresTotal?'--wa':'--ok','k-quiebres','alertas')}
+      ${kpiCard('Quiebres de stock', quiebresTotal, `de ${totalControles} visitas — ver Quiebres`, 'fa-box-open', quiebresTotal?'--wa':'--ok','k-quiebres','quiebres')}
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div class="card-title">Top 10 comisiones del período</div></div>
@@ -2036,7 +2085,8 @@ const PAGES = {
   cobertura:{title:'Cobertura', icon:'fa-store', render:renderCobertura},
   precios:{title:'Precios', icon:'fa-tags', render:renderPrecios},
   auditoria:{title:'Auditoría de punto de venta', icon:'fa-clipboard-check', render:renderAuditoria},
-  alertas:{title:'Alertas y vencimientos', icon:'fa-exclamation-triangle', render:renderAlertas},
+  alertas:{title:'Averiados y Vencimientos', icon:'fa-exclamation-triangle', render:renderAlertas},
+  quiebres:{title:'Quiebres de stock', icon:'fa-box-open', render:renderQuiebres},
   relevamientos:{title:'Relevamientos', icon:'fa-clipboard-list', render:renderRelevamientos},
   jornada:{title:'Jornada del día', icon:'fa-user-clock', render:renderJornada},
   asistencia:{title:'Asistencia', icon:'fa-user-check', render:renderAsistencia},
