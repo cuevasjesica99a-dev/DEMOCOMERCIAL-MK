@@ -460,10 +460,13 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
       const producto = pick(CATALOGO[categoria][subcategoria]);
       const precioSugerido = PRECIO_SUGERIDO[producto];
       const tieneQuiebre = chance(0.08-boost*0.03);
+      const tipoQuiebre = tieneQuiebre ? (chance(0.65)?'Góndola':'Total') : null;
+      const unidadesPerdidasEstimadas = tieneQuiebre ? (tipoQuiebre==='Total'?4:2)+Math.floor(rnd()*6) : 0;
+      const valorPerdidoEstimadoQuiebre = unidadesPerdidasEstimadas * precioSugerido;
       const variacionPrecio = (rnd()-0.5)*0.16; // +/-8% vs. el precio sugerido
       const precioNuestro = tieneQuiebre ? null : Math.round(precioSugerido*(1+variacionPrecio)/100)*100;
       const cumplePrecioPropio = !tieneQuiebre && Math.abs(precioNuestro-precioSugerido)/precioSugerido<=0.05;
-      const precioCompetidor = Math.round(precioSugerido*(0.85+rnd()*0.3)/100)*100;
+      const precioCompetidor = Math.round(precioSugerido*(0.85+rnd()*0.3)*1.10/100)*100; // competencia +10% en promedio vs. precio sugerido
       const unidadesRepuestas = tieneQuiebre ? 0 : Math.floor(rnd()*(META_REPOSICION_POR_VISITA*2+1));
       const tienePromocion = chance(0.72+boost*0.06);
       const motivoIncumplimientoPromo = tienePromocion ? null : pick(MOTIVOS_PROMO);
@@ -482,7 +485,7 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
         espacioGanado: !tieneQuiebre && chance(0.22+boost*0.05),
         competidorNombre: pick(COMPETIDORES),
         precioSugerido, precioNuestro, precioCompetidor, cumplePrecioPropio,
-        tieneQuiebre, unidadesRepuestas,
+        tieneQuiebre, tipoQuiebre, unidadesPerdidasEstimadas, valorPerdidoEstimadoQuiebre, unidadesRepuestas,
         tienePromocion, motivoIncumplimientoPromo,
         accionCompetencia: pickAccionCompetencia(boost),
         fotoSeed,
@@ -550,12 +553,13 @@ const ANIO_DEMO = TODAY.getFullYear();
 const F = {cadena:'', ciudad:'', categoria:'', fechaDesde:`${ANIO_DEMO}-07-01`, fechaHasta:`${ANIO_DEMO}-07-31`};
 let searchTerm='';
 let recorridoPromotor = PROMOTERS[0].id;
-let fechaEquipo = FECHA_MAX;
+function fechaEquipoActual(){ return F.fechaHasta || F.fechaDesde || FECHA_MAX; }
 let jornadaFiltroActivo = null;
 let asistenciaFiltroActivo = null;
 let coberturaVista='cadena';
 let preciosVista='categoria';
 let alertasTab='todos';
+let auditoriaPdvFiltro='';
 const charts = {};
 let mapCobertura=null, mapRecorrido=null;
 const ROI = {
@@ -925,15 +929,11 @@ function renderResumen(){
       <div class="card-hdr"><div><div class="card-title">Metas vs. cumplimiento</div><div class="card-sub">Objetivos comerciales definidos vs. resultado real del período</div></div></div>
       <div class="chart-wrap" style="height:220px"><canvas id="ch-metas"></canvas></div>
     </div>
-    <div class="grid grid-2" style="margin-bottom:16px">
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Visitas últimos 14 días</div><div class="card-sub">Evolución diaria en el período filtrado</div></div></div>
-        <div class="chart-wrap"><canvas id="ch-tendencia"></canvas></div></div>
+    <div class="grid grid-3">
       <div class="card"><div class="card-hdr"><div><div class="card-title">Distribución por categoría</div><div class="card-sub">${totalVisitas} visitas</div></div></div>
-        <div class="chart-wrap"><canvas id="ch-categoria"></canvas></div></div>
-    </div>
-    <div class="grid grid-2">
+        <div class="chart-wrap sm"><canvas id="ch-categoria"></canvas></div></div>
       <div class="card"><div class="card-hdr"><div><div class="card-title">% Cumplimiento por cadena</div><div class="card-sub">Criterios de visibilidad y exhibición</div></div></div>
-        <div class="chart-wrap"><canvas id="ch-cadena"></canvas></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-cadena"></canvas></div></div>
       <div class="card"><div class="card-hdr"><div><div class="card-title">Alertas recientes</div><div class="card-sub">Últimos vencimientos y averías detectados</div></div></div>
         <div id="lista-alertas-mini"></div></div>
     </div>`;
@@ -968,11 +968,6 @@ function renderResumen(){
       plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}},
       scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'},title:{display:true,text:'% Cumplimiento',color:getComputedStyle(document.body).color,font:{size:10.5}}},
         x:{grid:{display:false},title:{display:true,text:'Día del mes',color:getComputedStyle(document.body).color,font:{size:10.5}}}}}});
-
-  const dias14 = [...Array(14)].map((_,i)=>isoDate(addDays(TODAY,-(13-i))));
-  const conteoDias = dias14.map(d=>rows.filter(r=>r.fecha===d).length);
-  mkChart('ch-tendencia',{type:'line',data:{labels:dias14.map(dateDisplay),datasets:[{label:'Visitas',data:conteoDias,borderColor:brandColor2(),backgroundColor:brandColor2()+'33',fill:true,tension:.35,pointRadius:3}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false}}}}});
 
   const catCounts = CATEGORIES.map(c=>rows.filter(r=>r.categoria===c).length);
   mkChart('ch-categoria',{type:'doughnut',data:{labels:CATEGORIES,datasets:[{data:catCounts,backgroundColor:['#5b9bd5','#3cb3a8','#9b7fd4','#e8a045'],borderWidth:0}]},
@@ -1011,17 +1006,16 @@ function renderCobertura(){
 
   const pdvsFiltrados = PDVS.filter(pdv => (!F.cadena||pdv.chain===F.cadena) && (!F.ciudad||pdv.city===F.ciudad));
   const ultimaVisitaPorPdv = {};
-  VISITS.forEach(v=>{
-    if(F.categoria && v.categoria!==F.categoria) return;
-    const pdv = pdvById(v.pdvId);
-    if(F.cadena && pdv.chain!==F.cadena) return;
-    if(F.ciudad && pdv.city!==F.ciudad) return;
+  rows.forEach(v=>{
     if(!ultimaVisitaPorPdv[v.pdvId] || v.fecha>ultimaVisitaPorPdv[v.pdvId]) ultimaVisitaPorPdv[v.pdvId]=v.fecha;
   });
+  const fechaReferencia = F.fechaHasta || FECHA_MAX;
+  const [refY,refM,refD] = fechaReferencia.split('-').map(Number);
+  const fechaRefDate = new Date(refY,refM-1,refD);
   const zonasSinVisita = pdvsFiltrados.map(pdv=>{
     const ultima = ultimaVisitaPorPdv[pdv.id]||null;
     let dias=null;
-    if(ultima){ const [y,m,d]=ultima.split('-').map(Number); dias=Math.round((TODAY-new Date(y,m-1,d))/86400000); }
+    if(ultima){ const [y,m,d]=ultima.split('-').map(Number); dias=Math.round((fechaRefDate-new Date(y,m-1,d))/86400000); }
     return {pdv, ultima, dias};
   }).filter(z=>z.dias==null||z.dias>7).sort((a,b)=>(b.dias??9999)-(a.dias??9999));
 
@@ -1036,7 +1030,7 @@ function renderCobertura(){
         <div class="chart-wrap"><canvas id="ch-ciudad"></canvas></div></div>
     </div>
     <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div><div class="card-title">Zonas sin visitas recientes</div><div class="card-sub">${zonasSinVisita.length} de ${pdvsFiltrados.length} PDVs sin relevar hace más de 7 días</div></div></div>
+      <div class="card-hdr"><div><div class="card-title">Zonas sin visitas recientes</div><div class="card-sub">${zonasSinVisita.length} de ${pdvsFiltrados.length} PDVs sin relevar hace más de 7 días (dentro del período filtrado)</div></div></div>
       <div class="tbl-wrap"><table><thead><tr><th>PDV</th><th>Cadena</th><th>Ciudad</th><th>Última visita</th></tr></thead><tbody>
       ${zonasSinVisita.slice(0,15).map(z=>`<tr><td style="font-weight:700">${z.pdv.name}</td><td>${z.pdv.chain}</td><td>${z.pdv.city}</td><td>${z.dias==null?'<span class="badge er">Sin visitas registradas</span>':`<span class="badge wa">Hace ${z.dias} días</span>`}</td></tr>`).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--tx3);padding:20px"><i class="fas fa-check-circle" style="color:var(--ok);margin-right:6px"></i>Todos los PDVs con visita en los últimos 7 días</td></tr>`}
       </tbody></table></div>
@@ -1109,8 +1103,10 @@ function renderAuditoria(){
   const accionesCount = {};
   all.forEach(r=>accionesCount[r.accionCompetencia]=(accionesCount[r.accionCompetencia]||0)+1);
   const accionesLabels = Object.keys(accionesCount);
+  const popPdvRows = auditoriaPdvFiltro ? all.filter(r=>r.pdvId===auditoriaPdvFiltro) : all;
   const popCount = {};
-  all.filter(r=>r.tienePOP).forEach(r=>popCount[r.popTipo]=(popCount[r.popTipo]||0)+1);
+  popPdvRows.filter(r=>r.tienePOP).forEach(r=>popCount[r.popTipo]=(popCount[r.popTipo]||0)+1);
+  const pdvsConDatos = PDVS.filter(pdv=>all.some(r=>r.pdvId===pdv.id)).sort((a,b)=>a.name.localeCompare(b.name));
 
   let fotoRows = all;
   if(searchTerm){
@@ -1139,7 +1135,13 @@ function renderAuditoria(){
     <div class="grid grid-2e" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div class="card-title">Acciones de competencia detectadas</div></div>
         <div class="chart-wrap sm"><canvas id="ch-competencia"></canvas></div></div>
-      <div class="card"><div class="card-hdr"><div class="card-title">Materiales POP instalados</div></div>
+      <div class="card"><div class="card-hdr" style="align-items:center">
+          <div class="card-title">Materiales POP instalados</div>
+          <select class="select-inline" id="pop-pdv-filtro" style="max-width:220px">
+            <option value="">Todos los PDVs</option>
+            ${pdvsConDatos.map(pdv=>`<option value="${pdv.id}" ${auditoriaPdvFiltro===pdv.id?'selected':''}>${pdv.name}</option>`).join('')}
+          </select>
+        </div>
         <div class="tbl-wrap"><table><thead><tr><th>Tipo de material</th><th>Instalaciones</th></tr></thead><tbody>
         ${POP_TYPES.map(t=>`<tr><td>${t}</td><td style="font-weight:700">${popCount[t]||0}</td></tr>`).join('')}
         </tbody></table></div></div>
@@ -1157,6 +1159,7 @@ function renderAuditoria(){
   const auSearch = document.getElementById('aud-search');
   auSearch.oninput = e=>{ searchTerm=e.target.value; renderAuditoria(); };
   if(auditoriaSearchTenidoFoco){ auSearch.focus(); auSearch.selectionStart = auSearch.value.length; }
+  document.getElementById('pop-pdv-filtro').onchange = e=>{ auditoriaPdvFiltro=e.target.value; renderAuditoria(); };
 
   animateNum(document.getElementById('k-gondola2'), Math.round(gondolaProm), '%');
   animateNum(document.getElementById('k-disp'), Math.round(disponibilidad), '%');
@@ -1304,6 +1307,10 @@ function renderRelevamientos(){
   });
 
   const promoFallidas = rows.filter(r=>!r.tienePromocion).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,8);
+  const espaciosGanadosN = rows.filter(r=>r.espacioGanado).length;
+  const popInstaladoN = rows.filter(r=>r.tienePOP).length;
+  const popTipoCount = {};
+  rows.filter(r=>r.tienePOP).forEach(r=>popTipoCount[r.popTipo]=(popTipoCount[r.popTipo]||0)+1);
 
   document.getElementById('content').innerHTML = `
     <div class="grid grid-kpi" style="margin-bottom:18px">
@@ -1312,6 +1319,22 @@ function renderRelevamientos(){
       ${kpiCard('Cumplimiento de promociones', promoPct, `de ${n} visitas relevadas`, 'fa-bullhorn', promoPct>=85?'--ok':promoPct>=60?'--wa':'--er','k-promorel')}
       ${kpiCard('Dominio de góndola', dominamosPct, `vs. ${dominaCompPct}% donde domina la competencia`, 'fa-flag', dominamosPct>=dominaCompPct?'--ok':'--er','k-dominio')}
       ${kpiCard('Relevamientos totales', n, 'con evidencia fotográfica', 'fa-images', '--bl','k-totalrelev')}
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr"><div><div class="card-title">Estado de materiales</div><div class="card-sub">Espacios adicionales y materiales POP relevados en cada visita</div></div></div>
+      <div class="grid grid-2e" style="margin-bottom:14px">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px"><span style="color:var(--tx2)">Espacios adicionales conseguidos</span><span style="font-weight:700">${espaciosPct}% · ${espaciosGanadosN} de ${n}</span></div>
+          <div style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden"><div style="height:100%;width:${espaciosPct}%;background:var(--ok)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px"><span style="color:var(--tx2)">Materiales POP instalados</span><span style="font-weight:700">${popPct}% · ${popInstaladoN} de ${n}</span></div>
+          <div style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden"><div style="height:100%;width:${popPct}%;background:var(--vi)"></div></div>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>Tipo de material POP</th><th>Instalaciones en el período</th></tr></thead><tbody>
+        ${POP_TYPES.map(t=>`<tr><td>${t}</td><td style="font-weight:700">${popTipoCount[t]||0}</td></tr>`).join('')}
+      </tbody></table></div>
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">Índice combinado de relevamiento</div><div class="card-sub">Criterios + espacios + POP + promoción + dominio de góndola — últimos 14 días</div></div></div>
@@ -1389,10 +1412,12 @@ function renderAlertas(){
   averiados.forEach(r=>r.productosAveriados.forEach(p=>prodCounts[p]=(prodCounts[p]||0)+1));
   const prodTop = Object.entries(prodCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
 
-  const porLocal = PDVS.map(pdv=>{
-    const rs = rows.filter(r=>r.pdvId===pdv.id);
-    return {pdv, vencidos:rs.filter(r=>r.tieneVencidos).length, averiados:rs.filter(r=>r.tieneAveriados).length};
-  }).filter(l=>l.vencidos>0 || l.averiados>0).sort((a,b)=>(b.vencidos+b.averiados)-(a.vencidos+a.averiados));
+  const quiebresRows = rows.filter(r=>r.tieneQuiebre).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const quiebresGondola = quiebresRows.filter(r=>r.tipoQuiebre==='Góndola');
+  const quiebresTotal = quiebresRows.filter(r=>r.tipoQuiebre==='Total');
+  const unidadesPerdidasQuiebre = quiebresRows.reduce((s,r)=>s+r.unidadesPerdidasEstimadas,0);
+  const valorPerdidoQuiebre = quiebresRows.reduce((s,r)=>s+r.valorPerdidoEstimadoQuiebre,0);
+  const pdvsConQuiebre = new Set(quiebresRows.map(r=>r.pdvId)).size;
 
   const comboMap = {};
   rows.filter(r=>r.tieneVencidos).forEach(r=>{
@@ -1440,9 +1465,18 @@ function renderAlertas(){
         <div class="chart-wrap sm"><canvas id="ch-motivos"></canvas></div></div>
     </div>
     <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div><div class="card-title">Alertas por local</div><div class="card-sub">Cantidad de productos vencidos y averiados detectados por PDV</div></div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>PDV</th><th>Cadena</th><th>Ciudad</th><th>Vencidos</th><th>Averiados</th><th>Total</th></tr></thead><tbody>
-        ${porLocal.slice(0,20).map(l=>`<tr><td style="font-weight:700">${l.pdv.name}</td><td>${l.pdv.chain}</td><td>${l.pdv.city}</td><td>${l.vencidos?`<span class="badge er">${l.vencidos}</span>`:'—'}</td><td>${l.averiados?`<span class="badge br">${l.averiados}</span>`:'—'}</td><td style="font-weight:800">${l.vencidos+l.averiados}</td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:30px">Sin locales con alertas en el período</td></tr>`}
+      <div class="card-hdr"><div><div class="card-title">Quiebres de stock</div><div class="card-sub">${quiebresRows.length} quiebres detectados en ${pdvsConQuiebre} PDVs</div></div></div>
+      <div class="grid grid-4" style="margin-bottom:16px">
+        <div class="kpi"><div class="kpi-lbl">Quiebre de góndola</div><div class="kpi-val" style="color:var(--wa)">${quiebresGondola.length}</div><div class="kpi-sub">hay stock en depósito</div></div>
+        <div class="kpi"><div class="kpi-lbl">Quiebre total</div><div class="kpi-val" style="color:var(--er)">${quiebresTotal.length}</div><div class="kpi-sub">sin stock en depósito</div></div>
+        <div class="kpi"><div class="kpi-lbl">Unidades no vendidas (est.)</div><div class="kpi-val" style="color:var(--tx2)">${fmtInt(unidadesPerdidasQuiebre)}</div></div>
+        <div class="kpi"><div class="kpi-lbl">Valor perdido estimado</div><div class="kpi-val" style="color:var(--vi)">${fmtGs(valorPerdidoQuiebre)}</div><div class="kpi-sub">a precio público sugerido</div></div>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Cadena</th><th>Producto</th><th>Tipo de quiebre</th><th>Detalle</th><th>Unid. no vendidas (est.)</th><th>Valor perdido (est.)</th></tr></thead><tbody>
+        ${quiebresRows.slice(0,15).map(r=>{ const pdv=pdvById(r.pdvId);
+          const detalle = r.tipoQuiebre==='Góndola' ? 'Hay stock en depósito, falta reponer en góndola' : 'No hay stock ni en góndola ni en depósito';
+          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.chain}</td><td>${r.producto}</td><td><span class="badge ${r.tipoQuiebre==='Total'?'er':'wa'}">${r.tipoQuiebre}</span></td><td style="font-size:11px;color:var(--tx2)">${detalle}</td><td>${r.unidadesPerdidasEstimadas}</td><td class="mono">${fmtGs(r.valorPerdidoEstimadoQuiebre)}</td></tr>`;
+        }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--tx3);padding:30px">Sin quiebres en el período seleccionado</td></tr>`}
       </tbody></table></div>
     </div>
     <div class="card">
@@ -1455,11 +1489,11 @@ function renderAlertas(){
           <span class="fbar-chip" id="tab-averiados" style="cursor:pointer">Averiados (${averiados.length})</span>
         </div>
       </div>
-      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Ciudad</th><th>Promotor</th><th>Tipo</th><th>Producto</th><th>Motivo</th><th>Estado</th></tr></thead><tbody>
+      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Ciudad</th><th>Promotor</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Motivo</th><th>Estado</th></tr></thead><tbody>
         ${tabRows.slice(0,25).map(r=>{ const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId);
-          if(r.tieneVencidos && (alertasTab!=='averiados')) return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge er">Vencimiento</span></td><td>${r.productos.join(', ')} <span style="color:var(--tx3)">(${r.cantidadVencidos} u.)</span></td><td style="font-size:11px;color:var(--tx2)">${r.motivoVencido}</td><td>${badgeVenc(r.estadoVenc)}</td></tr>`;
-          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge br">Avería</span></td><td>${r.productosAveriados.join(', ')} <span style="color:var(--tx3)">(${r.cantidadAveriados} u.)</span></td><td style="font-size:11px;color:var(--tx2)">${r.motivoAveriado}</td><td>${badgeAveria()}</td></tr>`;
-        }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--tx3);padding:30px">Sin alertas en el período seleccionado</td></tr>`}
+          if(r.tieneVencidos && (alertasTab!=='averiados')) return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge er">Vencimiento</span></td><td>${r.productos.join(', ')}</td><td style="font-weight:700">${r.cantidadVencidos} u.</td><td style="font-size:11px;color:var(--tx2)">${r.motivoVencido}</td><td>${badgeVenc(r.estadoVenc)}</td></tr>`;
+          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge br">Avería</span></td><td>${r.productosAveriados.join(', ')}</td><td style="font-weight:700">${r.cantidadAveriados} u.</td><td style="font-size:11px;color:var(--tx2)">${r.motivoAveriado}</td><td>${badgeAveria()}</td></tr>`;
+        }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--tx3);padding:30px">Sin alertas en el período seleccionado</td></tr>`}
       </tbody></table></div>
     </div>`;
 
@@ -1483,7 +1517,7 @@ function promsDeCiudad(){ return PROMOTERS.filter(p=>!F.ciudad || p.city===F.ciu
 function esDomingoFecha(fecha){ const [y,m,d]=fecha.split('-').map(Number); return new Date(y,m-1,d).getDay()===0; }
 
 function renderJornada(){
-  const fecha = fechaEquipo;
+  const fecha = fechaEquipoActual();
   const esDomingo = esDomingoFecha(fecha);
   const proms = promsDeCiudad();
   const promIds = new Set(proms.map(p=>p.id));
@@ -1502,9 +1536,6 @@ function renderJornada(){
   dayJornadas.forEach(j=>{ const h=Math.floor(hhmmToMin(j.entrada)/60); horasDist[h]++; if(j.tardanza) horasTarde[h]++; });
   const horasSlice = horasDist.slice(6,19), horasTardeSlice = horasTarde.slice(6,19);
   const horasLabels = horasSlice.map((_,i)=>pad2(i+6)+':00');
-
-  const durDist = {'<4h':0,'4-6h':0,'6-8h':0,'>8h':0};
-  duraciones.forEach(d=>{ const h=d/60; if(h<4) durDist['<4h']++; else if(h<6) durDist['4-6h']++; else if(h<8) durDist['6-8h']++; else durDist['>8h']++; });
 
   const jornadasHist = JORNADAS.filter(j=>promIds.has(j.promotorId));
   const puntualidadPorPersona = {};
@@ -1542,15 +1573,13 @@ function renderJornada(){
         ${!almExcedidos.length&&!sinAlm.length?'<div style="padding:20px;text-align:center;color:var(--tx3);font-size:12px">Sin alertas de almuerzo</div>':''}
       </div>
     </div>`:''}
-    <div class="grid grid-2" style="margin-bottom:16px">
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Horario de entrada</div><div class="card-sub">Distribución de check-ins · ${dateDisplay(fecha)}</div></div></div>
-        <div class="chart-wrap sm"><canvas id="ch-horas-entry"></canvas></div>
-        <div style="display:flex;justify-content:space-around;margin-top:12px;padding-top:12px;border-top:1px solid var(--bd)">
-          <div style="text-align:center"><div style="font-size:20px;font-weight:900;color:var(--ok)">${aTiempo.length}</div><div style="font-size:10px;color:var(--tx3);text-transform:uppercase">A tiempo</div></div>
-          <div style="text-align:center"><div style="font-size:20px;font-weight:900;color:var(--er)">${tarde.length}</div><div style="font-size:10px;color:var(--tx3);text-transform:uppercase">Tarde</div></div>
-        </div></div>
-      <div class="card"><div class="card-hdr"><div class="card-title">Duración en campo</div><div class="card-sub">${duraciones.length} promotores con checkout</div></div>
-        <div class="chart-wrap sm"><canvas id="ch-duracion"></canvas></div></div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr"><div><div class="card-title">Horario de entrada</div><div class="card-sub">Distribución de check-ins · ${dateDisplay(fecha)}</div></div></div>
+      <div class="chart-wrap sm"><canvas id="ch-horas-entry"></canvas></div>
+      <div style="display:flex;justify-content:space-around;margin-top:12px;padding-top:12px;border-top:1px solid var(--bd)">
+        <div style="text-align:center"><div style="font-size:20px;font-weight:900;color:var(--ok)">${aTiempo.length}</div><div style="font-size:10px;color:var(--tx3);text-transform:uppercase">A tiempo</div></div>
+        <div style="text-align:center"><div style="font-size:20px;font-weight:900;color:var(--er)">${tarde.length}</div><div style="font-size:10px;color:var(--tx3);text-transform:uppercase">Tarde</div></div>
+      </div>
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">Puntualidad del período</div><div class="card-sub">Todo el histórico cargado, no solo ${dateDisplay(fecha)} — para coaching sostenido</div></div></div>
@@ -1583,15 +1612,13 @@ function renderJornada(){
       </tbody></table></div>
     </div>`}`;
 
-  document.getElementById('jornada-dia').onchange = e=>{ fechaEquipo=e.target.value; jornadaFiltroActivo=null; renderJornada(); };
+  document.getElementById('jornada-dia').onchange = e=>{ F.fechaDesde=e.target.value; F.fechaHasta=e.target.value; jornadaFiltroActivo=null; applyFilters(); };
   document.getElementById('jornada-export').onclick = ()=>exportJornadaCSV(dayJornadas, dayAusencias);
   if(!esDomingo){
     document.getElementById('kpi-jornada-tardanzas').onclick = ()=>{ jornadaFiltroActivo = jornadaFiltroActivo==='tardanzas'?null:'tardanzas'; renderJornada(); };
     document.getElementById('kpi-jornada-almuerzo').onclick = ()=>{ jornadaFiltroActivo = jornadaFiltroActivo==='almuerzo'?null:'almuerzo'; renderJornada(); };
     mkChart('ch-horas-entry',{type:'bar',data:{labels:horasLabels,datasets:[{label:'A tiempo',data:horasSlice.map((v,i)=>v-horasTardeSlice[i]),backgroundColor:'#3cb3a8',borderRadius:4},{label:'Tarde',data:horasTardeSlice,backgroundColor:'#e84a55',borderRadius:4}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:9}}},y:{stacked:true,beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{stepSize:1}}}}});
-    mkChart('ch-duracion',{type:'doughnut',data:{labels:Object.keys(durDist),datasets:[{data:Object.values(durDist),backgroundColor:['#e0722a','#5b9bd5','#3cb3a8','#9b7fd4'],borderWidth:0}]},
-      options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'right',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}}}});
   }
 }
 function exportJornadaCSV(jornadas, ausencias){
@@ -1615,7 +1642,7 @@ function exportJornadaCSV(jornadas, ausencias){
 // PÁGINA: ASISTENCIA
 // ============================================================
 function renderAsistencia(){
-  const fecha = fechaEquipo;
+  const fecha = fechaEquipoActual();
   const esDomingo = esDomingoFecha(fecha);
   const proms = promsDeCiudad();
   const promIds = new Set(proms.map(p=>p.id));
@@ -1701,7 +1728,7 @@ function renderAsistencia(){
       </tbody></table></div>
     </div>`}`}`;
 
-  document.getElementById('asist-dia').onchange = e=>{ fechaEquipo=e.target.value; renderAsistencia(); };
+  document.getElementById('asist-dia').onchange = e=>{ F.fechaDesde=e.target.value; F.fechaHasta=e.target.value; applyFilters(); };
   if(!esDomingo){
     document.getElementById('kpi-asist-ausentes').onclick = ()=>{ asistenciaFiltroActivo = asistenciaFiltroActivo==='ausentes'?null:'ausentes'; renderAsistencia(); };
     const leyenda = document.getElementById('asist-leyenda-ausentes'); if(leyenda) leyenda.onclick = ()=>{ asistenciaFiltroActivo='ausentes'; renderAsistencia(); };
@@ -1991,7 +2018,8 @@ function renderFbarChips(){
   if(F.ciudad) chips.push(chip(F.ciudad, `clearFilter('ciudad')`));
   if(F.categoria) chips.push(chip(F.categoria, `clearFilter('categoria')`));
   if(F.fechaDesde || F.fechaHasta){
-    const lbl = `${F.fechaDesde?dateDisplay(F.fechaDesde):dateDisplay(FECHA_MIN)} → ${F.fechaHasta?dateDisplay(F.fechaHasta):dateDisplay(FECHA_MAX)}`;
+    const lbl = (F.fechaDesde && F.fechaDesde===F.fechaHasta) ? dateDisplay(F.fechaDesde)
+      : `${F.fechaDesde?dateDisplay(F.fechaDesde):dateDisplay(FECHA_MIN)} → ${F.fechaHasta?dateDisplay(F.fechaHasta):dateDisplay(FECHA_MAX)}`;
     chips.push(chip(lbl, `clearDateRange()`));
   }
   document.getElementById('fbar-chips').innerHTML = chips.join('');
@@ -2016,8 +2044,9 @@ function setDateRange(desde,hasta){
 function updateBadges(){
   document.getElementById('nb-alertas').textContent = filterVisits().filter(r=>r.tieneVencidos||r.tieneAveriados).length;
   const promIds = new Set(promsDeCiudad().map(p=>p.id));
-  document.getElementById('nb-tardanzas').textContent = JORNADAS.filter(j=>j.fecha===fechaEquipo && j.tardanza && promIds.has(j.promotorId)).length;
-  document.getElementById('nb-ausentes').textContent = AUSENCIAS.filter(a=>a.fecha===fechaEquipo && promIds.has(a.promotorId)).length;
+  const fechaHoy = fechaEquipoActual();
+  document.getElementById('nb-tardanzas').textContent = JORNADAS.filter(j=>j.fecha===fechaHoy && j.tardanza && promIds.has(j.promotorId)).length;
+  document.getElementById('nb-ausentes').textContent = AUSENCIAS.filter(a=>a.fecha===fechaHoy && promIds.has(a.promotorId)).length;
 }
 function applyFilters(){
   renderFbarChips();
