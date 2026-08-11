@@ -159,6 +159,9 @@ tr:hover td{background:var(--bg3)}
 .rank-medal{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#fff;flex-shrink:0}
 .select-inline{background:var(--bg3);border:1px solid var(--bd);color:var(--tx);padding:7px 10px;border-radius:8px}
 .mono{font-variant-numeric:tabular-nums}
+.section-divider{display:flex;align-items:center;gap:9px;margin:24px 0 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3)}
+.section-divider:first-child{margin-top:0}
+.section-divider::after{content:'';flex:1;height:1px;background:var(--bd)}
 .roi-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;padding:14px 0;border-bottom:1px solid var(--bd)}
 .roi-row:last-child{border-bottom:none}
 .roi-lbl{font-size:12.5px;font-weight:700;color:var(--tx2)}
@@ -1437,6 +1440,7 @@ function renderAlertas(){
     : averiados.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha));
 
   document.getElementById('content').innerHTML = `
+    <div class="section-divider"><i class="fas fa-calendar-times"></i> Vencimientos y averías</div>
     ${vencidos.length?`<div class="banner" style="background:var(--er-d);border-color:var(--er-d);color:var(--er)"><i class="fas fa-calendar-times"></i> <b>${vencidos.length} productos ya vencidos</b> — ${fmtGs(valorVencido)} en riesgo, hay que retirarlos de góndola.</div>`:''}
     <div class="grid grid-4" style="margin-bottom:16px">
       <div class="kpi"><div class="kpi-lbl">Valor ya vencido</div><div class="kpi-val" style="color:var(--er)">${fmtGs(valorVencido)}</div></div>
@@ -1452,12 +1456,6 @@ function renderAlertas(){
       <div class="sf-card" style="background:var(--bl-d)"><div class="sf-val" style="color:var(--bl)">${pctCobertura}%</div><div class="sf-lbl">PDVs con alerta</div></div>
       <div class="sf-card" style="background:${tendenciaPct>0?'var(--er-d)':'var(--ok-d)'}"><div class="sf-val" style="color:${tendenciaPct>0?'var(--er)':'var(--ok)'}">${tendenciaPct>0?'+':''}${tendenciaPct}%</div><div class="sf-lbl">Tendencia semanal</div></div>
     </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div><div class="card-title">Dónde accionar</div><div class="card-sub">Cruce PDV × Producto, ordenado por unidades en riesgo</div></div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>PDV</th><th>Cadena</th><th>Producto</th><th>Estado</th><th>Unidades</th></tr></thead><tbody>
-        ${topCombos.map(x=>`<tr><td style="font-weight:700">${x.pdv}</td><td>${x.cadena}</td><td>${x.producto}</td><td><span class="badge ${x.vencido?'er':'wa'}">${x.vencido?'Vencido':'Próximo'}</span></td><td style="font-weight:800;color:var(--er)">${x.unid}</td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:30px">Sin datos</td></tr>`}
-      </tbody></table></div>
-    </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div class="card-title">Productos más alertados</div><div class="card-sub">Incluye vencimientos y averías</div></div>
         <div class="chart-wrap sm"><canvas id="ch-productos"></canvas></div></div>
@@ -1465,18 +1463,9 @@ function renderAlertas(){
         <div class="chart-wrap sm"><canvas id="ch-motivos"></canvas></div></div>
     </div>
     <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div><div class="card-title">Quiebres de stock</div><div class="card-sub">${quiebresRows.length} quiebres detectados en ${pdvsConQuiebre} PDVs</div></div></div>
-      <div class="grid grid-4" style="margin-bottom:16px">
-        <div class="kpi"><div class="kpi-lbl">Quiebre de góndola</div><div class="kpi-val" style="color:var(--wa)">${quiebresGondola.length}</div><div class="kpi-sub">hay stock en depósito</div></div>
-        <div class="kpi"><div class="kpi-lbl">Quiebre total</div><div class="kpi-val" style="color:var(--er)">${quiebresTotal.length}</div><div class="kpi-sub">sin stock en depósito</div></div>
-        <div class="kpi"><div class="kpi-lbl">Unidades no vendidas (est.)</div><div class="kpi-val" style="color:var(--tx2)">${fmtInt(unidadesPerdidasQuiebre)}</div></div>
-        <div class="kpi"><div class="kpi-lbl">Valor perdido estimado</div><div class="kpi-val" style="color:var(--vi)">${fmtGs(valorPerdidoQuiebre)}</div><div class="kpi-sub">a precio público sugerido</div></div>
-      </div>
-      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Cadena</th><th>Producto</th><th>Tipo de quiebre</th><th>Detalle</th><th>Unid. no vendidas (est.)</th><th>Valor perdido (est.)</th></tr></thead><tbody>
-        ${quiebresRows.slice(0,15).map(r=>{ const pdv=pdvById(r.pdvId);
-          const detalle = r.tipoQuiebre==='Góndola' ? 'Hay stock en depósito, falta reponer en góndola' : 'No hay stock ni en góndola ni en depósito';
-          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.chain}</td><td>${r.producto}</td><td><span class="badge ${r.tipoQuiebre==='Total'?'er':'wa'}">${r.tipoQuiebre}</span></td><td style="font-size:11px;color:var(--tx2)">${detalle}</td><td>${r.unidadesPerdidasEstimadas}</td><td class="mono">${fmtGs(r.valorPerdidoEstimadoQuiebre)}</td></tr>`;
-        }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--tx3);padding:30px">Sin quiebres en el período seleccionado</td></tr>`}
+      <div class="card-hdr"><div><div class="card-title">Dónde accionar</div><div class="card-sub">Cruce PDV × Producto, ordenado por unidades en riesgo</div></div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>PDV</th><th>Cadena</th><th>Producto</th><th>Estado</th><th>Unidades</th></tr></thead><tbody>
+        ${topCombos.map(x=>`<tr><td style="font-weight:700">${x.pdv}</td><td>${x.cadena}</td><td>${x.producto}</td><td><span class="badge ${x.vencido?'er':'wa'}">${x.vencido?'Vencido':'Próximo'}</span></td><td style="font-weight:800;color:var(--er)">${x.unid}</td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:30px">Sin datos</td></tr>`}
       </tbody></table></div>
     </div>
     <div class="card">
@@ -1494,6 +1483,23 @@ function renderAlertas(){
           if(r.tieneVencidos && (alertasTab!=='averiados')) return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge er">Vencimiento</span></td><td>${r.productos.join(', ')}</td><td style="font-weight:700">${r.cantidadVencidos} u.</td><td style="font-size:11px;color:var(--tx2)">${r.motivoVencido}</td><td>${badgeVenc(r.estadoVenc)}</td></tr>`;
           return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge br">Avería</span></td><td>${r.productosAveriados.join(', ')}</td><td style="font-weight:700">${r.cantidadAveriados} u.</td><td style="font-size:11px;color:var(--tx2)">${r.motivoAveriado}</td><td>${badgeAveria()}</td></tr>`;
         }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--tx3);padding:30px">Sin alertas en el período seleccionado</td></tr>`}
+      </tbody></table></div>
+    </div>
+
+    <div class="section-divider"><i class="fas fa-box-open"></i> Quiebres de stock</div>
+    <div class="grid grid-4" style="margin-bottom:16px">
+      <div class="kpi"><div class="kpi-lbl">Quiebre de góndola</div><div class="kpi-val" style="color:var(--wa)">${quiebresGondola.length}</div><div class="kpi-sub">hay stock en depósito</div></div>
+      <div class="kpi"><div class="kpi-lbl">Quiebre total</div><div class="kpi-val" style="color:var(--er)">${quiebresTotal.length}</div><div class="kpi-sub">sin stock en depósito</div></div>
+      <div class="kpi"><div class="kpi-lbl">Unidades no vendidas (est.)</div><div class="kpi-val" style="color:var(--tx2)">${fmtInt(unidadesPerdidasQuiebre)}</div></div>
+      <div class="kpi"><div class="kpi-lbl">Valor perdido estimado</div><div class="kpi-val" style="color:var(--vi)">${fmtGs(valorPerdidoQuiebre)}</div><div class="kpi-sub">a precio público sugerido</div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div><div class="card-title">Detalle de quiebres</div><div class="card-sub">${quiebresRows.length} quiebres detectados en ${pdvsConQuiebre} PDVs</div></div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Cadena</th><th>Producto</th><th>Tipo de quiebre</th><th>Detalle</th><th>Unid. no vendidas (est.)</th><th>Valor perdido (est.)</th></tr></thead><tbody>
+        ${quiebresRows.slice(0,15).map(r=>{ const pdv=pdvById(r.pdvId);
+          const detalle = r.tipoQuiebre==='Góndola' ? 'Hay stock en depósito, falta reponer en góndola' : 'No hay stock ni en góndola ni en depósito';
+          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.chain}</td><td>${r.producto}</td><td><span class="badge ${r.tipoQuiebre==='Total'?'er':'wa'}">${r.tipoQuiebre}</span></td><td style="font-size:11px;color:var(--tx2)">${detalle}</td><td>${r.unidadesPerdidasEstimadas}</td><td class="mono">${fmtGs(r.valorPerdidoEstimadoQuiebre)}</td></tr>`;
+        }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--tx3);padding:30px">Sin quiebres en el período seleccionado</td></tr>`}
       </tbody></table></div>
     </div>`;
 
