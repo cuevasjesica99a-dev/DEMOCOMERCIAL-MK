@@ -205,8 +205,7 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
     </nav>
     <div class="nav-sect">Equipo</div>
     <nav class="nav" id="nav2">
-      <div class="ni" data-p="jornada"><i class="fas fa-user-clock"></i>Jornada del día<span class="ni-badge" id="nb-tardanzas">0</span></div>
-      <div class="ni" data-p="asistencia"><i class="fas fa-user-check"></i>Asistencia<span class="ni-badge" id="nb-ausentes">0</span></div>
+      <div class="ni" data-p="jornada"><i class="fas fa-user-clock"></i>Jornada y Asistencia<span class="ni-badge" id="nb-tardanzas">0</span><span class="ni-badge" id="nb-ausentes">0</span></div>
       <div class="ni" data-p="recorrido"><i class="fas fa-route"></i>Recorrido por persona</div>
       <div class="ni" data-p="comisiones"><i class="fas fa-hand-holding-dollar"></i>Comisiones</div>
       <div class="ni" data-p="supervisores"><i class="fas fa-user-tie"></i>Supervisores</div>
@@ -562,7 +561,6 @@ let searchTerm='';
 let recorridoPromotor = PROMOTERS[0].id;
 function fechaEquipoActual(){ return F.fechaHasta || F.fechaDesde || FECHA_MAX; }
 let jornadaFiltroActivo = null;
-let asistenciaFiltroActivo = null;
 let coberturaVista='cadena';
 let preciosVista='categoria';
 let alertasTab='todos';
@@ -1614,14 +1612,17 @@ function renderJornada(){
   const esDomingo = esDomingoFecha(fecha);
   const proms = promsDeCiudad();
   const promIds = new Set(proms.map(p=>p.id));
+  const total = proms.length;
   const dayJornadas = JORNADAS.filter(j=>j.fecha===fecha && promIds.has(j.promotorId));
   const dayAusencias = AUSENCIAS.filter(a=>a.fecha===fecha && promIds.has(a.promotorId));
+  const ausentesIds = new Set(dayAusencias.map(a=>a.promotorId));
+  const presentes = proms.filter(p=>!ausentesIds.has(p.id));
 
   const tarde = dayJornadas.filter(j=>j.tardanza);
   const aTiempo = dayJornadas.filter(j=>!j.tardanza);
+  const pctPresentes = total? Math.round(presentes.length/total*100):100;
   const duraciones = dayJornadas.map(j=>hhmmToMin(j.salida)-hhmmToMin(j.entrada)).filter(d=>d>0);
   const promDur = duraciones.length? Math.round(duraciones.reduce((s,v)=>s+v,0)/duraciones.length):0;
-  const almOk = dayJornadas.filter(j=>j.almSalida && j.duracionAlmuerzo<=LIMITE_ALMUERZO);
   const almExcedidos = dayJornadas.filter(j=>j.almSalida && j.duracionAlmuerzo>LIMITE_ALMUERZO);
   const sinAlm = dayJornadas.filter(j=>!j.almSalida);
 
@@ -1640,6 +1641,26 @@ function renderJornada(){
   const mejoresPuntuales = rankingPuntualidad.slice(0,3);
   const peoresPuntuales = [...rankingPuntualidad].sort((a,b)=>a.pct-b.pct).slice(0,3);
 
+  const ultimaJornadaPorPersona = {};
+  jornadasHist.forEach(j=>{ if(!ultimaJornadaPorPersona[j.promotorId]||j.fecha>ultimaJornadaPorPersona[j.promotorId]) ultimaJornadaPorPersona[j.promotorId]=j.fecha; });
+  const diasDesde = fUlt => {
+    if(!fUlt) return null;
+    const [y,m,d]=fUlt.split('-').map(Number), [y2,m2,d2]=fecha.split('-').map(Number);
+    return Math.round((new Date(y2,m2-1,d2)-new Date(y,m-1,d))/86400000);
+  };
+
+  const dias14 = [...Array(14)].map((_,i)=>isoDate(addDays(TODAY,-(13-i))));
+  const asistenciaPorDia = dias14.map(f=>{
+    const ausF = new Set(AUSENCIAS.filter(a=>a.fecha===f && promIds.has(a.promotorId)).map(a=>a.promotorId));
+    return {fecha:f, pct: total? Math.round(100*(total-ausF.size)/total):100};
+  });
+
+  const riesgoAusentismo = proms.map(p=>{
+    const jCount = JORNADAS.filter(j=>j.promotorId===p.id).length;
+    const aCount = AUSENCIAS.filter(a=>a.promotorId===p.id).length;
+    return {p, ausencias:aCount, pct: (jCount+aCount)? Math.round(100*aCount/(jCount+aCount)):0};
+  }).filter(r=>r.ausencias>0).sort((a,b)=>b.ausencias-a.ausencias).slice(0,5);
+
   const nombreCorto = n => n.split(' ').slice(0,2).join(' ');
 
   document.getElementById('content').innerHTML = `
@@ -1650,12 +1671,11 @@ function renderJornada(){
     </div>
     ${esDomingo? `<div class="banner"><i class="fas fa-store-slash"></i> Domingo — día no laboral, sin relevamiento.</div>` : `
     <div class="grid grid-kpi" style="margin-bottom:18px">
-      <div class="kpi t-ok"><div class="kpi-lbl">En campo</div><div class="kpi-val" style="color:var(--ok)">${dayJornadas.length}</div><div class="kpi-sub">${dateDisplay(fecha)}</div><i class="fas fa-users kpi-ico"></i></div>
-      <div class="kpi" id="kpi-jornada-tardanzas" style="cursor:pointer"><div class="kpi-lbl">Tardanzas</div><div class="kpi-val" style="color:${tarde.length?'var(--er)':'var(--ok)'}">${tarde.length}</div><div class="kpi-sub">después de 08:10 · ${dayJornadas.length?Math.round(tarde.length/dayJornadas.length*100):0}%</div><i class="fas fa-clock kpi-ico"></i></div>
+      <div class="kpi t-ok"><div class="kpi-lbl">Presentes</div><div class="kpi-val" style="color:var(--ok)">${presentes.length}<span style="font-size:14px;font-weight:600;color:var(--tx3)"> / ${total}</span></div><div class="kpi-sub">${pctPresentes}% de nómina</div><i class="fas fa-user-check kpi-ico"></i></div>
+      <div class="kpi" id="kpi-jornada-ausentes" style="cursor:pointer"><div class="kpi-lbl">Ausentes</div><div class="kpi-val" style="color:${dayAusencias.length?'var(--er)':'var(--ok)'}">${dayAusencias.length}</div><div class="kpi-sub">sin marcaciones hoy</div><i class="fas fa-user-times kpi-ico"></i></div>
+      <div class="kpi" id="kpi-jornada-tardanzas" style="cursor:pointer"><div class="kpi-lbl">Tardanzas</div><div class="kpi-val" style="color:${tarde.length?'var(--er)':'var(--ok)'}">${tarde.length}</div><div class="kpi-sub">después de 08:10 · ${dayJornadas.length?Math.round(tarde.length/dayJornadas.length*100):0}% de los presentes</div><i class="fas fa-clock kpi-ico"></i></div>
       <div class="kpi"><div class="kpi-lbl">Jornada prom.</div><div class="kpi-val" style="color:var(--bl);font-size:22px">${Math.floor(promDur/60)}h ${promDur%60}m</div><div class="kpi-sub">en campo</div><i class="fas fa-hourglass-half kpi-ico"></i></div>
-      <div class="kpi"><div class="kpi-lbl">Almuerzo OK</div><div class="kpi-val" style="color:var(--ok)">${almOk.length}</div><div class="kpi-sub">dentro de ${LIMITE_ALMUERZO} min</div><i class="fas fa-utensils kpi-ico"></i></div>
-      <div class="kpi" id="kpi-jornada-almuerzo" style="cursor:pointer"><div class="kpi-lbl">Alm. excedidos</div><div class="kpi-val" style="color:${almExcedidos.length?'var(--er)':'var(--ok)'}">${almExcedidos.length}</div><div class="kpi-sub">más de ${LIMITE_ALMUERZO} min</div><i class="fas fa-exclamation-triangle kpi-ico"></i></div>
-      <div class="kpi"><div class="kpi-lbl">Sin alm. registrado</div><div class="kpi-val" style="color:${sinAlm.length?'var(--wa)':'var(--ok)'}">${sinAlm.length}</div><div class="kpi-sub">jornada corta / sábado</div><i class="fas fa-user-clock kpi-ico"></i></div>
+      <div class="kpi" id="kpi-jornada-almuerzo" style="cursor:pointer"><div class="kpi-lbl">Alm. excedidos</div><div class="kpi-val" style="color:${almExcedidos.length?'var(--er)':'var(--ok)'}">${almExcedidos.length}</div><div class="kpi-sub">+${sinAlm.length} sin registrar</div><i class="fas fa-exclamation-triangle kpi-ico"></i></div>
     </div>
     ${jornadaFiltroActivo==='tardanzas'?`<div class="tw" style="border:2px solid var(--er);margin-bottom:16px">
       <div class="tf"><i class="fas fa-clock" style="color:var(--er)"></i><span style="font-weight:700;font-size:13px">Filtrado: Tardanzas — ${tarde.length}</span></div>
@@ -1669,27 +1689,52 @@ function renderJornada(){
         ${!almExcedidos.length&&!sinAlm.length?'<div style="padding:20px;text-align:center;color:var(--tx3);font-size:12px">Sin alertas de almuerzo</div>':''}
       </div>
     </div>`:''}
+    ${jornadaFiltroActivo==='ausentes'?`<div class="tw" style="border:2px solid var(--er);margin-bottom:16px">
+      <div class="tf"><i class="fas fa-user-times" style="color:var(--er)"></i><span style="font-weight:700;font-size:13px">Filtrado: Ausentes — ${dayAusencias.length} de ${total}</span></div>
+      <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Promotor</th><th>Ciudad</th><th>Última marcación</th><th>Días sin marcar</th></tr></thead><tbody>
+      ${dayAusencias.map((a,i)=>{ const p=promoterById(a.promotorId); const ult=ultimaJornadaPorPersona[p.id]; const dias=diasDesde(ult);
+        const diasTxt = dias==null?'Sin registro histórico':dias===0?'Hoy':dias===1?'Ayer':`Hace ${dias} días`;
+        return `<tr><td>${i+1}</td><td style="font-weight:700">${p.name}</td><td>${p.city}</td><td>${ult?dateDisplay(ult):'—'}</td><td><span class="badge er">${diasTxt}</span></td></tr>`;
+      }).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:24px">Sin ausentes</td></tr>`}
+      </tbody></table></div>
+    </div>`:''}
     <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div><div class="card-title">Horario de entrada</div><div class="card-sub">Distribución de check-ins · ${dateDisplay(fecha)}</div></div></div>
-      <div class="chart-wrap sm"><canvas id="ch-horas-entry"></canvas></div>
-      <div style="display:flex;justify-content:space-around;margin-top:12px;padding-top:12px;border-top:1px solid var(--bd)">
-        <div style="text-align:center"><div style="font-size:20px;font-weight:900;color:var(--ok)">${aTiempo.length}</div><div style="font-size:10px;color:var(--tx3);text-transform:uppercase">A tiempo</div></div>
-        <div style="text-align:center"><div style="font-size:20px;font-weight:900;color:var(--er)">${tarde.length}</div><div style="font-size:10px;color:var(--tx3);text-transform:uppercase">Tarde</div></div>
+      <div class="card-hdr" style="align-items:center"><div class="card-title">Cobertura de nómina — ${dateDisplay(fecha)}</div><span style="font-size:24px;font-weight:900;color:${pctPresentes>=85?'var(--ok)':pctPresentes>=60?'var(--wa)':'var(--er)'}">${pctPresentes}%</span></div>
+      <div style="height:14px;border-radius:7px;overflow:hidden;display:flex;gap:2px;margin-bottom:14px">
+        ${aTiempo.length?`<div style="flex:${aTiempo.length};background:var(--ok);border-radius:7px 0 0 7px"></div>`:''}
+        ${tarde.length?`<div style="flex:${tarde.length};background:var(--wa)"></div>`:''}
+        ${dayAusencias.length?`<div style="flex:${dayAusencias.length};background:var(--er);opacity:.5;border-radius:0 7px 7px 0"></div>`:''}
+      </div>
+      <div style="display:flex;gap:16px;font-size:11px;flex-wrap:wrap">
+        <span><span class="dot ok"></span> A tiempo (${aTiempo.length})</span>
+        <span><span class="dot wa"></span> Tarde (${tarde.length})</span>
+        <span style="cursor:pointer" id="jornada-leyenda-ausentes"><span class="dot er"></span> Ausentes (${dayAusencias.length})</span>
       </div>
     </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div><div class="card-title">Puntualidad del período</div><div class="card-sub">Todo el histórico cargado, no solo ${dateDisplay(fecha)} — para coaching sostenido</div></div></div>
-      <div class="grid grid-2e">
-        <div><div style="font-size:9.5px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Más puntuales</div>
-          ${mejoresPuntuales.map(r=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${nombreCorto(r.p.name)}</span><span style="font-weight:700;color:var(--ok)">${r.pct}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Sin datos suficientes</div>`}
+    <div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Horario de entrada</div><div class="card-sub">Distribución de check-ins · ${dateDisplay(fecha)}</div></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-horas-entry"></canvas></div></div>
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Tendencia de asistencia</div><div class="card-sub">% de la nómina presente, últimos 14 días</div></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-asist-tendencia"></canvas></div></div>
+    </div>
+    <div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Puntualidad del período</div><div class="card-sub">Todo el histórico cargado, no solo ${dateDisplay(fecha)} — para coaching sostenido</div></div></div>
+        <div class="grid grid-2e">
+          <div><div style="font-size:9.5px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Más puntuales</div>
+            ${mejoresPuntuales.map(r=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${nombreCorto(r.p.name)}</span><span style="font-weight:700;color:var(--ok)">${r.pct}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Sin datos suficientes</div>`}
+          </div>
+          <div><div style="font-size:9.5px;font-weight:700;color:var(--er);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Necesitan acompañamiento</div>
+            ${peoresPuntuales.map(r=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${nombreCorto(r.p.name)}</span><span style="font-weight:700;color:var(--er)">${r.pct}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Sin datos suficientes</div>`}
+          </div>
         </div>
-        <div><div style="font-size:9.5px;font-weight:700;color:var(--er);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Necesitan acompañamiento</div>
-          ${peoresPuntuales.map(r=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${nombreCorto(r.p.name)}</span><span style="font-weight:700;color:var(--er)">${r.pct}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Sin datos suficientes</div>`}
-        </div>
+      </div>
+      <div class="card"><div class="card-hdr"><div class="card-title">Riesgo de ausentismo</div><div class="card-sub">Más días sin marcar en todo el período cargado</div></div>
+        ${riesgoAusentismo.map(r=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd)"><span style="font-size:11.5px;font-weight:600">${r.p.name}</span><span style="font-weight:700;font-size:11.5px;color:${r.pct>20?'var(--er)':'var(--wa)'}">${r.ausencias} días · ${r.pct}%</span></div>`).join('') || `<div style="color:var(--ok);font-size:12px"><i class="fas fa-check-circle" style="margin-right:5px"></i>Sin ausencias relevantes en el período</div>`}
       </div>
     </div>
     <div class="card">
       <div class="card-hdr"><div class="card-title">${proms.length} promotores · ${dateDisplay(fecha)}</div><div style="display:flex;gap:8px">
+        <span class="badge ${dayAusencias.length?'er':'ok'}">${dayAusencias.length} ausentes</span>
         <span class="badge ${tarde.length?'er':'ok'}">${tarde.length} tardanzas</span>
         <span class="badge ${almExcedidos.length?'er':'ok'}">${almExcedidos.length} alm. excedidos</span>
       </div></div>
@@ -1713,8 +1758,12 @@ function renderJornada(){
   if(!esDomingo){
     document.getElementById('kpi-jornada-tardanzas').onclick = ()=>{ jornadaFiltroActivo = jornadaFiltroActivo==='tardanzas'?null:'tardanzas'; renderJornada(); };
     document.getElementById('kpi-jornada-almuerzo').onclick = ()=>{ jornadaFiltroActivo = jornadaFiltroActivo==='almuerzo'?null:'almuerzo'; renderJornada(); };
+    document.getElementById('kpi-jornada-ausentes').onclick = ()=>{ jornadaFiltroActivo = jornadaFiltroActivo==='ausentes'?null:'ausentes'; renderJornada(); };
+    const leyenda = document.getElementById('jornada-leyenda-ausentes'); if(leyenda) leyenda.onclick = ()=>{ jornadaFiltroActivo='ausentes'; renderJornada(); };
     mkChart('ch-horas-entry',{type:'bar',data:{labels:horasLabels,datasets:[{label:'A tiempo',data:horasSlice.map((v,i)=>v-horasTardeSlice[i]),backgroundColor:'#3cb3a8',borderRadius:4},{label:'Tarde',data:horasTardeSlice,backgroundColor:'#e84a55',borderRadius:4}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:9}}},y:{stacked:true,beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{stepSize:1}}}}});
+    mkChart('ch-asist-tendencia',{type:'line',data:{labels:dias14.map(dateDisplay),datasets:[{data:asistenciaPorDia.map(d=>d.pct),borderColor:'#3cb3a8',backgroundColor:'rgba(60,179,168,.15)',tension:.35,fill:true,pointRadius:3}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}% de la nómina`}}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});
   }
 }
 function exportJornadaCSV(jornadas, ausencias){
@@ -1732,106 +1781,6 @@ function exportJornadaCSV(jornadas, ausencias){
   a.download = `nova-consumo-asistencia-${isoDate(TODAY)}.csv`;
   a.click();
   toast(`${jornadas.length+ausencias.length} registros de asistencia exportados`, 'fa-file-csv');
-}
-
-// ============================================================
-// PÁGINA: ASISTENCIA
-// ============================================================
-function renderAsistencia(){
-  const fecha = fechaEquipoActual();
-  const esDomingo = esDomingoFecha(fecha);
-  const proms = promsDeCiudad();
-  const promIds = new Set(proms.map(p=>p.id));
-  const total = proms.length;
-  const dayAusencias = AUSENCIAS.filter(a=>a.fecha===fecha && promIds.has(a.promotorId));
-  const ausentesIds = new Set(dayAusencias.map(a=>a.promotorId));
-  const presentes = proms.filter(p=>!ausentesIds.has(p.id));
-  const dayJornadas = JORNADAS.filter(j=>j.fecha===fecha && promIds.has(j.promotorId));
-  const tarde = dayJornadas.filter(j=>j.tardanza);
-  const aTiempo = dayJornadas.filter(j=>!j.tardanza);
-  const pct = total? Math.round(presentes.length/total*100):100;
-  const pctTarde = presentes.length? Math.round(tarde.length/presentes.length*100):0;
-
-  const ultimaJornadaPorPersona = {};
-  JORNADAS.filter(j=>promIds.has(j.promotorId)).forEach(j=>{ if(!ultimaJornadaPorPersona[j.promotorId]||j.fecha>ultimaJornadaPorPersona[j.promotorId]) ultimaJornadaPorPersona[j.promotorId]=j.fecha; });
-  const diasDesde = fUlt => {
-    if(!fUlt) return null;
-    const [y,m,d]=fUlt.split('-').map(Number), [y2,m2,d2]=fecha.split('-').map(Number);
-    return Math.round((new Date(y2,m2-1,d2)-new Date(y,m-1,d))/86400000);
-  };
-
-  const dias14 = [...Array(14)].map((_,i)=>isoDate(addDays(TODAY,-(13-i))));
-  const asistenciaPorDia = dias14.map(f=>{
-    const ausF = new Set(AUSENCIAS.filter(a=>a.fecha===f && promIds.has(a.promotorId)).map(a=>a.promotorId));
-    return {fecha:f, pct: total? Math.round(100*(total-ausF.size)/total):100};
-  });
-
-  const riesgoAusentismo = proms.map(p=>{
-    const jCount = JORNADAS.filter(j=>j.promotorId===p.id).length;
-    const aCount = AUSENCIAS.filter(a=>a.promotorId===p.id).length;
-    return {p, ausencias:aCount, pct: (jCount+aCount)? Math.round(100*aCount/(jCount+aCount)):0};
-  }).filter(r=>r.ausencias>0).sort((a,b)=>b.ausencias-a.ausencias).slice(0,5);
-
-  document.getElementById('content').innerHTML = `
-    <div class="fbar" style="padding:10px 18px">
-      <span class="fbar-label"><i class="fas fa-calendar"></i> Fecha exacta</span>
-      <input type="date" id="asist-dia" class="select-inline" value="${fecha}" min="${FECHA_MIN}" max="${FECHA_MAX}">
-      ${asistenciaFiltroActivo?`<span class="fbar-chip" id="asist-clear"><i class="fas fa-times" style="font-size:9px"></i>Ver todos (quitar filtro ausentes)</span>`:''}
-    </div>
-    ${esDomingo?`<div class="banner"><i class="fas fa-store-slash"></i> Domingo — día no laboral, sin relevamiento.</div>`:`
-    <div class="grid grid-kpi" style="margin-bottom:18px">
-      <div class="kpi t-ok"><div class="kpi-lbl">Presentes</div><div class="kpi-val" style="color:var(--ok)">${presentes.length}<span style="font-size:14px;font-weight:600;color:var(--tx3)"> / ${total}</span></div><div class="kpi-sub">${pct}% de nómina</div><i class="fas fa-user-check kpi-ico"></i></div>
-      <div class="kpi" id="kpi-asist-ausentes" style="cursor:pointer"><div class="kpi-lbl">Ausentes</div><div class="kpi-val" style="color:${dayAusencias.length?'var(--er)':'var(--ok)'}">${dayAusencias.length}</div><div class="kpi-sub">sin marcaciones hoy</div><i class="fas fa-user-times kpi-ico"></i></div>
-      <div class="kpi t-ok"><div class="kpi-lbl">A tiempo</div><div class="kpi-val" style="color:var(--ok)">${aTiempo.length}</div><div class="kpi-sub">antes de 08:10 hs</div><i class="fas fa-check-circle kpi-ico"></i></div>
-      <div class="kpi"><div class="kpi-lbl">Tardanzas</div><div class="kpi-val" style="color:${tarde.length?'var(--wa)':'var(--ok)'}">${tarde.length}</div><div class="kpi-sub">${pctTarde}% del equipo presente</div><i class="fas fa-clock kpi-ico"></i></div>
-    </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr" style="align-items:center"><div class="card-title">Cobertura de nómina — ${dateDisplay(fecha)}</div><span style="font-size:24px;font-weight:900;color:${pct>=85?'var(--ok)':pct>=60?'var(--wa)':'var(--er)'}">${pct}%</span></div>
-      <div style="height:14px;border-radius:7px;overflow:hidden;display:flex;gap:2px;margin-bottom:14px">
-        ${aTiempo.length?`<div style="flex:${aTiempo.length};background:var(--ok);border-radius:7px 0 0 7px"></div>`:''}
-        ${tarde.length?`<div style="flex:${tarde.length};background:var(--wa)"></div>`:''}
-        ${dayAusencias.length?`<div style="flex:${dayAusencias.length};background:var(--er);opacity:.5;border-radius:0 7px 7px 0"></div>`:''}
-      </div>
-      <div style="display:flex;gap:16px;font-size:11px;flex-wrap:wrap">
-        <span><span class="dot ok"></span> A tiempo (${aTiempo.length})</span>
-        <span><span class="dot wa"></span> Tarde (${tarde.length})</span>
-        <span style="cursor:pointer" id="asist-leyenda-ausentes"><span class="dot er"></span> Ausentes (${dayAusencias.length})</span>
-      </div>
-    </div>
-    <div class="grid grid-2" style="margin-bottom:16px">
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Tendencia de asistencia</div><div class="card-sub">% de la nómina presente, últimos 14 días</div></div></div>
-        <div class="chart-wrap sm"><canvas id="ch-asist-tendencia"></canvas></div></div>
-      <div class="card"><div class="card-hdr"><div class="card-title">Riesgo de ausentismo</div><div class="card-sub">Más días sin marcar en todo el período cargado</div></div>
-        ${riesgoAusentismo.map(r=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd)"><span style="font-size:11.5px;font-weight:600">${r.p.name}</span><span style="font-weight:700;font-size:11.5px;color:${r.pct>20?'var(--er)':'var(--wa)'}">${r.ausencias} días · ${r.pct}%</span></div>`).join('') || `<div style="color:var(--ok);font-size:12px"><i class="fas fa-check-circle" style="margin-right:5px"></i>Sin ausencias relevantes en el período</div>`}
-      </div>
-    </div>
-    ${asistenciaFiltroActivo==='ausentes' ? `
-    <div class="tw">
-      <div class="tf"><i class="fas fa-user-times" style="color:var(--er)"></i><span style="font-weight:700;font-size:13px">Ausentes — ${dayAusencias.length} de ${total}</span></div>
-      <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Promotor</th><th>Ciudad</th><th>Última marcación</th><th>Días sin marcar</th></tr></thead><tbody>
-      ${dayAusencias.map((a,i)=>{ const p=promoterById(a.promotorId); const ult=ultimaJornadaPorPersona[p.id]; const dias=diasDesde(ult);
-        const diasTxt = dias==null?'Sin registro histórico':dias===0?'Hoy':dias===1?'Ayer':`Hace ${dias} días`;
-        return `<tr><td>${i+1}</td><td style="font-weight:700">${p.name}</td><td>${p.city}</td><td>${ult?dateDisplay(ult):'—'}</td><td><span class="badge er">${diasTxt}</span></td></tr>`;
-      }).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:24px">Sin ausentes</td></tr>`}
-      </tbody></table></div>
-    </div>` : `
-    <div class="tw">
-      <div class="tf"><i class="fas fa-check" style="color:var(--ok)"></i><span style="font-weight:700;font-size:13px">Presentes — ${presentes.length} promotores</span></div>
-      <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Promotor</th><th>Ciudad</th><th>Entrada</th><th>PDVs visitados</th><th>Estado</th></tr></thead><tbody>
-      ${presentes.map((p,i)=>{ const j=dayJornadas.find(x=>x.promotorId===p.id); const nPdv=VISITS.filter(v=>v.promotorId===p.id&&v.fecha===fecha).length;
-        return `<tr><td>${i+1}</td><td style="font-weight:700">${p.name}</td><td>${p.city}</td><td>${j?'<span class="mono">'+j.entrada+'</span>':'—'}</td><td>${nPdv}</td><td>${j&&j.tardanza?'<span class="badge wa">Tarde</span>':'<span class="badge ok">A tiempo</span>'}</td></tr>`;
-      }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:24px">Sin presentes</td></tr>`}
-      </tbody></table></div>
-    </div>`}`}`;
-
-  document.getElementById('asist-dia').onchange = e=>{ F.fechaDesde=e.target.value; F.fechaHasta=e.target.value; applyFilters(); };
-  if(!esDomingo){
-    document.getElementById('kpi-asist-ausentes').onclick = ()=>{ asistenciaFiltroActivo = asistenciaFiltroActivo==='ausentes'?null:'ausentes'; renderAsistencia(); };
-    const leyenda = document.getElementById('asist-leyenda-ausentes'); if(leyenda) leyenda.onclick = ()=>{ asistenciaFiltroActivo='ausentes'; renderAsistencia(); };
-    const clearChip = document.getElementById('asist-clear'); if(clearChip) clearChip.onclick = ()=>{ asistenciaFiltroActivo=null; renderAsistencia(); };
-    mkChart('ch-asist-tendencia',{type:'line',data:{labels:dias14.map(dateDisplay),datasets:[{data:asistenciaPorDia.map(d=>d.pct),borderColor:'#3cb3a8',backgroundColor:'rgba(60,179,168,.15)',tension:.35,fill:true,pointRadius:3}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}% de la nómina`}}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});
-  }
 }
 
 // ============================================================
@@ -2091,8 +2040,7 @@ const PAGES = {
   alertas:{title:'Averiados y Vencimientos', icon:'fa-exclamation-triangle', render:renderAlertas},
   quiebres:{title:'Quiebres de stock', icon:'fa-box-open', render:renderQuiebres},
   relevamientos:{title:'Relevamientos', icon:'fa-clipboard-list', render:renderRelevamientos},
-  jornada:{title:'Jornada del día', icon:'fa-user-clock', render:renderJornada},
-  asistencia:{title:'Asistencia', icon:'fa-user-check', render:renderAsistencia},
+  jornada:{title:'Jornada y Asistencia', icon:'fa-user-clock', render:renderJornada},
   recorrido:{title:'Recorrido por persona', icon:'fa-route', render:renderRecorrido},
   comisiones:{title:'Comisiones', icon:'fa-hand-holding-dollar', render:renderComisiones},
   supervisores:{title:'Supervisores', icon:'fa-user-tie', render:renderSupervisores},
