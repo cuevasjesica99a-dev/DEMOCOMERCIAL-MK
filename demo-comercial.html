@@ -867,6 +867,7 @@ function renderResumen(){
     {label:'Disponibilidad de stock', meta:95, real:Math.round(disponibilidad)},
     {label:'Asistencia puntual', meta:95, real:pctPuntual},
     {label:'PDVs sin vencidos', meta:98, real: totalVisitas? Math.round((1-vencidosCount/totalVisitas)*100) : 100},
+    {label:'Cumplimiento de ejecución', meta:90, real:ejecucionPct},
   ];
 
   const julio = metricasMes(rowsDelMes(7));
@@ -877,12 +878,12 @@ function renderResumen(){
     <div class="grid grid-kpi" style="margin-bottom:18px">
       ${kpiCard('Visitas totales', totalVisitas, periodoLabel, 'fa-clipboard-check', '--brand2','k-visitas','cobertura')}
       ${kpiCard('PDVs cubiertos', pdvsUnicos, `de ${PDVS.length} puntos totales`, 'fa-store', '--ok','k-pdvs','cobertura')}
-      ${kpiCard('Cumplimiento', Math.round(cumplPct), 'promedio de criterios', 'fa-check-circle', '--ok','k-cumpl','auditoria')}
+      ${kpiCard('Cumplimiento', Math.round(cumplPct), 'promedio de criterios — ver Cobertura', 'fa-check-circle', '--ok','k-cumpl','cobertura')}
       ${kpiCard('Alertas activas', alertas, 'vencidos, por vencer y averiados', 'fa-exclamation-triangle', '--er','k-alertas','alertas')}
       ${kpiCard('Promotores activos', promotoresActivos, `de ${PROMOTERS.length} en nómina`, 'fa-users', '--bl','k-promotores','supervisores')}
       ${kpiCard('Góndola promedio', Math.round(gondolaProm), 'participación de espacio', 'fa-border-all', '--vi','k-gondola','auditoria')}
-      ${kpiCard('Cumplimiento de ejecución', ejecucionPct, 'criterios + espacios + POP + precios', 'fa-clipboard-check', ejecucionPct>=85?'--ok':ejecucionPct>=60?'--wa':'--er','k-ejecucion','relevamientos')}
-      ${kpiCard('Valor de mercado movilizado', 0, `${fmtInt(rows.reduce((s,r)=>s+r.unidadesRepuestas,0))} unidades repuestas`, 'fa-coins', '--brand2','k-valormov','precios')}
+      ${kpiCard('Cumplimiento de ejecución', ejecucionPct, 'criterios + espacios + POP + precios — detalle en Relevamientos', 'fa-clipboard-check', ejecucionPct>=85?'--ok':ejecucionPct>=60?'--wa':'--er','k-ejecucion','relevamientos')}
+      ${kpiCard('Valor de mercado movilizado', 0, `${fmtInt(rows.reduce((s,r)=>s+r.unidadesRepuestas,0))} unidades repuestas — ver Precios`, 'fa-coins', '--brand2','k-valormov','precios')}
     </div>
     <div class="grid grid-3" style="margin-bottom:16px">
       <div class="card" style="cursor:pointer" onclick="goPage('precios')">
@@ -1122,11 +1123,11 @@ function renderAuditoria(){
     <div class="grid grid-kpi" style="margin-bottom:18px">
       ${kpiCard('Participación en góndola', Math.round(gondolaProm), 'promedio del período', 'fa-border-all', '--vi','k-gondola2')}
       ${kpiCard('Disponibilidad de stock', Math.round(disponibilidad), `${quiebres} quiebres detectados`, 'fa-box-open', quiebres?'--wa':'--ok','k-disp')}
-      ${kpiCard('Cumplimiento de precio Nova Consumo', Math.round(cumplePrecioPct), 'vs. precio público sugerido', 'fa-tag', '--bl','k-cumplprecio','precios')}
-      ${kpiCard('Rotación de producto', rotacionPct, `${fmtInt(unidadesRepuestasTotal)} unidades repuestas`, 'fa-arrows-rotate', '--vi','k-rotacion')}
-      ${kpiCard('Cumplimiento de promoción', Math.round(cumplePromoPct), 'promoción vigente ejecutada', 'fa-bullhorn', '--ok','k-promo')}
+      ${kpiCard('Cumplimiento de precio Nova Consumo', Math.round(cumplePrecioPct), 'vs. precio público sugerido — ver Precios', 'fa-tag', '--bl','k-cumplprecio','precios')}
+      ${kpiCard('Rotación de producto', rotacionPct, `${fmtInt(unidadesRepuestasTotal)} unidades repuestas — ver Precios`, 'fa-arrows-rotate', '--vi','k-rotacion','precios')}
+      ${kpiCard('Cumplimiento de promoción', Math.round(cumplePromoPct), 'promoción vigente ejecutada — ver Relevamientos', 'fa-bullhorn', '--ok','k-promo','relevamientos')}
       ${kpiCard('PDVs con materiales POP', Math.round(pctPOP), 'de las visitas relevadas', 'fa-tags', '--bl','k-pop')}
-      ${kpiCard('Espacios ganados', espaciosGanados, 'facings adicionales al planograma', 'fa-arrow-up-right-dots', '--ok','k-espacios')}
+      ${kpiCard('Espacios ganados', espaciosGanados, 'facings adicionales al planograma — ver Relevamientos', 'fa-arrow-up-right-dots', '--ok','k-espacios','relevamientos')}
       ${kpiCard('Diferencia de precio', Math.round(diffPrecioProm), 'vs. precio promedio competencia — ver Precios', diffPrecioProm<=0?'fa-arrow-down':'fa-arrow-up', diffPrecioProm<=0?'--ok':'--er','k-diffprecio','precios')}
     </div>
     <div class="grid grid-2e" style="margin-bottom:16px">
@@ -1209,6 +1210,7 @@ function renderPrecios(){
       nMin: rsConStock.length?Math.min(...rsConStock.map(r=>r.precioNuestro)):0, nMax: rsConStock.length?Math.max(...rsConStock.map(r=>r.precioNuestro)):0,
       cMin: rs.length?Math.min(...rs.map(r=>r.precioCompetidor)):0, cMax: rs.length?Math.max(...rs.map(r=>r.precioCompetidor)):0,
       n: rs.length,
+      cumplPct: rsConStock.length?Math.round(100*rsConStock.filter(r=>r.cumplePrecioPropio).length/rsConStock.length):0,
     };
   };
   const preciosRangoCat = CATEGORIES.map(cat=>({cat, ...rangoDe(r=>r.categoria===cat)}));
@@ -1247,14 +1249,14 @@ function renderPrecios(){
         </div>
       </div>
       <div class="tbl-wrap">${
-        preciosVista==='categoria' ? `<table><thead><tr><th>Categoría</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
-          ${preciosRangoCat.map(p=>`<tr><td style="font-weight:700">${p.cat}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td></tr>`).join('')}
+        preciosVista==='categoria' ? `<table><thead><tr><th>Categoría</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th><th>Cumplimiento</th></tr></thead><tbody>
+          ${preciosRangoCat.map(p=>`<tr><td style="font-weight:700">${p.cat}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td><td><span class="badge ${p.cumplPct>=85?'ok':p.cumplPct>=60?'wa':'er'}">${p.cumplPct}%</span></td></tr>`).join('')}
           </tbody></table>`
-        : preciosVista==='subcategoria' ? `<table><thead><tr><th>Subcategoría</th><th>Categoría</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
-          ${preciosRangoSubcat.map(p=>`<tr><td style="font-weight:700">${p.sub}</td><td>${p.cat}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td></tr>`).join('')}
+        : preciosVista==='subcategoria' ? `<table><thead><tr><th>Subcategoría</th><th>Categoría</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th><th>Cumplimiento</th></tr></thead><tbody>
+          ${preciosRangoSubcat.map(p=>`<tr><td style="font-weight:700">${p.sub}</td><td>${p.cat}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td><td><span class="badge ${p.cumplPct>=85?'ok':p.cumplPct>=60?'wa':'er'}">${p.cumplPct}%</span></td></tr>`).join('')}
           </tbody></table>`
-        : preciosVista==='producto' ? `<table><thead><tr><th>Producto</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
-          ${preciosRangoProducto.map(p=>`<tr><td style="font-weight:700">${p.prod}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td></tr>`).join('')}
+        : preciosVista==='producto' ? `<table><thead><tr><th>Producto</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th><th>Cumplimiento</th></tr></thead><tbody>
+          ${preciosRangoProducto.map(p=>`<tr><td style="font-weight:700">${p.prod}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td><td><span class="badge ${p.cumplPct>=85?'ok':p.cumplPct>=60?'wa':'er'}">${p.cumplPct}%</span></td></tr>`).join('')}
           </tbody></table>`
         : `<table><thead><tr><th>Producto</th><th>Nuestro precio prom.</th><th>Precio competencia prom.</th><th>Diferencia</th><th>Unidades repuestas</th></tr></thead><tbody>
           ${vsCompetencia.map(p=>`<tr><td style="font-weight:700">${p.prod}</td><td class="mono">${fmtGs(p.nuestro)}</td><td class="mono">${fmtGs(p.competidor)}</td><td><span class="badge ${p.diff<=0?'ok':'er'}">${p.diff>0?'+':''}${p.diff}%</span></td><td class="mono">${fmtInt(unidadesRepuestasPorProducto[p.prod]||0)}</td></tr>`).join('')}
@@ -1796,7 +1798,7 @@ function renderComisiones(){
       ${kpiCard('Comisión total de la pauta', 0, `${Object.keys(COMISION_KPIS).length} KPIs, 100% medibles con datos de campo`, 'fa-coins', '--brand2','k-total')}
       ${kpiCard('Promedio del equipo', 0, `${data.length} promotores con datos en el período`, 'fa-chart-bar', '--ok','k-promedio')}
       ${kpiCard('Cumplimiento de precio (equipo)', promPreciosGlobal, 'vs. precio público sugerido', 'fa-tag', '--bl','k-precioequipo')}
-      ${kpiCard('Quiebres de stock', quiebresTotal, `de ${totalControles} visitas`, 'fa-box-open', quiebresTotal?'--wa':'--ok','k-quiebres')}
+      ${kpiCard('Quiebres de stock', quiebresTotal, `de ${totalControles} visitas — ver Alertas`, 'fa-box-open', quiebresTotal?'--wa':'--ok','k-quiebres','alertas')}
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div class="card-title">Top 10 comisiones del período</div></div>
