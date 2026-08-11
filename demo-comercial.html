@@ -1216,11 +1216,17 @@ function renderPrecios(){
   const preciosRangoProducto = TODOS_PRODUCTOS.map(prod=>({prod, ...rangoDe(r=>r.producto===prod)}));
 
   const vsCompetencia = preciosPorProducto(all).map(p=>({...p, diff:p.indice-100})).sort((a,b)=>b.diff-a.diff);
+  const unidadesRepuestasPorProducto = {};
+  all.forEach(r=>unidadesRepuestasPorProducto[r.producto]=(unidadesRepuestasPorProducto[r.producto]||0)+r.unidadesRepuestas);
+  const unidadesRepuestasTotal = all.reduce((s,r)=>s+r.unidadesRepuestas,0);
+  const valorMovilizado = all.reduce((s,r)=>s+r.unidadesRepuestas*r.precioSugerido,0);
 
   document.getElementById('content').innerHTML = `
     <div class="grid grid-kpi" style="margin-bottom:18px">
       ${kpiCard('Diferencia de precio', Math.round(diffPrecioProm), 'vs. precio promedio competencia', diffPrecioProm<=0?'fa-arrow-down':'fa-arrow-up', diffPrecioProm<=0?'--ok':'--er','k-diffprecio2')}
       ${kpiCard('Cumplimiento de precio Nova Consumo', Math.round(cumplePrecioPct), 'vs. precio público sugerido', 'fa-tag', '--bl','k-cumplprecio2')}
+      ${kpiCard('Unidades repuestas', unidadesRepuestasTotal, 'repuestas de depósito a góndola', 'fa-arrows-rotate', '--vi','k-unidrepuestas')}
+      ${kpiCard('Valor de mercado movilizado', 0, `${fmtInt(unidadesRepuestasTotal)} unidades × precio sugerido`, 'fa-coins', '--brand2','k-valormov2')}
       <div class="kpi"><div class="kpi-lbl">Mínimo — Nova Consumo</div><div class="kpi-val" style="color:var(--ok)">${fmtGs(precioNuestroMin)}</div></div>
       <div class="kpi"><div class="kpi-lbl">Máximo — Nova Consumo</div><div class="kpi-val" style="color:var(--ok)">${fmtGs(precioNuestroMax)}</div></div>
       <div class="kpi"><div class="kpi-lbl">Mínimo — Competencia</div><div class="kpi-val" style="color:var(--tx2)">${fmtGs(precioCompMin)}</div></div>
@@ -1250,14 +1256,16 @@ function renderPrecios(){
         : preciosVista==='producto' ? `<table><thead><tr><th>Producto</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Competencia</th><th>Máx. Competencia</th></tr></thead><tbody>
           ${preciosRangoProducto.map(p=>`<tr><td style="font-weight:700">${p.prod}</td><td class="mono">${fmtGs(p.nMin)}</td><td class="mono">${fmtGs(p.nMax)}</td><td class="mono">${fmtGs(p.cMin)}</td><td class="mono">${fmtGs(p.cMax)}</td></tr>`).join('')}
           </tbody></table>`
-        : `<table><thead><tr><th>Producto</th><th>Nuestro precio prom.</th><th>Precio competencia prom.</th><th>Diferencia</th></tr></thead><tbody>
-          ${vsCompetencia.map(p=>`<tr><td style="font-weight:700">${p.prod}</td><td class="mono">${fmtGs(p.nuestro)}</td><td class="mono">${fmtGs(p.competidor)}</td><td><span class="badge ${p.diff<=0?'ok':'er'}">${p.diff>0?'+':''}${p.diff}%</span></td></tr>`).join('')}
+        : `<table><thead><tr><th>Producto</th><th>Nuestro precio prom.</th><th>Precio competencia prom.</th><th>Diferencia</th><th>Unidades repuestas</th></tr></thead><tbody>
+          ${vsCompetencia.map(p=>`<tr><td style="font-weight:700">${p.prod}</td><td class="mono">${fmtGs(p.nuestro)}</td><td class="mono">${fmtGs(p.competidor)}</td><td><span class="badge ${p.diff<=0?'ok':'er'}">${p.diff>0?'+':''}${p.diff}%</span></td><td class="mono">${fmtInt(unidadesRepuestasPorProducto[p.prod]||0)}</td></tr>`).join('')}
           </tbody></table>`
       }</div>
     </div>`;
 
   animateNum(document.getElementById('k-diffprecio2'), Math.round(diffPrecioProm), '%');
   animateNum(document.getElementById('k-cumplprecio2'), Math.round(cumplePrecioPct), '%');
+  animateNum(document.getElementById('k-unidrepuestas'), unidadesRepuestasTotal);
+  document.getElementById('k-valormov2').textContent = fmtGs(valorMovilizado);
 
   mkChart('ch-precios',{type:'bar',data:{labels:preciosCat.map(p=>p.cat),datasets:[
       {label:'Nova Consumo',data:preciosCat.map(p=>p.nuestro),backgroundColor:brandColor(),borderRadius:5,maxBarThickness:36},
