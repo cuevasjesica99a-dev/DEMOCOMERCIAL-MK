@@ -1625,10 +1625,13 @@ function renderJornada(){
   const almExcedidos = dayJornadas.filter(j=>j.almSalida && j.duracionAlmuerzo>LIMITE_ALMUERZO);
   const sinAlm = dayJornadas.filter(j=>!j.almSalida);
 
-  const horasDist = Array(24).fill(0), horasTarde = Array(24).fill(0);
-  dayJornadas.forEach(j=>{ const h=Math.floor(hhmmToMin(j.entrada)/60); horasDist[h]++; if(j.tardanza) horasTarde[h]++; });
-  const horasSlice = horasDist.slice(6,19), horasTardeSlice = horasTarde.slice(6,19);
-  const horasLabels = horasSlice.map((_,i)=>pad2(i+6)+':00');
+  const BUCKET_MIN = 15;
+  const inicioVentana = ENTRADA_PROG-15; // 07:45, inicio de la ventana real de marcación
+  const nBuckets = 5; // cubre 07:45 a 08:55, ventana real en la que se registran entradas
+  const horasDist = Array(nBuckets).fill(0), horasTarde = Array(nBuckets).fill(0);
+  dayJornadas.forEach(j=>{ const idx=Math.min(nBuckets-1, Math.max(0, Math.floor((hhmmToMin(j.entrada)-inicioVentana)/BUCKET_MIN))); horasDist[idx]++; if(j.tardanza) horasTarde[idx]++; });
+  const horasSlice = horasDist, horasTardeSlice = horasTarde;
+  const horasLabels = horasSlice.map((_,i)=>minToHHMM(inicioVentana+i*BUCKET_MIN));
 
   const jornadasHist = JORNADAS.filter(j=>promIds.has(j.promotorId));
   const puntualidadPorPersona = {};
