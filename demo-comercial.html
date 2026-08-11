@@ -890,7 +890,7 @@ function renderResumen(){
         ${topRotacion.map(([p,unid])=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${p}</span><span style="font-weight:700;color:var(--ok)">${unid} unid.</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Sin datos suficientes</div>`}
       </div>
       <div class="card" style="cursor:pointer" onclick="goPage('precios')">
-        <div class="card-hdr"><div><div class="card-title">Posicionamiento competitivo</div><div class="card-sub">precio propio vs. promedio de la categoría →</div></div></div>
+        <div class="card-hdr"><div><div class="card-title">Posicionamiento competitivo</div><div class="card-sub">precio Nova Consumo vs. promedio de la categoría →</div></div></div>
         <div style="font-size:9.5px;font-weight:700;color:var(--er);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Más caras que su categoría</div>
         ${masCaras.map(m=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${m.prod}</span><span style="font-weight:700;color:var(--er)">+${m.indice-100}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Ninguna</div>`}
         <div style="font-size:9.5px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">Más económicas que su categoría</div>
@@ -898,7 +898,7 @@ function renderResumen(){
       </div>
     </div>
     <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div><div class="card-title">Evolución de precios</div><div class="card-sub">Desviación promedio vs. precio público sugerido, propio vs. competencia — últimos 14 días</div></div></div>
+      <div class="card-hdr"><div><div class="card-title">Evolución de precios</div><div class="card-sub">Desviación promedio vs. precio público sugerido, Nova Consumo vs. competencia — últimos 14 días</div></div></div>
       <div class="chart-wrap" style="height:190px"><canvas id="ch-evolprecios"></canvas></div>
     </div>
     <div class="card" style="margin-bottom:16px">
@@ -948,7 +948,7 @@ function renderResumen(){
   document.getElementById('k-valormov').textContent = fmtGs(valorMovilizado);
 
   mkChart('ch-evolprecios',{type:'line',data:{labels:dias14evol.map(dateDisplay),datasets:[
-      {label:'Propio',data:serieDesvioPropio,borderColor:'#e0722a',backgroundColor:'rgba(224,114,42,.15)',tension:.35,fill:true,spanGaps:true,pointRadius:2},
+      {label:'Nova Consumo',data:serieDesvioPropio,borderColor:'#e0722a',backgroundColor:'rgba(224,114,42,.15)',tension:.35,fill:true,spanGaps:true,pointRadius:2},
       {label:'Competencia',data:serieDesvioComp,borderColor:'#5b9bd5',backgroundColor:'rgba(91,155,213,.1)',tension:.35,fill:true,spanGaps:true,pointRadius:2},
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y>0?'+':''}${ctx.parsed.y}% vs. PVP`}}},scales:{y:{grid:{color:'rgba(255,255,255,.06)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});
 
@@ -1123,7 +1123,7 @@ function renderAuditoria(){
     <div class="grid grid-kpi" style="margin-bottom:18px">
       ${kpiCard('Participación en góndola', Math.round(gondolaProm), 'promedio del período', 'fa-border-all', '--vi','k-gondola2')}
       ${kpiCard('Disponibilidad de stock', Math.round(disponibilidad), `${quiebres} quiebres detectados`, 'fa-box-open', quiebres?'--wa':'--ok','k-disp')}
-      ${kpiCard('Cumplimiento de precio propio', Math.round(cumplePrecioPct), 'vs. precio público sugerido', 'fa-tag', '--bl','k-cumplprecio','precios')}
+      ${kpiCard('Cumplimiento de precio Nova Consumo', Math.round(cumplePrecioPct), 'vs. precio público sugerido', 'fa-tag', '--bl','k-cumplprecio','precios')}
       ${kpiCard('Rotación de producto', rotacionPct, `${fmtInt(unidadesRepuestasTotal)} unidades repuestas`, 'fa-arrows-rotate', '--vi','k-rotacion')}
       ${kpiCard('Cumplimiento de promoción', Math.round(cumplePromoPct), 'promoción vigente ejecutada', 'fa-bullhorn', '--ok','k-promo')}
       ${kpiCard('PDVs con materiales POP', Math.round(pctPOP), 'de las visitas relevadas', 'fa-tags', '--bl','k-pop')}
@@ -1214,14 +1214,14 @@ function renderPrecios(){
   document.getElementById('content').innerHTML = `
     <div class="grid grid-kpi" style="margin-bottom:18px">
       ${kpiCard('Diferencia de precio', Math.round(diffPrecioProm), 'vs. precio promedio competencia', diffPrecioProm<=0?'fa-arrow-down':'fa-arrow-up', diffPrecioProm<=0?'--ok':'--er','k-diffprecio2')}
-      ${kpiCard('Cumplimiento de precio propio', Math.round(cumplePrecioPct), 'vs. precio público sugerido', 'fa-tag', '--bl','k-cumplprecio2')}
+      ${kpiCard('Cumplimiento de precio Nova Consumo', Math.round(cumplePrecioPct), 'vs. precio público sugerido', 'fa-tag', '--bl','k-cumplprecio2')}
       <div class="kpi"><div class="kpi-lbl">Mínimo — Nova Consumo</div><div class="kpi-val" style="color:var(--ok)">${fmtGs(precioNuestroMin)}</div></div>
       <div class="kpi"><div class="kpi-lbl">Máximo — Nova Consumo</div><div class="kpi-val" style="color:var(--ok)">${fmtGs(precioNuestroMax)}</div></div>
       <div class="kpi"><div class="kpi-lbl">Mínimo — Competencia</div><div class="kpi-val" style="color:var(--tx2)">${fmtGs(precioCompMin)}</div></div>
       <div class="kpi"><div class="kpi-lbl">Máximo — Competencia</div><div class="kpi-val" style="color:var(--tx2)">${fmtGs(precioCompMax)}</div></div>
     </div>
     <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div><div class="card-title">Precio propio vs. competencia</div><div class="card-sub">Promedio por categoría (Gs.) — excluye visitas con quiebre</div></div></div>
+      <div class="card-hdr"><div><div class="card-title">Precio Nova Consumo vs. competencia</div><div class="card-sub">Promedio por categoría (Gs.) — excluye visitas con quiebre</div></div></div>
       <div class="chart-wrap"><canvas id="ch-precios"></canvas></div>
     </div>
     <div class="card">
