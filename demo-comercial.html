@@ -195,7 +195,6 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
     <div class="nav-sect">Análisis</div>
     <nav class="nav" id="nav">
       <div class="ni active" data-p="resumen"><i class="fas fa-chart-pie"></i>Resumen ejecutivo</div>
-      <div class="ni" data-p="impacto"><i class="fas fa-rocket"></i>Impacto comercial</div>
       <div class="ni" data-p="cobertura"><i class="fas fa-store"></i>Cobertura</div>
       <div class="ni" data-p="precios"><i class="fas fa-tags"></i>Precios</div>
       <div class="ni" data-p="auditoria"><i class="fas fa-clipboard-check"></i>Auditoría de PDV</div>
@@ -208,7 +207,6 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
       <div class="ni" data-p="jornada"><i class="fas fa-user-clock"></i>Jornada y Asistencia<span class="ni-badge" id="nb-tardanzas">0</span><span class="ni-badge" id="nb-ausentes">0</span></div>
       <div class="ni" data-p="recorrido"><i class="fas fa-route"></i>Recorrido por persona</div>
       <div class="ni" data-p="comisiones"><i class="fas fa-hand-holding-dollar"></i>Comisiones</div>
-      <div class="ni" data-p="supervisores"><i class="fas fa-user-tie"></i>Supervisores</div>
     </nav>
 
     <div class="sidebar-foot">
@@ -568,16 +566,6 @@ let accionarTab='vencidos';
 let auditoriaPdvFiltro='';
 const charts = {};
 let mapCobertura=null, mapRecorrido=null;
-const ROI = {
-  pdvs: PDVS.length,
-  promotores: PROMOTERS.length,
-  ventaPorPdv: 8000000,
-  tasaVencidos: Math.round(VISITS.filter(v=>v.tieneVencidos||v.tieneAveriados).length/VISITS.length*100),
-  reduccionVencidos: 60,
-  mejoraGondola: 8,
-  elasticidad: 1.2,
-};
-
 function rangoLabel(){
   if(F.fechaDesde && F.fechaHasta) return `${dateDisplay(F.fechaDesde)} → ${dateDisplay(F.fechaHasta)}`;
   if(F.fechaDesde) return `desde ${dateDisplay(F.fechaDesde)}`;
@@ -845,6 +833,10 @@ function renderResumen(){
   const disponibilidad = totalVisitas? (1-rows.filter(r=>r.tieneQuiebre).length/totalVisitas)*100 : 100;
   const periodoLabel = rangoLabel();
 
+  const dominamosPct = totalVisitas? Math.round(100*rows.filter(r=>r.presenciaCompetencia==='Menor').length/totalVisitas) : 0;
+  const empatePct = totalVisitas? Math.round(100*rows.filter(r=>r.presenciaCompetencia==='Igual').length/totalVisitas) : 0;
+  const dominaCompPct = totalVisitas? Math.round(100*rows.filter(r=>r.presenciaCompetencia==='Mayor').length/totalVisitas) : 0;
+
   const ejecucionPct = totalVisitas? Math.round(100*rows.reduce((s,r)=>s+((r.cumpleCriterios?1:0)+(r.espacioGanado?1:0)+(r.tienePOP?1:0)+(r.tienePrecios?1:0)),0)/(totalVisitas*4)) : 0;
   const valorMovilizado = rows.reduce((s,r)=>s+r.unidadesRepuestas*r.precioSugerido,0);
 
@@ -883,7 +875,7 @@ function renderResumen(){
       ${kpiCard('PDVs cubiertos', pdvsUnicos, `de ${PDVS.length} puntos totales`, 'fa-store', '--ok','k-pdvs','cobertura')}
       ${kpiCard('Cumplimiento', Math.round(cumplPct), 'promedio de criterios — ver Cobertura', 'fa-check-circle', '--ok','k-cumpl','cobertura')}
       ${kpiCard('Alertas activas', alertas, 'vencidos, por vencer y averiados', 'fa-exclamation-triangle', '--er','k-alertas','alertas')}
-      ${kpiCard('Promotores activos', promotoresActivos, `de ${PROMOTERS.length} en nómina`, 'fa-users', '--bl','k-promotores','supervisores')}
+      ${kpiCard('Promotores activos', promotoresActivos, `de ${PROMOTERS.length} en nómina — ver Jornada`, 'fa-users', '--bl','k-promotores','jornada')}
       ${kpiCard('Góndola promedio', Math.round(gondolaProm), 'participación de espacio', 'fa-border-all', '--vi','k-gondola','auditoria')}
       ${kpiCard('Cumplimiento de ejecución', ejecucionPct, 'criterios + espacios + POP + precios — detalle en Relevamientos', 'fa-clipboard-check', ejecucionPct>=85?'--ok':ejecucionPct>=60?'--wa':'--er','k-ejecucion','relevamientos')}
       ${kpiCard('Valor de mercado movilizado', 0, `${fmtInt(rows.reduce((s,r)=>s+r.unidadesRepuestas,0))} unidades repuestas — ver Precios`, 'fa-coins', '--brand2','k-valormov','precios')}
@@ -937,8 +929,17 @@ function renderResumen(){
       <div class="chart-wrap" style="height:220px"><canvas id="ch-metas"></canvas></div>
     </div>
     <div class="grid grid-3">
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Distribución por categoría</div><div class="card-sub">${totalVisitas} visitas</div></div></div>
-        <div class="chart-wrap sm"><canvas id="ch-categoria"></canvas></div></div>
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Presencia de competencia en el PDV</div><div class="card-sub">Quién domina el espacio de exhibición</div></div></div>
+        <div style="height:14px;border-radius:7px;overflow:hidden;display:flex;gap:2px;margin:8px 0 12px">
+          ${dominamosPct?`<div style="flex:${dominamosPct};background:var(--ok)"></div>`:''}
+          ${empatePct?`<div style="flex:${empatePct};background:var(--bl)"></div>`:''}
+          ${dominaCompPct?`<div style="flex:${dominaCompPct};background:var(--er)"></div>`:''}
+        </div>
+        <div style="display:flex;gap:10px;font-size:10.5px;flex-wrap:wrap">
+          <span><span class="dot ok"></span> Dominamos (${dominamosPct}%)</span>
+          <span><span class="dot bl"></span> Empate (${empatePct}%)</span>
+          <span><span class="dot er"></span> Competencia (${dominaCompPct}%)</span>
+        </div></div>
       <div class="card"><div class="card-hdr"><div><div class="card-title">% Cumplimiento por cadena</div><div class="card-sub">Criterios de visibilidad y exhibición</div></div></div>
         <div class="chart-wrap sm"><canvas id="ch-cadena"></canvas></div></div>
       <div class="card"><div class="card-hdr"><div><div class="card-title">Alertas recientes</div><div class="card-sub">Últimos vencimientos y averías detectados</div></div></div>
@@ -975,10 +976,6 @@ function renderResumen(){
       plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}},
       scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'},title:{display:true,text:'% Cumplimiento',color:getComputedStyle(document.body).color,font:{size:10.5}}},
         x:{grid:{display:false},title:{display:true,text:'Día del mes',color:getComputedStyle(document.body).color,font:{size:10.5}}}}}});
-
-  const catCounts = CATEGORIES.map(c=>rows.filter(r=>r.categoria===c).length);
-  mkChart('ch-categoria',{type:'doughnut',data:{labels:CATEGORIES,datasets:[{data:catCounts,backgroundColor:['#5b9bd5','#3cb3a8','#9b7fd4','#e8a045'],borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}}}});
 
   const cadenaPct = CHAINS.map(c=>{
     const rs = rows.filter(r=>pdvById(r.pdvId).chain===c);
@@ -1855,46 +1852,6 @@ function renderComisiones(){
 }
 
 // ============================================================
-// PÁGINA: SUPERVISORES
-// ============================================================
-function renderSupervisores(){
-  const rows = filterVisits();
-  const rankProm = PROMOTERS.map(p=>{
-    const rs = rows.filter(r=>r.promotorId===p.id);
-    const cumpl = rs.length? rs.filter(r=>r.cumpleCriterios).length/rs.length*100 : 0;
-    return {p, visitas:rs.length, pdvs:new Set(rs.map(r=>r.pdvId)).size, cumpl:Math.round(cumpl), alertas:rs.filter(r=>r.tieneVencidos).length};
-  }).sort((a,b)=>b.cumpl-a.cumpl);
-
-  const rankSup = SUPERVISORS.map(s=>{
-    const proms = PROMOTERS.filter(p=>p.supervisorId===s.id).map(p=>p.id);
-    const rs = rows.filter(r=>proms.includes(r.promotorId));
-    const cumpl = rs.length? rs.filter(r=>r.cumpleCriterios).length/rs.length*100 : 0;
-    return {s, promotores:proms.length, visitas:rs.length, cumpl:Math.round(cumpl)};
-  }).sort((a,b)=>b.cumpl-a.cumpl);
-
-  const medalColor = i => i===0?'#e8a045':i===1?'#9c9494':i===2?'#c07a3a':'var(--bg4)';
-
-  document.getElementById('content').innerHTML = `
-    <div class="grid grid-2" style="margin-bottom:16px">
-      <div class="card"><div class="card-hdr"><div class="card-title">Ranking de supervisores</div></div>
-        <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Supervisor</th><th>Promotores</th><th>Visitas</th><th>Cumplimiento</th></tr></thead><tbody>
-        ${rankSup.map((r,i)=>`<tr><td><span class="rank-medal" style="background:${medalColor(i)}">${i+1}</span></td><td style="font-weight:700">${r.s.name}</td><td>${r.promotores}</td><td>${r.visitas}</td><td><span class="badge ${r.cumpl>=80?'ok':r.cumpl>=60?'wa':'er'}">${r.cumpl}%</span></td></tr>`).join('')}
-        </tbody></table></div></div>
-      <div class="card"><div class="card-hdr"><div class="card-title">Cumplimiento por promotor</div></div>
-        <div class="chart-wrap"><canvas id="ch-promotores"></canvas></div></div>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">Ranking de promotores</div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Promotor</th><th>Supervisor</th><th>Ciudad</th><th>Visitas</th><th>PDVs</th><th>Cumplimiento</th><th>Alertas</th></tr></thead><tbody>
-      ${rankProm.map((r,i)=>`<tr><td><span class="rank-medal" style="background:${medalColor(i)}">${i+1}</span></td><td style="font-weight:700">${r.p.name}</td><td>${supById(r.p.supervisorId).name}</td><td>${r.p.city}</td><td>${r.visitas}</td><td>${r.pdvs}</td><td><span class="badge ${r.cumpl>=80?'ok':r.cumpl>=60?'wa':'er'}">${r.cumpl}%</span></td><td>${r.alertas?`<span class="badge er">${r.alertas}</span>`:'—'}</td></tr>`).join('')}
-      </tbody></table></div>
-    </div>`;
-
-  mkChart('ch-promotores',{type:'bar',data:{labels:rankProm.map(r=>r.p.name.split(' ')[0]),datasets:[{label:'% Cumplimiento',data:rankProm.map(r=>r.cumpl),backgroundColor:brandColor(),borderRadius:5,maxBarThickness:20}]},
-    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
-}
-
-// ============================================================
 // PÁGINA: RECORRIDO POR PERSONA
 // ============================================================
 function renderRecorrido(){
@@ -1953,87 +1910,10 @@ function drawRecorrido(){
 }
 
 // ============================================================
-// PÁGINA: IMPACTO COMERCIAL (simulador de ROI)
-// ============================================================
-function roiSlider(id, label, hint, value, min, max, step, unit, display){
-  return `<div class="roi-row">
-    <div class="roi-lbl">${label}<small>${hint}</small></div>
-    <div class="roi-slider">
-      <input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${value}">
-      <span class="roi-val" id="${id}-val">${display!==undefined?display:value+unit}</span>
-    </div>
-  </div>`;
-}
-function renderImpacto(){
-  const ventaBaseMensual = ROI.pdvs * ROI.ventaPorPdv;
-  const ahorroMensual = ventaBaseMensual * (ROI.tasaVencidos/100) * (ROI.reduccionVencidos/100);
-  const ventaIncrementalMensual = ventaBaseMensual * (ROI.mejoraGondola * ROI.elasticidad/100);
-  const totalMensual = ahorroMensual + ventaIncrementalMensual;
-  const totalAnual = totalMensual*12;
-  const pctImpacto = ventaBaseMensual? (totalMensual/ventaBaseMensual*100) : 0;
-
-  document.getElementById('content').innerHTML = `
-    <div class="banner"><i class="fas fa-calculator"></i> Simulador comercial — ajustá los supuestos con los controles y el panel recalcula el impacto estimado en tiempo real. Los valores por defecto se basan en los datos de esta demo.</div>
-    <div class="grid grid-kpi" style="margin-bottom:18px">
-      <div class="kpi"><div class="kpi-lbl">Ahorro mensual estimado</div><div class="kpi-val" style="color:var(--ok)" id="k-ahorro">Gs. 0</div><div class="kpi-sub">por menos vencidos / averías</div><i class="fas fa-shield-halved kpi-ico" style="color:var(--ok)"></i></div>
-      <div class="kpi"><div class="kpi-lbl">Venta incremental estimada</div><div class="kpi-val" style="color:var(--brand2)" id="k-incremental">Gs. 0</div><div class="kpi-sub">por mejor participación en góndola</div><i class="fas fa-arrow-trend-up kpi-ico" style="color:var(--brand2)"></i></div>
-      <div class="kpi"><div class="kpi-lbl">Impacto total mensual</div><div class="kpi-val" style="color:var(--vi)" id="k-totalmes">Gs. 0</div><div class="kpi-sub" id="k-pctimpacto">0% sobre la venta actual</div><i class="fas fa-sack-dollar kpi-ico" style="color:var(--vi)"></i></div>
-      <div class="kpi"><div class="kpi-lbl">Impacto anualizado</div><div class="kpi-val" style="color:var(--wa)" id="k-totalanio">Gs. 0</div><div class="kpi-sub">proyectado a 12 meses</div><i class="fas fa-calendar-check kpi-ico" style="color:var(--wa)"></i></div>
-    </div>
-    <div class="grid grid-2" style="margin-bottom:16px">
-      <div class="card">
-        <div class="card-hdr"><div><div class="card-title">Supuestos del cliente</div><div class="card-sub">Ajustá según la realidad del potencial cliente</div></div></div>
-        ${roiSlider('roi-pdvs','Cantidad de PDVs a cubrir','Puntos de venta en el territorio del cliente', ROI.pdvs, 10, 400, 10, '')}
-        ${roiSlider('roi-promotores','Cantidad de promotores','Dotación de campo estimada', ROI.promotores, 1, 80, 1, '')}
-        ${roiSlider('roi-venta','Venta mensual promedio por PDV','Facturación mensual estimada por punto de venta', ROI.ventaPorPdv, 1000000, 30000000, 500000, '', fmtGs(ROI.ventaPorPdv))}
-        ${roiSlider('roi-tasa','Tasa actual de vencidos / averías','% de la mercadería expuesta a pérdida por vencimiento o daño', ROI.tasaVencidos, 0, 40, 1, '%')}
-        ${roiSlider('roi-reduccion','Reducción esperada con +Marka','Caída de la tasa de pérdida al detectar alertas a tiempo', ROI.reduccionVencidos, 0, 90, 5, '%')}
-        ${roiSlider('roi-gondola','Mejora esperada en góndola','Puntos porcentuales adicionales de participación de espacio', ROI.mejoraGondola, 0, 25, 1, ' pts')}
-        ${roiSlider('roi-elasticidad','Elasticidad venta-góndola','% de venta extra por cada punto de góndola ganado', ROI.elasticidad, 0.1, 3, 0.1, '%')}
-      </div>
-      <div class="card">
-        <div class="card-hdr"><div><div class="card-title">Venta actual vs. con +Marka</div><div class="card-sub">Proyección mensual (Gs.)</div></div></div>
-        <div class="chart-wrap"><canvas id="ch-roi"></canvas></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">Cómo se calcula</div></div>
-      <div style="font-size:12.5px;color:var(--tx2);line-height:2">
-        <div><span class="dot ok"></span> Ahorro = PDVs × venta mensual por PDV × tasa de vencidos/averías × % de reducción esperada</div>
-        <div><span class="dot bl"></span> Venta incremental = PDVs × venta mensual por PDV × (mejora de góndola en puntos × elasticidad)</div>
-        <div><span class="dot vi"></span> Impacto total = ahorro + venta incremental — proyectado también a 12 meses</div>
-      </div>
-    </div>`;
-
-  document.getElementById('k-ahorro').textContent = fmtGs(ahorroMensual);
-  document.getElementById('k-incremental').textContent = fmtGs(ventaIncrementalMensual);
-  document.getElementById('k-totalmes').textContent = fmtGs(totalMensual);
-  document.getElementById('k-totalanio').textContent = fmtGs(totalAnual);
-  document.getElementById('k-pctimpacto').textContent = `${pctImpacto.toFixed(1)}% sobre la venta actual`;
-
-  mkChart('ch-roi',{type:'bar',data:{labels:['Venta actual','Venta con +Marka'],datasets:[{label:'Venta mensual',data:[ventaBaseMensual, ventaBaseMensual+totalMensual],backgroundColor:[ '#5a5252', brandColor()],borderRadius:8,maxBarThickness:90}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmtGs(ctx.parsed.y)}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{callback:v=>fmtInt(v)}},x:{grid:{display:false}}}}});
-
-  const unidad = {'roi-pdvs':'', 'roi-promotores':'', 'roi-venta':'', 'roi-tasa':'%', 'roi-reduccion':'%', 'roi-gondola':' pts', 'roi-elasticidad':'%'};
-  const bind = (id, key, isFloat) => {
-    const el = document.getElementById(id);
-    el.addEventListener('input', ()=>{
-      const label = id==='roi-venta' ? fmtGs(+el.value) : el.value+unidad[id];
-      document.getElementById(id+'-val').textContent = label;
-    });
-    el.addEventListener('change', ()=>{ ROI[key] = isFloat? parseFloat(el.value) : +el.value; renderImpacto(); });
-  };
-  bind('roi-pdvs','pdvs'); bind('roi-promotores','promotores'); bind('roi-venta','ventaPorPdv');
-  bind('roi-tasa','tasaVencidos'); bind('roi-reduccion','reduccionVencidos'); bind('roi-gondola','mejoraGondola');
-  bind('roi-elasticidad','elasticidad', true);
-}
-
-// ============================================================
 // NAVEGACIÓN / FILTROS / TEMA
 // ============================================================
 const PAGES = {
   resumen:{title:'Resumen ejecutivo', icon:'fa-chart-pie', render:renderResumen},
-  impacto:{title:'Impacto comercial', icon:'fa-rocket', render:renderImpacto},
   cobertura:{title:'Cobertura', icon:'fa-store', render:renderCobertura},
   precios:{title:'Precios', icon:'fa-tags', render:renderPrecios},
   auditoria:{title:'Auditoría de punto de venta', icon:'fa-clipboard-check', render:renderAuditoria},
@@ -2043,7 +1923,6 @@ const PAGES = {
   jornada:{title:'Jornada y Asistencia', icon:'fa-user-clock', render:renderJornada},
   recorrido:{title:'Recorrido por persona', icon:'fa-route', render:renderRecorrido},
   comisiones:{title:'Comisiones', icon:'fa-hand-holding-dollar', render:renderComisiones},
-  supervisores:{title:'Supervisores', icon:'fa-user-tie', render:renderSupervisores},
 };
 
 function goPage(page){
