@@ -619,6 +619,14 @@ function filterOmitidas(){
   });
 }
 
+// Visitas planificadas (esperadas) vs. realizadas para un conjunto de PDVs, dentro del período ya filtrado.
+// "Esperadas" = realizadas + omitidas, por construcción del dato (cada día hábil el promotor visita o no visita cada PDV de su cartera).
+function coberturaDeVisitas(pdvIds, rows, omitidas){
+  const idSet = new Set(pdvIds);
+  const realizadas = rows.filter(v=>idSet.has(v.pdvId)).length;
+  const esperadas = realizadas + omitidas.filter(o=>idSet.has(o.pdvId)).length;
+  return {realizadas, esperadas, cumpl: esperadas? Math.round(realizadas/esperadas*100):100};
+}
 function mkChart(id, config){
   if(charts[id]) charts[id].destroy();
   const el = document.getElementById(id);
@@ -855,6 +863,10 @@ function renderResumen(){
   const ejecucionPct = totalVisitas? Math.round(100*rows.reduce((s,r)=>s+((r.cumpleCriterios?1:0)+(r.espacioGanado?1:0)+(r.tienePOP?1:0)+(r.tienePrecios?1:0)),0)/(totalVisitas*4)) : 0;
   const valorMovilizado = rows.reduce((s,r)=>s+r.unidadesRepuestas*r.precioSugerido,0);
 
+  const omitidas = filterOmitidas();
+  const pdvsFiltradosIds = PDVS.filter(pdv=>(!F.cadena||pdv.chain===F.cadena)&&(!F.ciudad||pdv.city===F.ciudad)).map(pdv=>pdv.id);
+  const cumplPlanVisitas = coberturaDeVisitas(pdvsFiltradosIds, rows, omitidas).cumpl;
+
   const catRiesgo = {};
   rows.filter(r=>!r.tieneQuiebre).forEach(r=>{ if(!catRiesgo[r.categoria]) catRiesgo[r.categoria]={cumple:0,n:0}; catRiesgo[r.categoria].n++; if(r.cumplePrecioPropio) catRiesgo[r.categoria].cumple++; });
   const categoriasRiesgo = Object.entries(catRiesgo).map(([cat,v])=>({cat,pct:v.n?Math.round(100*v.cumple/v.n):0})).sort((a,b)=>a.pct-b.pct).slice(0,3);
@@ -873,6 +885,7 @@ function renderResumen(){
   const metas = [
     {label:'Cumplimiento de criterios', meta:90, real:Math.round(cumplPct)},
     {label:'Cobertura de PDVs', meta:95, real:Math.round(pdvsUnicos/PDVS.length*100)},
+    {label:'Cumplimiento del plan de visitas', meta:90, real:cumplPlanVisitas},
     {label:'Participación en góndola', meta:35, real:Math.round(gondolaProm)},
     {label:'Disponibilidad de stock', meta:95, real:Math.round(disponibilidad)},
     {label:'Asistencia puntual', meta:95, real:pctPuntual},
@@ -887,7 +900,7 @@ function renderResumen(){
     <div class="banner"><i class="fas fa-info-circle"></i> Panel de demostración — toda la información (visitas, PDVs, alertas) es ficticia y se genera en el navegador para fines comerciales.</div>
     <div class="grid grid-kpi" style="margin-bottom:18px">
       ${kpiCard('Visitas totales', totalVisitas, periodoLabel, 'fa-clipboard-check', '--brand2','k-visitas','cobertura')}
-      ${kpiCard('PDVs cubiertos', pdvsUnicos, `de ${PDVS.length} puntos totales`, 'fa-store', '--ok','k-pdvs','cobertura')}
+      ${kpiCard('PDVs cubiertos', pdvsUnicos, `de ${PDVS.length} puntos totales — al menos 1 visita`, 'fa-store', '--ok','k-pdvs','cobertura')}
       ${kpiCard('Cumplimiento', Math.round(cumplPct), 'promedio de criterios — ver Cobertura', 'fa-check-circle', '--ok','k-cumpl','cobertura')}
       ${kpiCard('Alertas activas', alertas, 'vencidos, por vencer y averiados', 'fa-exclamation-triangle', '--er','k-alertas','alertas')}
       ${kpiCard('Promotores activos', promotoresActivos, `de ${PROMOTERS.length} en nómina — ver Jornada`, 'fa-users', '--bl','k-promotores','jornada')}
@@ -1084,16 +1097,16 @@ function renderCobertura(){
         <div><div class="card-title">Detalle de cobertura</div><div class="card-sub">Visitas esperadas vs. realizadas — ordenado por cadena y local · hacé clic en una cadena para desplegar sus locales</div></div>
       </div>
       <div class="tbl-wrap"><table><thead><tr>
-        <th>Cadena / Local</th><th>Visitas esperadas</th><th>Visitas realizadas</th><th>Cumplimiento</th><th>Motivo si no llegó al 100%</th>
+        <th>Cadena / Local</th><th>Promotor</th><th>Visitas esperadas</th><th>Visitas realizadas</th><th>Cumplimiento</th><th>Motivo si no llegó al 100%</th>
       </tr></thead><tbody>
       ${porCadenaStats.map(ca=>{
         const cadenaAbierta = coberturaCadenasAbiertas.has(ca.nombre);
-        let filaCadena = `<tr class="cob-row-cadena" data-cadena="${ca.nombre}" style="cursor:pointer;font-weight:700"><td><i class="fas fa-chevron-${cadenaAbierta?'down':'right'}" style="font-size:10px;width:16px;color:var(--tx3)"></i>${ca.nombre}</td><td>${ca.esperadas}</td><td>${ca.realizadas}</td><td>${badgeCumplVisita(ca.cumpl)}</td><td></td></tr>`;
+        let filaCadena = `<tr class="cob-row-cadena" data-cadena="${ca.nombre}" style="cursor:pointer;font-weight:700"><td><i class="fas fa-chevron-${cadenaAbierta?'down':'right'}" style="font-size:10px;width:16px;color:var(--tx3)"></i>${ca.nombre}</td><td></td><td>${ca.esperadas}</td><td>${ca.realizadas}</td><td>${badgeCumplVisita(ca.cumpl)}</td><td></td></tr>`;
         if(!cadenaAbierta) return filaCadena;
         const locales = statsPorPdv.filter(s=>s.pdv.chain===ca.nombre).sort((a,b)=>a.pdv.city.localeCompare(b.pdv.city)||a.pdv.name.localeCompare(b.pdv.name));
-        const filasLocal = locales.map(s=>`<tr style="background:var(--bg3)"><td style="padding-left:30px;font-weight:400">${s.pdv.name}</td><td>${s.esperadas}</td><td>${s.realizadas}</td><td>${badgeCumplVisita(s.cumpl)}</td><td style="font-size:11px;color:var(--tx2)">${s.motivo||'—'}</td></tr>`).join('');
+        const filasLocal = locales.map(s=>{ const prom=promotorDePdv(s.pdv.id); return `<tr style="background:var(--bg3)"><td style="padding-left:30px;font-weight:400">${s.pdv.name}</td><td style="font-size:11.5px">${prom?prom.name:'—'}</td><td>${s.esperadas}</td><td>${s.realizadas}</td><td>${badgeCumplVisita(s.cumpl)}</td><td style="font-size:11px;color:var(--tx2)">${s.motivo||'—'}</td></tr>`; }).join('');
         return filaCadena+filasLocal;
-      }).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:20px">Sin datos</td></tr>`}
+      }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px">Sin datos</td></tr>`}
       </tbody></table></div>
     </div>
     <div class="card">
@@ -1839,6 +1852,7 @@ function exportJornadaCSV(jornadas, ausencias){
 function renderComisiones(){
   const rows = filterVisits();
   const jrows = filterJornadas();
+  const omitidas = filterOmitidas();
   const data = PROMOTERS.map(p=>{
     const rs = rows.filter(r=>r.promotorId===p.id);
     const js = jrows.filter(r=>r.promotorId===p.id);
@@ -1846,7 +1860,7 @@ function renderComisiones(){
     const quiebres = rs.filter(r=>r.tieneQuiebre).length;
     const alertas = rs.filter(r=>r.tieneVencidos||r.tieneAveriados).length;
     const unidadesRepuestas = rs.reduce((a,r)=>a+r.unidadesRepuestas,0);
-    const pdvsUnicos = new Set(rs.map(r=>r.pdvId)).size;
+    const cobVisitas = coberturaDeVisitas(p.portfolio, rows, omitidas);
     const tardanzas = js.filter(r=>r.tardanza).length;
 
     const pcts = {
@@ -1854,7 +1868,7 @@ function renderComisiones(){
       rotacion: rs.length? Math.min(100, Math.round(unidadesRepuestas/(rs.length*META_REPOSICION_POR_VISITA)*100)) : null,
       disponibilidad: rs.length? Math.round((1-quiebres/rs.length)*100) : null,
       vencimientos: rs.length? Math.round((1-alertas/rs.length)*100) : null,
-      visitas: p.portfolio.length? Math.min(100, Math.round(pdvsUnicos/p.portfolio.length*100)) : null,
+      visitas: cobVisitas.esperadas? cobVisitas.cumpl : null,
       puntualidad: js.length? Math.round((js.length-tardanzas)/js.length*100) : null,
     };
     let total = 0;
