@@ -1320,6 +1320,7 @@ function renderAuditoria(){
 // PÁGINA: PRECIOS
 // ============================================================
 function renderPrecios(){
+  const preciosSearchTenidoFoco = document.activeElement && document.activeElement.id==='prec-corte-search';
   const all = filterVisits();
   const conStock = all.filter(r=>!r.tieneQuiebre);
   const diffPrecioProm = conStock.length? conStock.reduce((a,r)=>a+((r.precioNuestro-r.precioCompetidor)/r.precioCompetidor*100),0)/conStock.length : 0;
@@ -1380,6 +1381,23 @@ function renderPrecios(){
   }).filter(p=>p.n>0).sort((a,b)=>b.n-a.n);
   const unidadesRepuestasTotal = all.reduce((s,r)=>s+r.unidadesRepuestas,0);
   const valorMovilizado = all.reduce((s,r)=>s+r.unidadesRepuestas*r.precioSugerido,0);
+
+  // Detalle por corte: una fila por producto x marca (propia y las 3 de competencia), con el nombre de producto genérico (sin prefijo de marca)
+  const productoGenerico = prod => prod.replace(/^Nova\s/, '');
+  let detalleCorteRows = TODOS_PRODUCTOS.flatMap(prod=>{
+    const filas = [];
+    const rsNova = conStock.filter(r=>r.producto===prod);
+    if(rsNova.length) filas.push({corte:productoGenerico(prod), marca:'Nova Consumo', tipo:'Propia', min:Math.min(...rsNova.map(r=>r.precioNuestro)), max:Math.max(...rsNova.map(r=>r.precioNuestro))});
+    COMPETIDORES.forEach(nombre=>{
+      const rs = all.filter(r=>r.producto===prod && r.competidorNombre===nombre);
+      if(rs.length) filas.push({corte:productoGenerico(prod), marca:nombre, tipo:'Competencia', min:Math.min(...rs.map(r=>r.precioCompetidor)), max:Math.max(...rs.map(r=>r.precioCompetidor))});
+    });
+    return filas;
+  }).sort((a,b)=>a.corte.localeCompare(b.corte) || (a.tipo==='Propia'?-1:b.tipo==='Propia'?1:0));
+  if(searchTerm){
+    const s = searchTerm.toLowerCase();
+    detalleCorteRows = detalleCorteRows.filter(r=>r.corte.toLowerCase().includes(s) || r.marca.toLowerCase().includes(s));
+  }
 
   // Comparativo por producto: Nova Consumo vs. cada competidor, para el producto elegido en el select
   const VARIANTES_COMPETIDOR = ['amber','blue','violet'];
@@ -1449,6 +1467,13 @@ function renderPrecios(){
           </tbody></table></div>
         </div>
       </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div><div class="card-title">Detalle por corte — mínimo y máximo</div><div class="card-sub">Todos los productos y marcas relevados en el rango elegido</div></div></div>
+      <input type="text" id="prec-corte-search" placeholder="Buscar producto o marca..." style="max-width:320px;margin-bottom:14px" value="${searchTerm}">
+      <div class="tbl-wrap" style="max-height:420px;overflow-y:auto"><table><thead><tr><th>Producto</th><th>Marca</th><th>Tipo</th><th>Mínimo</th><th>Máximo</th></tr></thead><tbody>
+        ${detalleCorteRows.map(r=>`<tr><td style="font-weight:700">${r.corte}</td><td>${r.marca}</td><td><span class="badge ${r.tipo==='Propia'?'ok':'er'}">${r.tipo}</span></td><td class="mono">${fmtGs(r.min)}</td><td class="mono">${fmtGs(r.max)}</td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:20px">Sin resultados</td></tr>`}
+      </tbody></table></div>
     </div>`;
 
   animateNum(document.getElementById('k-diffprecio2'), Math.round(diffPrecioProm), '%');
@@ -1464,6 +1489,10 @@ function renderPrecios(){
   document.querySelectorAll('.pmarca-pill').forEach(el=>{
     el.onclick = ()=>{ preciosDetalleCompetidor=el.dataset.comp; renderPrecios(); };
   });
+
+  const corteSearch = document.getElementById('prec-corte-search');
+  corteSearch.oninput = e=>{ searchTerm=e.target.value; renderPrecios(); };
+  if(preciosSearchTenidoFoco){ corteSearch.focus(); corteSearch.selectionStart = corteSearch.value.length; }
 
   wireKpiX('precio-nova');
   statsPorCompetidor.forEach((c,i)=>wireKpiX('precio-comp'+i));
