@@ -565,7 +565,8 @@ let searchTerm='';
 let recorridoPromotor = PROMOTERS[0].id;
 function fechaEquipoActual(){ return F.fechaHasta || F.fechaDesde || FECHA_MAX; }
 let jornadaFiltroActivo = null;
-let coberturaCiudadSel=null, coberturaCadenaSel=null;
+let coberturaCiudadesAbiertas = new Set();
+let coberturaCadenasAbiertas = new Set();
 let preciosVista='categoria';
 let alertasTab='todos';
 let accionarTab='vencidos';
@@ -1052,19 +1053,8 @@ function renderCobertura(){
   };
 
   const porCiudadStats = agrupar(statsPorPdv, pdv=>pdv.city);
-  if(coberturaCiudadSel && !porCiudadStats.some(c=>c.nombre===coberturaCiudadSel)){ coberturaCiudadSel=null; coberturaCadenaSel=null; }
-  const statsCiudadSel = coberturaCiudadSel? statsPorPdv.filter(s=>s.pdv.city===coberturaCiudadSel) : [];
-  const porCadenaStats = coberturaCiudadSel? agrupar(statsCiudadSel, pdv=>pdv.chain) : [];
-  if(coberturaCadenaSel && !porCadenaStats.some(c=>c.nombre===coberturaCadenaSel)){ coberturaCadenaSel=null; }
-  const localesStats = (coberturaCiudadSel && coberturaCadenaSel)? statsCiudadSel.filter(s=>s.pdv.chain===coberturaCadenaSel).sort((a,b)=>a.pdv.name.localeCompare(b.pdv.name)) : [];
 
-  const nivel = coberturaCiudadSel? (coberturaCadenaSel? 'local':'cadena') : 'ciudad';
-  const breadcrumb = `
-    <span class="fbar-chip" id="cob-crumb-todas" style="${nivel==='ciudad'?'opacity:.55;cursor:default':''}">Todas las ciudades</span>
-    ${coberturaCiudadSel? `<i class="fas fa-chevron-right" style="font-size:9px;color:var(--tx3);align-self:center"></i><span class="fbar-chip" id="cob-crumb-ciudad" style="${nivel==='cadena'?'opacity:.55;cursor:default':''}">${coberturaCiudadSel}</span>`:''}
-    ${coberturaCadenaSel? `<i class="fas fa-chevron-right" style="font-size:9px;color:var(--tx3);align-self:center"></i><span class="fbar-chip" style="opacity:.55;cursor:default">${coberturaCadenaSel}</span>`:''}
-  `;
-
+  const VENTANA_RECIENTE = 15; // días
   const ultimaVisitaPorPdv = {};
   rows.forEach(v=>{
     if(!ultimaVisitaPorPdv[v.pdvId] || v.fecha>ultimaVisitaPorPdv[v.pdvId]) ultimaVisitaPorPdv[v.pdvId]=v.fecha;
@@ -1072,13 +1062,13 @@ function renderCobertura(){
   const fechaReferencia = F.fechaHasta || FECHA_MAX;
   const [refY,refM,refD] = fechaReferencia.split('-').map(Number);
   const fechaRefDate = new Date(refY,refM-1,refD);
+  const diasDesde = fecha => { const [y,m,d]=fecha.split('-').map(Number); return Math.round((fechaRefDate-new Date(y,m-1,d))/86400000); };
   const zonasSinVisita = pdvsFiltrados.map(pdv=>{
     const ultima = ultimaVisitaPorPdv[pdv.id]||null;
-    let dias=null;
-    if(ultima){ const [y,m,d]=ultima.split('-').map(Number); dias=Math.round((fechaRefDate-new Date(y,m-1,d))/86400000); }
-    const ultimaOmitida = omitidas.filter(o=>o.pdvId===pdv.id).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
-    return {pdv, ultima, dias, promotor:promotorDePdv(pdv.id), motivo: ultimaOmitida?ultimaOmitida.motivo:null};
-  }).filter(z=>z.dias==null||z.dias>7).sort((a,b)=>(b.dias??9999)-(a.dias??9999));
+    const dias = ultima? diasDesde(ultima) : null;
+    const fechasNoCubiertas = omitidas.filter(o=>o.pdvId===pdv.id && diasDesde(o.fecha)<=VENTANA_RECIENTE).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+    return {pdv, ultima, dias, promotor:promotorDePdv(pdv.id), fechasNoCubiertas};
+  }).filter(z=>z.dias==null||z.dias>VENTANA_RECIENTE).sort((a,b)=>(b.dias??9999)-(a.dias??9999));
 
   document.getElementById('content').innerHTML = `
     <div class="grid grid-2" style="margin-bottom:16px">
@@ -1091,32 +1081,47 @@ function renderCobertura(){
         <div class="chart-wrap"><canvas id="ch-ciudad"></canvas></div></div>
     </div>
     <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div><div class="card-title">Zonas sin visitas recientes</div><div class="card-sub">${zonasSinVisita.length} de ${pdvsFiltrados.length} PDVs sin relevar hace más de 7 días (dentro del período filtrado)</div></div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>PDV</th><th>Cadena</th><th>Ciudad</th><th>Promotor</th><th>Última visita</th><th>Motivo</th></tr></thead><tbody>
-      ${zonasSinVisita.slice(0,15).map(z=>`<tr><td style="font-weight:700">${z.pdv.name}</td><td>${z.pdv.chain}</td><td>${z.pdv.city}</td><td>${z.promotor?z.promotor.name:'—'}</td><td>${z.dias==null?'<span class="badge er">Sin visitas registradas</span>':`<span class="badge wa">Hace ${z.dias} días</span>`}</td><td style="font-size:11px;color:var(--tx2)">${z.motivo||'—'}</td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px"><i class="fas fa-check-circle" style="color:var(--ok);margin-right:6px"></i>Todos los PDVs con visita en los últimos 7 días</td></tr>`}
+      <div class="card-hdr"><div><div class="card-title">Zonas sin visitas recientes</div><div class="card-sub">${zonasSinVisita.length} de ${pdvsFiltrados.length} PDVs sin relevar hace más de ${VENTANA_RECIENTE} días (dentro del período filtrado)</div></div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>PDV</th><th>Cadena</th><th>Ciudad</th><th>Promotor</th><th>Última visita</th><th>Fechas sin cubrir (últimos ${VENTANA_RECIENTE} días)</th><th>Alerta</th></tr></thead><tbody>
+      ${zonasSinVisita.slice(0,15).map(z=>{
+        const detalleFechas = z.fechasNoCubiertas.slice(0,5).map(f=>`${dateDisplay(f.fecha)} — ${f.motivo}`).join('<br>') || '—';
+        const reincidente = z.fechasNoCubiertas.length>1;
+        return `<tr><td style="font-weight:700">${z.pdv.name}</td><td>${z.pdv.chain}</td><td>${z.pdv.city}</td><td>${z.promotor?z.promotor.name:'—'}</td><td>${z.dias==null?'<span class="badge er">Sin visitas registradas</span>':`<span class="badge wa">Hace ${z.dias} días</span>`}</td><td style="font-size:11px;color:var(--tx2)">${detalleFechas}</td><td>${reincidente?`<span class="badge er"><i class="fas fa-triangle-exclamation"></i> Reincidente (${z.fechasNoCubiertas.length}x)</span>`:'—'}</td></tr>`;
+      }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--tx3);padding:20px"><i class="fas fa-check-circle" style="color:var(--ok);margin-right:6px"></i>Todos los PDVs con visita en los últimos ${VENTANA_RECIENTE} días</td></tr>`}
       </tbody></table></div>
     </div>
     <div class="card">
-      <div class="card-hdr" style="align-items:center;flex-wrap:wrap;gap:8px">
-        <div><div class="card-title">Detalle de cobertura</div><div class="card-sub">Visitas esperadas vs. realizadas — ordenado por ciudad, cadena y local</div></div>
-        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">${breadcrumb}</div>
+      <div class="card-hdr">
+        <div><div class="card-title">Detalle de cobertura</div><div class="card-sub">Visitas esperadas vs. realizadas — ordenado por ciudad, cadena y local · hacé clic en una fila para desplegar el detalle</div></div>
       </div>
       <div class="tbl-wrap"><table><thead><tr>
-        <th>${nivel==='ciudad'?'Ciudad':nivel==='cadena'?'Cadena':'Local'}</th><th>Visitas esperadas</th><th>Visitas realizadas</th><th>Cumplimiento</th>${nivel==='local'?'<th>Motivo si no llegó al 100%</th>':''}
+        <th>Ciudad / Cadena / Local</th><th>Visitas esperadas</th><th>Visitas realizadas</th><th>Cumplimiento</th><th>Motivo si no llegó al 100%</th>
       </tr></thead><tbody>
-      ${nivel==='ciudad' ? porCiudadStats.map((c,i)=>`<tr class="cob-row" data-i="${i}" style="cursor:pointer"><td style="font-weight:700">${c.nombre}</td><td>${c.esperadas}</td><td>${c.realizadas}</td><td>${badgeCumplVisita(c.cumpl)}</td></tr>`).join('')
-       : nivel==='cadena' ? porCadenaStats.map((c,i)=>`<tr class="cob-row" data-i="${i}" style="cursor:pointer"><td style="font-weight:700">${c.nombre}</td><td>${c.esperadas}</td><td>${c.realizadas}</td><td>${badgeCumplVisita(c.cumpl)}</td></tr>`).join('')
-       : localesStats.map(s=>`<tr><td style="font-weight:700">${s.pdv.name}</td><td>${s.esperadas}</td><td>${s.realizadas}</td><td>${badgeCumplVisita(s.cumpl)}</td><td style="font-size:11px;color:var(--tx2)">${s.motivo||'—'}</td></tr>`).join('')
-      || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:20px">Sin datos</td></tr>`}
+      ${porCiudadStats.map(c=>{
+        const ciudadAbierta = coberturaCiudadesAbiertas.has(c.nombre);
+        let filaCiudad = `<tr class="cob-row-ciudad" data-ciudad="${c.nombre}" style="cursor:pointer;font-weight:700"><td><i class="fas fa-chevron-${ciudadAbierta?'down':'right'}" style="font-size:10px;width:16px;color:var(--tx3)"></i>${c.nombre}</td><td>${c.esperadas}</td><td>${c.realizadas}</td><td>${badgeCumplVisita(c.cumpl)}</td><td></td></tr>`;
+        if(!ciudadAbierta) return filaCiudad;
+        const cadenasDeCiudad = agrupar(statsPorPdv.filter(s=>s.pdv.city===c.nombre), pdv=>pdv.chain);
+        const filasCadena = cadenasDeCiudad.map(ca=>{
+          const key = c.nombre+'|'+ca.nombre;
+          const cadenaAbierta = coberturaCadenasAbiertas.has(key);
+          let filaCadena = `<tr class="cob-row-cadena" data-ciudad="${c.nombre}" data-cadena="${ca.nombre}" style="cursor:pointer;background:var(--bg3)"><td style="padding-left:30px"><i class="fas fa-chevron-${cadenaAbierta?'down':'right'}" style="font-size:9px;width:16px;color:var(--tx3)"></i>${ca.nombre}</td><td>${ca.esperadas}</td><td>${ca.realizadas}</td><td>${badgeCumplVisita(ca.cumpl)}</td><td></td></tr>`;
+          if(!cadenaAbierta) return filaCadena;
+          const locales = statsPorPdv.filter(s=>s.pdv.city===c.nombre && s.pdv.chain===ca.nombre).sort((a,b)=>a.pdv.name.localeCompare(b.pdv.name));
+          const filasLocal = locales.map(s=>`<tr style="background:var(--bg3)"><td style="padding-left:54px;font-weight:400">${s.pdv.name}</td><td>${s.esperadas}</td><td>${s.realizadas}</td><td>${badgeCumplVisita(s.cumpl)}</td><td style="font-size:11px;color:var(--tx2)">${s.motivo||'—'}</td></tr>`).join('');
+          return filaCadena+filasLocal;
+        }).join('');
+        return filaCiudad+filasCadena;
+      }).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:20px">Sin datos</td></tr>`}
       </tbody></table></div>
     </div>`;
 
-  const crumbTodas = document.getElementById('cob-crumb-todas');
-  if(crumbTodas) crumbTodas.onclick = ()=>{ coberturaCiudadSel=null; coberturaCadenaSel=null; renderCobertura(); };
-  const crumbCiudad = document.getElementById('cob-crumb-ciudad');
-  if(crumbCiudad) crumbCiudad.onclick = ()=>{ coberturaCadenaSel=null; renderCobertura(); };
-  if(nivel==='ciudad') document.querySelectorAll('.cob-row').forEach(el=>{ el.onclick = ()=>{ coberturaCiudadSel = porCiudadStats[+el.dataset.i].nombre; coberturaCadenaSel=null; renderCobertura(); }; });
-  if(nivel==='cadena') document.querySelectorAll('.cob-row').forEach(el=>{ el.onclick = ()=>{ coberturaCadenaSel = porCadenaStats[+el.dataset.i].nombre; renderCobertura(); }; });
+  document.querySelectorAll('.cob-row-ciudad').forEach(el=>{
+    el.onclick = ()=>{ const c=el.dataset.ciudad; if(coberturaCiudadesAbiertas.has(c)) coberturaCiudadesAbiertas.delete(c); else coberturaCiudadesAbiertas.add(c); renderCobertura(); };
+  });
+  document.querySelectorAll('.cob-row-cadena').forEach(el=>{
+    el.onclick = ()=>{ const key=el.dataset.ciudad+'|'+el.dataset.cadena; if(coberturaCadenasAbiertas.has(key)) coberturaCadenasAbiertas.delete(key); else coberturaCadenasAbiertas.add(key); renderCobertura(); };
+  });
 
   mkChart('ch-ciudad',{type:'bar',data:{labels:visitasPorCiudadChart.map(c=>c.nombre),datasets:[{label:'Visitas',data:visitasPorCiudadChart.map(c=>c.visitas),backgroundColor:brandColor(),borderRadius:6,maxBarThickness:34}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false}}}}});
