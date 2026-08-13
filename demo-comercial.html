@@ -1333,10 +1333,13 @@ function renderPrecios(){
     })).sort((a,b)=>b.unid-a.unid).slice(0,2);
     return {cat, productos};
   });
-  const detalleRotacionHtml = getPrecio => `<div class="tbl-wrap"><table><thead><tr><th>Categoría</th><th>Producto</th><th>Rotación (unid.)</th><th>Precio mín.</th><th>Precio máx.</th></tr></thead><tbody>
+  // Nombre del producto equivalente de un competidor: su propia marca, no la de Nova Consumo
+  const nombreProductoCompetidor = (prod, competidor) => prod.replace(/^Nova\s/, competidor+' ');
+  const detalleRotacionHtml = (getPrecio, getNombre) => `<div class="tbl-wrap"><table><thead><tr><th>Categoría</th><th>Producto</th><th>Rotación (unid.)</th><th>Precio mín.</th><th>Precio máx.</th></tr></thead><tbody>
     ${topRotacionPorCategoria.flatMap(g=>g.productos.map((p,i)=>{
       const precio = getPrecio(p.prod);
-      return `<tr>${i===0?`<td rowspan="${g.productos.length}" style="font-weight:700;vertical-align:top">${g.cat}</td>`:''}<td>${p.prod}</td><td class="mono">${fmtInt(p.unid)}</td><td class="mono">${precio.n?fmtGs(precio.min):'—'}</td><td class="mono">${precio.n?fmtGs(precio.max):'—'}</td></tr>`;
+      const nombre = getNombre ? getNombre(p.prod) : p.prod;
+      return `<tr>${i===0?`<td rowspan="${g.productos.length}" style="font-weight:700;vertical-align:top">${g.cat}</td>`:''}<td>${nombre}</td><td class="mono">${fmtInt(p.unid)}</td><td class="mono">${precio.n?fmtGs(precio.min):'—'}</td><td class="mono">${precio.n?fmtGs(precio.max):'—'}</td></tr>`;
     })).join('')}
   </tbody></table></div>`;
   const detalleNova = detalleRotacionHtml(prod=>{
@@ -1352,7 +1355,7 @@ function renderPrecios(){
       detalle: detalleRotacionHtml(prod=>{
         const rp = all.filter(r=>r.producto===prod && r.competidorNombre===nombre);
         return {min:rp.length?Math.min(...rp.map(r=>r.precioCompetidor)):0, max:rp.length?Math.max(...rp.map(r=>r.precioCompetidor)):0, n:rp.length};
-      }),
+      }, prod=>nombreProductoCompetidor(prod, nombre)),
     };
   });
 
@@ -1420,7 +1423,8 @@ function renderPrecios(){
           ${TODOS_PRODUCTOS.map(p=>`<option value="${p}" ${p===preciosProductoComparado?'selected':''}>${p}</option>`).join('')}
         </select>
       </div>
-      ${preciosProductoComparado ? `<div class="chart-wrap" style="height:220px"><canvas id="ch-compara-producto"></canvas></div>
+      ${preciosProductoComparado ? `<div style="font-size:11px;color:var(--tx3);margin-bottom:10px">Producto equivalente por marca: ${comparativoStats.map(e=>`<b style="color:var(--tx2)">${e.nombre}</b>: ${e.nombre==='Nova Consumo'?preciosProductoComparado:nombreProductoCompetidor(preciosProductoComparado, e.nombre)}`).join(' · ')}</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="ch-compara-producto"></canvas></div>
         ${comparativoStats.some(e=>!e.n)?`<div style="font-size:11px;color:var(--tx3);margin-top:8px">Sin relevamientos de este producto para: ${comparativoStats.filter(e=>!e.n).map(e=>e.nombre).join(', ')}</div>`:''}`
         : `<div style="text-align:center;color:var(--tx3);padding:40px 0"><i class="fas fa-chart-simple" style="font-size:22px;display:block;margin-bottom:8px"></i>Seleccioná un producto de Nova Consumo para comparar su rango de precios contra la competencia</div>`}
     </div>
