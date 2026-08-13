@@ -102,6 +102,31 @@ body.light ::-webkit-scrollbar-thumb{background:rgba(15,20,40,.18)}
 .kpi-sub{font-size:11px;color:var(--tx3);margin-top:4px}
 .kpi-ico{position:absolute;right:14px;top:14px;font-size:22px;opacity:.35}
 
+/* ---------- Tarjeta KPI expandible (kpix) ---------- */
+.kpix{position:relative;border-radius:var(--r);padding:16px 18px 18px;border:1px solid var(--bd);box-shadow:var(--sh);transition:transform var(--tr), box-shadow var(--tr)}
+.kpix:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(0,0,0,.35)}
+.kpix.expandable{cursor:pointer}
+.kpix.expandable.open{cursor:default;grid-column:1/-1}
+.kpix-teal{background:linear-gradient(135deg, var(--ok-d), var(--bg2) 70%);--kpix-c:var(--ok);--kpix-cd:var(--ok-d)}
+.kpix-amber{background:linear-gradient(135deg, var(--wa-d), var(--bg2) 70%);--kpix-c:var(--wa);--kpix-cd:var(--wa-d)}
+.kpix-blue{background:linear-gradient(135deg, var(--bl-d), var(--bg2) 70%);--kpix-c:var(--bl);--kpix-cd:var(--bl-d)}
+.kpix-violet{background:linear-gradient(135deg, var(--vi-d), var(--bg2) 70%);--kpix-c:var(--vi);--kpix-cd:var(--vi-d)}
+.kpix-accent{background:linear-gradient(135deg, var(--brand-d), var(--bg2) 70%);--kpix-c:var(--brand2);--kpix-cd:var(--brand-d)}
+.kpix-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.kpix-lbl{font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--tx2)}
+.kpix-ico-chip{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;color:var(--kpix-c);background:var(--kpix-cd)}
+.kpix-val{font-size:21px;font-weight:900;margin-top:10px;color:var(--kpix-c);letter-spacing:-.3px}
+.kpix-foot{font-size:11px;color:var(--tx3);margin-top:4px}
+.kpix-hint{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--kpix-c);margin-top:12px}
+.kpix-hint i{font-size:9px;transition:transform var(--tr)}
+.kpix.open .kpix-hint i{transform:rotate(180deg)}
+.kpix-panel{max-height:0;overflow:hidden;transition:max-height .28s ease}
+.kpix.open .kpix-panel{max-height:900px}
+.kpix-panel-inner{margin-top:14px;padding-top:14px;border-top:1px solid var(--bd)}
+.kpix-info{position:absolute;bottom:10px;right:10px;width:17px;height:17px;border-radius:50%;background:var(--bg4);color:var(--tx3);font-size:9.5px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:help;font-style:italic;font-family:Georgia,serif}
+.kpix-tooltip{position:absolute;bottom:24px;right:0;background:#161414;color:#fff;font-size:11px;font-weight:500;padding:8px 10px;border-radius:8px;width:190px;line-height:1.4;box-shadow:0 8px 20px rgba(0,0,0,.4);opacity:0;visibility:hidden;transform:translateY(4px);transition:var(--tr);z-index:20;pointer-events:none}
+.kpix-info:hover .kpix-tooltip{opacity:1;visibility:visible;transform:translateY(0)}
+
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 th{text-align:left;color:var(--tx3);font-weight:700;text-transform:uppercase;font-size:10.5px;letter-spacing:.3px;padding:9px 10px;border-bottom:1px solid var(--bd);white-space:nowrap}
 td{padding:10px;border-bottom:1px solid var(--bd);white-space:nowrap}
@@ -567,6 +592,7 @@ function fechaEquipoActual(){ return F.fechaHasta || F.fechaDesde || FECHA_MAX; 
 let jornadaFiltroActivo = null;
 let coberturaCadenasAbiertas = new Set();
 let preciosVista='categoria';
+let preciosProductoComparado='';
 let alertasTab='todos';
 let accionarTab='vencidos';
 let auditoriaPdvFiltro='';
@@ -664,6 +690,36 @@ function kpiCard(label, value, sub, icon, colorVar, id, target){
     <div class="kpi-sub">${sub}</div>
     <i class="fas ${icon} kpi-ico" style="color:var(${colorVar})"></i>
   </div>`;
+}
+
+// ---- Tarjeta KPI expandible (kpix): variante simple o expandible con panel de detalle ----
+// El estado de qué tarjetas están abiertas se guarda acá para sobrevivir a los re-renders de la página.
+let kpixAbiertas = new Set();
+function kpiX(opts){
+  const { id, variant, icon, label, value, foot, tooltip, expandable, hint, detail } = opts;
+  const abierta = expandable && kpixAbiertas.has(id);
+  const cls = `kpix kpix-${variant}${expandable?' expandable':''}${abierta?' open':''}`;
+  return `<div class="${cls}" id="kpix-${id}" ${expandable?`data-kpix-id="${id}"`:''}>
+    <div class="kpix-top">
+      <div class="kpix-lbl">${label}</div>
+      <div class="kpix-ico-chip"><i class="fas ${icon}"></i></div>
+    </div>
+    <div class="kpix-val">${value}</div>
+    ${foot?`<div class="kpix-foot">${foot}</div>`:''}
+    ${expandable?`<div class="kpix-hint"><span>${hint||'Ver detalle'}</span><i class="fas fa-chevron-down"></i></div>
+    <div class="kpix-panel"><div class="kpix-panel-inner">${detail||''}</div></div>`:''}
+    ${tooltip?`<div class="kpix-info" onclick="event.stopPropagation()">i<div class="kpix-tooltip">${tooltip}</div></div>`:''}
+  </div>`;
+}
+function wireKpiX(id){
+  const el = document.getElementById('kpix-'+id);
+  if(!el || el.dataset.wired) return;
+  el.dataset.wired = '1';
+  el.addEventListener('click', e=>{
+    if(e.target.closest('.kpix-info') || e.target.closest('a')) return;
+    const abierta = el.classList.toggle('open');
+    if(abierta) kpixAbiertas.add(id); else kpixAbiertas.delete(id);
+  });
 }
 function badgeVenc(estado){
   if(estado==='vencido') return `<span class="badge er"><i class="fas fa-times-circle"></i> Vencido</span>`;
@@ -1269,6 +1325,37 @@ function renderPrecios(){
   const precioNuestroMax = conStock.length? Math.max(...conStock.map(r=>r.precioNuestro)) : 0;
   const precioCompMin = all.length? Math.min(...all.map(r=>r.precioCompetidor)) : 0;
   const precioCompMax = all.length? Math.max(...all.map(r=>r.precioCompetidor)) : 0;
+
+  // Top 2 productos por rotación (unidades repuestas) en cada categoría — mismo ranking para las 4 tarjetas superiores
+  const topRotacionPorCategoria = CATEGORIES.map(cat=>{
+    const productos = (PRODUCTS[cat]||[]).map(prod=>({
+      prod, unid: all.filter(r=>r.producto===prod).reduce((s,r)=>s+r.unidadesRepuestas,0),
+    })).sort((a,b)=>b.unid-a.unid).slice(0,2);
+    return {cat, productos};
+  });
+  const detalleRotacionHtml = getPrecio => `<div class="tbl-wrap"><table><thead><tr><th>Categoría</th><th>Producto</th><th>Rotación (unid.)</th><th>Precio mín.</th><th>Precio máx.</th></tr></thead><tbody>
+    ${topRotacionPorCategoria.flatMap(g=>g.productos.map((p,i)=>{
+      const precio = getPrecio(p.prod);
+      return `<tr>${i===0?`<td rowspan="${g.productos.length}" style="font-weight:700;vertical-align:top">${g.cat}</td>`:''}<td>${p.prod}</td><td class="mono">${fmtInt(p.unid)}</td><td class="mono">${precio.n?fmtGs(precio.min):'—'}</td><td class="mono">${precio.n?fmtGs(precio.max):'—'}</td></tr>`;
+    })).join('')}
+  </tbody></table></div>`;
+  const detalleNova = detalleRotacionHtml(prod=>{
+    const rs = conStock.filter(r=>r.producto===prod);
+    return {min:rs.length?Math.min(...rs.map(r=>r.precioNuestro)):0, max:rs.length?Math.max(...rs.map(r=>r.precioNuestro)):0, n:rs.length};
+  });
+  const statsPorCompetidor = COMPETIDORES.map(nombre=>{
+    const rs = all.filter(r=>r.competidorNombre===nombre);
+    return {
+      nombre, n:rs.length,
+      min: rs.length?Math.min(...rs.map(r=>r.precioCompetidor)):0,
+      max: rs.length?Math.max(...rs.map(r=>r.precioCompetidor)):0,
+      detalle: detalleRotacionHtml(prod=>{
+        const rp = all.filter(r=>r.producto===prod && r.competidorNombre===nombre);
+        return {min:rp.length?Math.min(...rp.map(r=>r.precioCompetidor)):0, max:rp.length?Math.max(...rp.map(r=>r.precioCompetidor)):0, n:rp.length};
+      }),
+    };
+  });
+
   const rangoDe = (filtroFn) => {
     const rs = all.filter(filtroFn);
     const rsConStock = rs.filter(r=>!r.tieneQuiebre);
@@ -1289,20 +1376,53 @@ function renderPrecios(){
   const unidadesRepuestasTotal = all.reduce((s,r)=>s+r.unidadesRepuestas,0);
   const valorMovilizado = all.reduce((s,r)=>s+r.unidadesRepuestas*r.precioSugerido,0);
 
+  // Comparativo por producto: Nova Consumo vs. cada competidor, para el producto elegido en el select
+  const VARIANTES_COMPETIDOR = ['amber','blue','violet'];
+  const COLORES_COMPETIDOR = ['#e8a045','#5b9bd5','#9b7fd4'];
+  const comparativoStats = preciosProductoComparado ? (() => {
+    const entidades = [{nombre:'Nova Consumo', color:brandColor()}, ...COMPETIDORES.map((n,i)=>({nombre:n, color:COLORES_COMPETIDOR[i]}))];
+    return entidades.map((e,i)=>{
+      const rs = i===0
+        ? conStock.filter(r=>r.producto===preciosProductoComparado)
+        : all.filter(r=>r.producto===preciosProductoComparado && r.competidorNombre===e.nombre);
+      const key = i===0 ? 'precioNuestro' : 'precioCompetidor';
+      return {...e, n:rs.length, min: rs.length?Math.min(...rs.map(r=>r[key])):null, max: rs.length?Math.max(...rs.map(r=>r[key])):null};
+    });
+  })() : [];
+
   document.getElementById('content').innerHTML = `
+    <div class="grid grid-kpi" style="margin-bottom:18px">
+      ${kpiX({id:'precio-nova', variant:'teal', icon:'fa-tags', label:'Precio Nova Consumo',
+        value:`${fmtGs(precioNuestroMin)} – ${fmtGs(precioNuestroMax)}`, foot:'Rango mín-máx observado en el período',
+        tooltip:'Precio mínimo y máximo de Nova Consumo relevado en todas las visitas del período filtrado.',
+        expandable:true, hint:'Ver top productos por rotación', detail:detalleNova})}
+      ${statsPorCompetidor.map((c,i)=>kpiX({id:'precio-comp'+i, variant:VARIANTES_COMPETIDOR[i], icon:'fa-tag', label:c.nombre,
+        value: c.n? `${fmtGs(c.min)} – ${fmtGs(c.max)}` : 'Sin datos',
+        foot: c.n? `${c.n} relevamientos en el período` : 'Sin relevamientos en el período',
+        tooltip:`Precio mínimo y máximo de ${c.nombre} (competidor) relevado en el período filtrado.`,
+        expandable:true, hint:'Ver top productos por rotación', detail:c.detalle})).join('')}
+    </div>
     <div class="grid grid-kpi" style="margin-bottom:18px">
       ${kpiCard('Diferencia de precio', Math.round(diffPrecioProm), 'vs. precio promedio competencia', diffPrecioProm<=0?'fa-arrow-down':'fa-arrow-up', diffPrecioProm<=0?'--ok':'--er','k-diffprecio2')}
       ${kpiCard('Cumplimiento de precio Nova Consumo', Math.round(cumplePrecioPct), 'vs. precio público sugerido', 'fa-tag', '--bl','k-cumplprecio2')}
       ${kpiCard('Unidades repuestas', unidadesRepuestasTotal, 'repuestas de depósito a góndola', 'fa-arrows-rotate', '--vi','k-unidrepuestas')}
       ${kpiCard('Valor de mercado movilizado', 0, `${fmtInt(unidadesRepuestasTotal)} unidades × precio sugerido`, 'fa-coins', '--brand2','k-valormov2')}
-      <div class="kpi"><div class="kpi-lbl">Mínimo — Nova Consumo</div><div class="kpi-val" style="color:var(--ok)">${fmtGs(precioNuestroMin)}</div></div>
-      <div class="kpi"><div class="kpi-lbl">Máximo — Nova Consumo</div><div class="kpi-val" style="color:var(--ok)">${fmtGs(precioNuestroMax)}</div></div>
-      <div class="kpi"><div class="kpi-lbl">Mínimo — Competencia</div><div class="kpi-val" style="color:var(--tx2)">${fmtGs(precioCompMin)}</div></div>
-      <div class="kpi"><div class="kpi-lbl">Máximo — Competencia</div><div class="kpi-val" style="color:var(--tx2)">${fmtGs(precioCompMax)}</div></div>
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">Precio Nova Consumo vs. competencia</div><div class="card-sub">Promedio por categoría (Gs.) — excluye visitas con quiebre</div></div></div>
       <div class="chart-wrap"><canvas id="ch-precios"></canvas></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr" style="align-items:center">
+        <div><div class="card-title">Comparativo por producto</div><div class="card-sub">Rango de precios de Nova Consumo vs. cada competidor, para el producto elegido</div></div>
+        <select class="select-inline" id="prec-compara-producto">
+          <option value="">Elegí un producto...</option>
+          ${TODOS_PRODUCTOS.map(p=>`<option value="${p}" ${p===preciosProductoComparado?'selected':''}>${p}</option>`).join('')}
+        </select>
+      </div>
+      ${preciosProductoComparado ? `<div class="chart-wrap" style="height:220px"><canvas id="ch-compara-producto"></canvas></div>
+        ${comparativoStats.some(e=>!e.n)?`<div style="font-size:11px;color:var(--tx3);margin-top:8px">Sin relevamientos de este producto para: ${comparativoStats.filter(e=>!e.n).map(e=>e.nombre).join(', ')}</div>`:''}`
+        : `<div style="text-align:center;color:var(--tx3);padding:40px 0"><i class="fas fa-chart-simple" style="font-size:22px;display:block;margin-bottom:8px"></i>Seleccioná un producto de Nova Consumo para comparar su rango de precios contra la competencia</div>`}
     </div>
     <div class="card">
       <div class="card-hdr" style="align-items:center">
@@ -1346,6 +1466,16 @@ function renderPrecios(){
     marcarActivoPrecio(btn, preciosVista===v);
     btn.onclick = ()=>{ preciosVista=v; renderPrecios(); };
   });
+
+  wireKpiX('precio-nova');
+  statsPorCompetidor.forEach((c,i)=>wireKpiX('precio-comp'+i));
+
+  document.getElementById('prec-compara-producto').onchange = e=>{ preciosProductoComparado=e.target.value; renderPrecios(); };
+  if(preciosProductoComparado){
+    const conDatos = comparativoStats.filter(e=>e.n);
+    mkChart('ch-compara-producto',{type:'bar',data:{labels:conDatos.map(e=>e.nombre),datasets:[{data:conDatos.map(e=>[e.min,e.max]),backgroundColor:conDatos.map(e=>e.color),borderRadius:6,maxBarThickness:38}]},
+      options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${fmtGs(ctx.raw[0])} – ${fmtGs(ctx.raw[1])}`}}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{callback:v=>fmtInt(v)}},y:{grid:{display:false}}}}});
+  }
 }
 
 // ============================================================
