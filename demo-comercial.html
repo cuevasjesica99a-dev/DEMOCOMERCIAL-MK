@@ -375,6 +375,7 @@ CITY_CONFIG.forEach(city=>{
 });
 const pdvById = id => PDVS.find(p=>p.id===id);
 const promoterById = id => PROMOTERS.find(p=>p.id===id);
+const promotorDePdv = pdvId => PROMOTERS.find(p=>p.portfolio.includes(pdvId));
 
 // ---- Banco de fotos curadas (Unsplash) — estanterías, precios y productos reales ----
 const FOTOS_STOCK = {
@@ -414,6 +415,8 @@ let visitSeq = 0;
 const TODAY = new Date();
 const DIAS_HISTORIAL = 90;
 const MOTIVOS_AVERIA = ['Envase dañado','Producto golpeado','Humedad / deterioro','Etiqueta ilegible'];
+const MOTIVOS_NO_VISITA = ['Visita fuera de ruta','Cubrió otro PDV por orden del supervisor','Control de inventario en depósito','Local cerrado','Capacitación / reunión de equipo','Emergencia en otro punto de venta','Reprogramada para el día siguiente'];
+const VISITAS_OMITIDAS = []; // PDVs del portfolio de un promotor que ese día no llegaron a visitarse
 function pickAccionCompetencia(boost){
   if(chance(0.5+boost*0.1)) return 'Sin acciones';
   return pick(ACCIONES_COMP);
@@ -427,6 +430,9 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
   PROMOTERS.forEach(prom=>{
     const n = Math.min(prom.portfolio.length, 3 + Math.floor(rnd()*3)); // 3-5 visitas/día
     const shuffled = [...prom.portfolio].sort(()=>rnd()-0.5).slice(0,n);
+    prom.portfolio.filter(pdvId=>!shuffled.includes(pdvId)).forEach(pdvId=>{
+      VISITAS_OMITIDAS.push({pdvId, promotorId:prom.id, fecha:isoDate(day), motivo:pick(MOTIVOS_NO_VISITA)});
+    });
     let hour = 9, min = 0;
     shuffled.forEach(pdvId=>{
       visitSeq++;
@@ -559,7 +565,7 @@ let searchTerm='';
 let recorridoPromotor = PROMOTERS[0].id;
 function fechaEquipoActual(){ return F.fechaHasta || F.fechaDesde || FECHA_MAX; }
 let jornadaFiltroActivo = null;
-let coberturaVista='cadena';
+let coberturaCiudadSel=null, coberturaCadenaSel=null;
 let preciosVista='categoria';
 let alertasTab='todos';
 let accionarTab='vencidos';
@@ -600,6 +606,15 @@ function filterAusencias(){
     if(!fechaEnRango(a.fecha)) return false;
     const prom = promoterById(a.promotorId);
     if(F.ciudad && prom.city!==F.ciudad) return false;
+    return true;
+  });
+}
+function filterOmitidas(){
+  return VISITAS_OMITIDAS.filter(o=>{
+    if(!fechaEnRango(o.fecha)) return false;
+    const pdv = pdvById(o.pdvId);
+    if(F.cadena && pdv.chain!==F.cadena) return false;
+    if(F.ciudad && pdv.city!==F.ciudad) return false;
     return true;
   });
 }
@@ -999,16 +1014,57 @@ function renderResumen(){
 // ============================================================
 function renderCobertura(){
   const rows = filterVisits();
-  const porCadena = CHAINS.map(c=>{
-    const rs = rows.filter(r=>pdvById(r.pdvId).chain===c);
-    return {nombre:c, visitas:rs.length, pdvs:new Set(rs.map(r=>r.pdvId)).size, cumpl: rs.length? Math.round(rs.filter(r=>r.cumpleCriterios).length/rs.length*100):0};
-  });
-  const porCiudad = CITIES.map(c=>{
-    const rs = rows.filter(r=>pdvById(r.pdvId).city===c);
-    return {nombre:c, visitas:rs.length, pdvs:new Set(rs.map(r=>r.pdvId)).size, cumpl: rs.length? Math.round(rs.filter(r=>r.cumpleCriterios).length/rs.length*100):0};
-  });
+  const omitidas = filterOmitidas();
+  const visitasPorCiudadChart = CITIES.map(c=>({nombre:c, visitas: rows.filter(r=>pdvById(r.pdvId).city===c).length}));
 
   const pdvsFiltrados = PDVS.filter(pdv => (!F.cadena||pdv.chain===F.cadena) && (!F.ciudad||pdv.city===F.ciudad));
+
+  // Visitas esperadas = realizadas + omitidas (portfolio del promotor, día a día, dentro del período filtrado)
+  const realizadasPorPdv = {}, omitidasPorPdv = {}, motivosPorPdv = {};
+  rows.forEach(v=>{ realizadasPorPdv[v.pdvId]=(realizadasPorPdv[v.pdvId]||0)+1; });
+  omitidas.forEach(o=>{
+    omitidasPorPdv[o.pdvId]=(omitidasPorPdv[o.pdvId]||0)+1;
+    if(!motivosPorPdv[o.pdvId]) motivosPorPdv[o.pdvId]={};
+    motivosPorPdv[o.pdvId][o.motivo]=(motivosPorPdv[o.pdvId][o.motivo]||0)+1;
+  });
+  const motivoPrincipal = pdvId => {
+    const m = motivosPorPdv[pdvId];
+    if(!m) return null;
+    const [motivo,n] = Object.entries(m).sort((a,b)=>b[1]-a[1])[0];
+    return `${motivo} (${n})`;
+  };
+  const statsPorPdv = pdvsFiltrados.map(pdv=>{
+    const realizadas = realizadasPorPdv[pdv.id]||0;
+    const omit = omitidasPorPdv[pdv.id]||0;
+    const esperadas = realizadas+omit;
+    const cumpl = esperadas? Math.round(realizadas/esperadas*100):100;
+    return {pdv, realizadas, esperadas, cumpl, motivo: cumpl<100? motivoPrincipal(pdv.id):null};
+  });
+  const badgeCumplVisita = pct => `<span class="badge ${pct>=95?'ok':pct>=80?'wa':'er'}">${pct}%</span>`;
+  const agrupar = (statsArr, keyFn) => {
+    const map = {};
+    statsArr.forEach(s=>{
+      const k = keyFn(s.pdv);
+      if(!map[k]) map[k]={nombre:k, realizadas:0, esperadas:0, pdvs:0};
+      map[k].realizadas += s.realizadas; map[k].esperadas += s.esperadas; map[k].pdvs++;
+    });
+    return Object.values(map).map(g=>({...g, cumpl: g.esperadas? Math.round(g.realizadas/g.esperadas*100):100})).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  };
+
+  const porCiudadStats = agrupar(statsPorPdv, pdv=>pdv.city);
+  if(coberturaCiudadSel && !porCiudadStats.some(c=>c.nombre===coberturaCiudadSel)){ coberturaCiudadSel=null; coberturaCadenaSel=null; }
+  const statsCiudadSel = coberturaCiudadSel? statsPorPdv.filter(s=>s.pdv.city===coberturaCiudadSel) : [];
+  const porCadenaStats = coberturaCiudadSel? agrupar(statsCiudadSel, pdv=>pdv.chain) : [];
+  if(coberturaCadenaSel && !porCadenaStats.some(c=>c.nombre===coberturaCadenaSel)){ coberturaCadenaSel=null; }
+  const localesStats = (coberturaCiudadSel && coberturaCadenaSel)? statsCiudadSel.filter(s=>s.pdv.chain===coberturaCadenaSel).sort((a,b)=>a.pdv.name.localeCompare(b.pdv.name)) : [];
+
+  const nivel = coberturaCiudadSel? (coberturaCadenaSel? 'local':'cadena') : 'ciudad';
+  const breadcrumb = `
+    <span class="fbar-chip" id="cob-crumb-todas" style="${nivel==='ciudad'?'opacity:.55;cursor:default':''}">Todas las ciudades</span>
+    ${coberturaCiudadSel? `<i class="fas fa-chevron-right" style="font-size:9px;color:var(--tx3);align-self:center"></i><span class="fbar-chip" id="cob-crumb-ciudad" style="${nivel==='cadena'?'opacity:.55;cursor:default':''}">${coberturaCiudadSel}</span>`:''}
+    ${coberturaCadenaSel? `<i class="fas fa-chevron-right" style="font-size:9px;color:var(--tx3);align-self:center"></i><span class="fbar-chip" style="opacity:.55;cursor:default">${coberturaCadenaSel}</span>`:''}
+  `;
+
   const ultimaVisitaPorPdv = {};
   rows.forEach(v=>{
     if(!ultimaVisitaPorPdv[v.pdvId] || v.fecha>ultimaVisitaPorPdv[v.pdvId]) ultimaVisitaPorPdv[v.pdvId]=v.fecha;
@@ -1020,7 +1076,8 @@ function renderCobertura(){
     const ultima = ultimaVisitaPorPdv[pdv.id]||null;
     let dias=null;
     if(ultima){ const [y,m,d]=ultima.split('-').map(Number); dias=Math.round((fechaRefDate-new Date(y,m-1,d))/86400000); }
-    return {pdv, ultima, dias};
+    const ultimaOmitida = omitidas.filter(o=>o.pdvId===pdv.id).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
+    return {pdv, ultima, dias, promotor:promotorDePdv(pdv.id), motivo: ultimaOmitida?ultimaOmitida.motivo:null};
   }).filter(z=>z.dias==null||z.dias>7).sort((a,b)=>(b.dias??9999)-(a.dias??9999));
 
   document.getElementById('content').innerHTML = `
@@ -1035,30 +1092,33 @@ function renderCobertura(){
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">Zonas sin visitas recientes</div><div class="card-sub">${zonasSinVisita.length} de ${pdvsFiltrados.length} PDVs sin relevar hace más de 7 días (dentro del período filtrado)</div></div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>PDV</th><th>Cadena</th><th>Ciudad</th><th>Última visita</th></tr></thead><tbody>
-      ${zonasSinVisita.slice(0,15).map(z=>`<tr><td style="font-weight:700">${z.pdv.name}</td><td>${z.pdv.chain}</td><td>${z.pdv.city}</td><td>${z.dias==null?'<span class="badge er">Sin visitas registradas</span>':`<span class="badge wa">Hace ${z.dias} días</span>`}</td></tr>`).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--tx3);padding:20px"><i class="fas fa-check-circle" style="color:var(--ok);margin-right:6px"></i>Todos los PDVs con visita en los últimos 7 días</td></tr>`}
+      <div class="tbl-wrap"><table><thead><tr><th>PDV</th><th>Cadena</th><th>Ciudad</th><th>Promotor</th><th>Última visita</th><th>Motivo</th></tr></thead><tbody>
+      ${zonasSinVisita.slice(0,15).map(z=>`<tr><td style="font-weight:700">${z.pdv.name}</td><td>${z.pdv.chain}</td><td>${z.pdv.city}</td><td>${z.promotor?z.promotor.name:'—'}</td><td>${z.dias==null?'<span class="badge er">Sin visitas registradas</span>':`<span class="badge wa">Hace ${z.dias} días</span>`}</td><td style="font-size:11px;color:var(--tx2)">${z.motivo||'—'}</td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px"><i class="fas fa-check-circle" style="color:var(--ok);margin-right:6px"></i>Todos los PDVs con visita en los últimos 7 días</td></tr>`}
       </tbody></table></div>
     </div>
     <div class="card">
-      <div class="card-hdr" style="align-items:center">
-        <div class="card-title">Detalle de cobertura</div>
-        <div style="display:flex;gap:6px">
-          <button class="tb-btn" id="cob-tab-cadena" style="padding:6px 12px">Por cadena</button>
-          <button class="tb-btn" id="cob-tab-ciudad" style="padding:6px 12px">Por ciudad</button>
-        </div>
+      <div class="card-hdr" style="align-items:center;flex-wrap:wrap;gap:8px">
+        <div><div class="card-title">Detalle de cobertura</div><div class="card-sub">Visitas esperadas vs. realizadas — ordenado por ciudad, cadena y local</div></div>
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">${breadcrumb}</div>
       </div>
-      <div class="tbl-wrap"><table><thead><tr><th>${coberturaVista==='cadena'?'Cadena':'Ciudad'}</th><th>Visitas</th><th>PDVs</th><th>Cumplimiento</th></tr></thead><tbody>
-      ${(coberturaVista==='cadena'?porCadena:porCiudad).map(c=>`<tr><td style="font-weight:700">${c.nombre}</td><td>${c.visitas}</td><td>${c.pdvs}</td><td><span class="badge ${c.cumpl>=80?'ok':c.cumpl>=60?'wa':'er'}">${c.cumpl}%</span></td></tr>`).join('')}
+      <div class="tbl-wrap"><table><thead><tr>
+        <th>${nivel==='ciudad'?'Ciudad':nivel==='cadena'?'Cadena':'Local'}</th><th>Visitas esperadas</th><th>Visitas realizadas</th><th>Cumplimiento</th>${nivel==='local'?'<th>Motivo si no llegó al 100%</th>':''}
+      </tr></thead><tbody>
+      ${nivel==='ciudad' ? porCiudadStats.map((c,i)=>`<tr class="cob-row" data-i="${i}" style="cursor:pointer"><td style="font-weight:700">${c.nombre}</td><td>${c.esperadas}</td><td>${c.realizadas}</td><td>${badgeCumplVisita(c.cumpl)}</td></tr>`).join('')
+       : nivel==='cadena' ? porCadenaStats.map((c,i)=>`<tr class="cob-row" data-i="${i}" style="cursor:pointer"><td style="font-weight:700">${c.nombre}</td><td>${c.esperadas}</td><td>${c.realizadas}</td><td>${badgeCumplVisita(c.cumpl)}</td></tr>`).join('')
+       : localesStats.map(s=>`<tr><td style="font-weight:700">${s.pdv.name}</td><td>${s.esperadas}</td><td>${s.realizadas}</td><td>${badgeCumplVisita(s.cumpl)}</td><td style="font-size:11px;color:var(--tx2)">${s.motivo||'—'}</td></tr>`).join('')
+      || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:20px">Sin datos</td></tr>`}
       </tbody></table></div>
     </div>`;
 
-  const tabCadena = document.getElementById('cob-tab-cadena'), tabCiudad = document.getElementById('cob-tab-ciudad');
-  const marcarActivo = (btn, activo) => { if(activo){ btn.style.background='var(--brand)'; btn.style.borderColor='var(--brand)'; btn.style.color='#fff'; } else { btn.style.background=''; btn.style.borderColor=''; btn.style.color=''; } };
-  marcarActivo(tabCadena, coberturaVista==='cadena'); marcarActivo(tabCiudad, coberturaVista==='ciudad');
-  tabCadena.onclick = ()=>{ coberturaVista='cadena'; renderCobertura(); };
-  tabCiudad.onclick = ()=>{ coberturaVista='ciudad'; renderCobertura(); };
+  const crumbTodas = document.getElementById('cob-crumb-todas');
+  if(crumbTodas) crumbTodas.onclick = ()=>{ coberturaCiudadSel=null; coberturaCadenaSel=null; renderCobertura(); };
+  const crumbCiudad = document.getElementById('cob-crumb-ciudad');
+  if(crumbCiudad) crumbCiudad.onclick = ()=>{ coberturaCadenaSel=null; renderCobertura(); };
+  if(nivel==='ciudad') document.querySelectorAll('.cob-row').forEach(el=>{ el.onclick = ()=>{ coberturaCiudadSel = porCiudadStats[+el.dataset.i].nombre; coberturaCadenaSel=null; renderCobertura(); }; });
+  if(nivel==='cadena') document.querySelectorAll('.cob-row').forEach(el=>{ el.onclick = ()=>{ coberturaCadenaSel = porCadenaStats[+el.dataset.i].nombre; renderCobertura(); }; });
 
-  mkChart('ch-ciudad',{type:'bar',data:{labels:porCiudad.map(c=>c.nombre),datasets:[{label:'Visitas',data:porCiudad.map(c=>c.visitas),backgroundColor:brandColor(),borderRadius:6,maxBarThickness:34}]},
+  mkChart('ch-ciudad',{type:'bar',data:{labels:visitasPorCiudadChart.map(c=>c.nombre),datasets:[{label:'Visitas',data:visitasPorCiudadChart.map(c=>c.visitas),backgroundColor:brandColor(),borderRadius:6,maxBarThickness:34}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false}}}}});
 
   if(mapCobertura){ mapCobertura.remove(); mapCobertura=null; }
