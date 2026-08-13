@@ -601,6 +601,7 @@ let recorridoPromotor = PROMOTERS[0].id;
 function fechaEquipoActual(){ return F.fechaHasta || F.fechaDesde || FECHA_MAX; }
 let jornadaFiltroActivo = null;
 let coberturaCadenasAbiertas = new Set();
+let coberturaClusterFiltro = null;
 let preciosProductoComparado='';
 let preciosDetalleCompetidor=COMPETIDORES[0];
 let alertasTab='todos';
@@ -1141,6 +1142,22 @@ function renderCobertura(){
   const [refY,refM,refD] = fechaReferencia.split('-').map(Number);
   const fechaRefDate = new Date(refY,refM-1,refD);
   const diasDesde = fecha => { const [y,m,d]=fecha.split('-').map(Number); return Math.round((fechaRefDate-new Date(y,m-1,d))/86400000); };
+  // Clústeres de locales por rotación (unidades repuestas) en el período filtrado: H (top 10%) > A (10-30%) > B (30-60%) > C (60-100%)
+  const CLUSTER_DEF = [
+    {id:'H', label:'Clúster H — Top', hasta:0.10, color:'ok'},
+    {id:'A', label:'Clúster A', hasta:0.30, color:'bl'},
+    {id:'B', label:'Clúster B', hasta:0.60, color:'wa'},
+    {id:'C', label:'Clúster C — Atención', hasta:1.01, color:'er'},
+  ];
+  const clusterDeCorte = pct => CLUSTER_DEF.find(c=>pct<=c.hasta).id;
+  const rotacionTotalPdv = {};
+  rows.forEach(r=>rotacionTotalPdv[r.pdvId]=(rotacionTotalPdv[r.pdvId]||0)+r.unidadesRepuestas);
+  const clustersPorLocal = pdvsFiltrados.map(pdv=>({pdv, unid:rotacionTotalPdv[pdv.id]||0}))
+    .sort((a,b)=>b.unid-a.unid)
+    .map((r,i,arr)=>({...r, cluster: clusterDeCorte((i+1)/arr.length)}));
+  const clusterResumen = CLUSTER_DEF.map(c=>({...c, n: clustersPorLocal.filter(r=>r.cluster===c.id).length}));
+  const clustersVisibles = coberturaClusterFiltro? clustersPorLocal.filter(r=>r.cluster===coberturaClusterFiltro) : clustersPorLocal;
+
   const localesSinVisitar = pdvsFiltrados.map(pdv=>{
     const ultima = ultimaVisitaPorPdv[pdv.id]||null;
     const dias = ultima? diasDesde(ultima) : null;
@@ -1175,6 +1192,16 @@ function renderCobertura(){
       }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px">Sin datos</td></tr>`}
       </tbody></table></div>
     </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr"><div><div class="card-title">Clústeres de locales por rotación</div><div class="card-sub">Ranking de los ${pdvsFiltrados.length} locales según unidades repuestas en el período — H es el grupo de mejor desempeño, C el que necesita más atención</div></div></div>
+      <div class="grid grid-4" style="margin-bottom:14px">
+        ${clusterResumen.map(c=>`<div class="kpi ${coberturaClusterFiltro===c.id?'t-ok':''}" id="cob-cluster-${c.id}" style="cursor:pointer;border-color:${coberturaClusterFiltro===c.id?`var(--${c.color})`:''}"><div class="kpi-lbl">${c.label}</div><div class="kpi-val" style="color:var(--${c.color})">${c.n}</div><div class="kpi-sub">locales</div></div>`).join('')}
+      </div>
+      ${coberturaClusterFiltro?`<div class="banner"><i class="fas fa-filter"></i> Filtrando por ${CLUSTER_DEF.find(c=>c.id===coberturaClusterFiltro).label} — <span style="cursor:pointer;text-decoration:underline" id="cob-cluster-clear">ver todos</span></div>`:''}
+      <div class="tbl-wrap" style="max-height:360px;overflow-y:auto"><table><thead><tr><th>#</th><th>Local</th><th>Cadena</th><th>Ciudad</th><th>Rotación (unid.)</th><th>Clúster</th></tr></thead><tbody>
+        ${clustersVisibles.map((r,i)=>{ const def=CLUSTER_DEF.find(c=>c.id===r.cluster); return `<tr><td>${i+1}</td><td style="font-weight:700">${r.pdv.name}</td><td>${r.pdv.chain}</td><td>${r.pdv.city}</td><td class="mono">${fmtInt(r.unid)}</td><td><span class="badge ${def.color}">${r.cluster}</span></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px">Sin datos</td></tr>`}
+      </tbody></table></div>
+    </div>
     <div class="card">
       <div class="card-hdr"><div><div class="card-title">Locales sin visitar</div><div class="card-sub">${localesSinVisitar.length} de ${pdvsFiltrados.length} PDVs con al menos una visita no realizada en los últimos ${VENTANA_RECIENTE} días</div></div></div>
       <div class="tbl-wrap"><table><thead><tr><th>PDV</th><th>Cadena</th><th>Ciudad</th><th>Promotor</th><th>Última visita</th><th>Fechas sin cubrir (últimos ${VENTANA_RECIENTE} días)</th><th>Alerta</th></tr></thead><tbody>
@@ -1189,6 +1216,13 @@ function renderCobertura(){
   document.querySelectorAll('.cob-row-cadena').forEach(el=>{
     el.onclick = ()=>{ const c=el.dataset.cadena; if(coberturaCadenasAbiertas.has(c)) coberturaCadenasAbiertas.delete(c); else coberturaCadenasAbiertas.add(c); renderCobertura(); };
   });
+
+  CLUSTER_DEF.forEach(c=>{
+    const el = document.getElementById('cob-cluster-'+c.id);
+    if(el) el.onclick = ()=>{ coberturaClusterFiltro = coberturaClusterFiltro===c.id? null : c.id; renderCobertura(); };
+  });
+  const clusterClear = document.getElementById('cob-cluster-clear');
+  if(clusterClear) clusterClear.onclick = ()=>{ coberturaClusterFiltro=null; renderCobertura(); };
 
   mkChart('ch-ciudad',{type:'bar',data:{labels:visitasPorCiudadChart.map(c=>c.nombre),datasets:[{label:'Visitas',data:visitasPorCiudadChart.map(c=>c.visitas),backgroundColor:brandColor(),borderRadius:6,maxBarThickness:34}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false}}}}});
