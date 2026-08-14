@@ -157,6 +157,23 @@ body.light ::-webkit-scrollbar-thumb{background:rgba(15,20,40,.18)}
 .cljcard-table tr:last-child td{border-bottom:none}
 .cljcard-link{display:inline-flex;align-items:center;gap:5px;color:#0B66C3;font-size:12px;font-weight:700;text-decoration:none;margin-top:12px;cursor:pointer}
 
+/* ---------- Ofertas y Promociones ---------- */
+.ofr-card{background:#FAF5EE;border-radius:14px;padding:18px 20px;color:#332219;box-shadow:0 2px 10px rgba(51,34,25,.06)}
+.ofr-title{font-size:15px;font-weight:800;margin-bottom:2px}
+.ofr-sub{font-size:12px;color:#6E6862;margin-bottom:14px}
+.ofr-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:10.5px;font-weight:800;white-space:nowrap}
+.ofr-badge-propia{background:#DCF0DD;color:#1F7A3D}
+.ofr-badge-local{background:#E3E9F1;color:#3B5C7A}
+.ofr-badge-activa{background:#DCF0DD;color:#1F7A3D}
+.ofr-badge-provencer{background:#F7EAD0;color:#8A5A0D}
+.ofr-badge-vencida{background:#F8E0E0;color:#A82E2E}
+.ofr-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.ofr-photo-card{background:#FAF5EE;border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .18s ease, box-shadow .18s ease;box-shadow:0 2px 10px rgba(51,34,25,.06)}
+.ofr-photo-card:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(51,34,25,.14)}
+.ofr-photo-body{padding:11px 13px}
+.ofr-photo-pdv{font-weight:700;font-size:12.5px;margin-bottom:2px;color:#332219}
+.ofr-photo-meta{font-size:10.5px;color:#6E6862;margin-bottom:8px}
+
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 th{text-align:left;color:var(--tx3);font-weight:700;text-transform:uppercase;font-size:10.5px;letter-spacing:.3px;padding:9px 10px;border-bottom:1px solid var(--bd);white-space:nowrap}
 td{padding:10px;border-bottom:1px solid var(--bd);white-space:nowrap}
@@ -257,6 +274,7 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
       <div class="ni" data-p="alertas"><i class="fas fa-exclamation-triangle"></i>Averiados y Vencimientos<span class="ni-badge" id="nb-alertas">0</span></div>
       <div class="ni" data-p="quiebres"><i class="fas fa-box-open"></i>Quiebres de stock</div>
       <div class="ni" data-p="relevamientos"><i class="fas fa-clipboard-list"></i>Relevamientos</div>
+      <div class="ni" data-p="ofertas"><i class="fas fa-percent"></i>Ofertas y Promociones</div>
     </nav>
     <div class="nav-sect">Equipo</div>
     <nav class="nav" id="nav2">
@@ -708,6 +726,19 @@ function clasificarLocalesPorRotacion(pdvsFiltrados, rows){
   const clusterPorPdvId = {};
   clasificados.forEach(r=>clusterPorPdvId[r.pdv.id]=r.cluster);
   return { clasificados, clusterDe: pdvId => clusterPorPdvId[pdvId] || null };
+}
+// Ofertas y promociones: derivadas de las visitas con promoción activa (tienePromocion), sin tocar la secuencia rnd()
+// compartida — todo se deriva de un hash determinístico del id de la visita, para no correr el resto de los datos generados.
+const TIPOS_OFERTA = ['Descuento %', '2x1', 'Combo'];
+const PESO_DIA_OFERTA = [0.5, 0.55, 0.55, 0.55, 0.65, 1, 0.9]; // dom,lun,mar,mie,jue,vie,sab — pico viernes/sábado
+function diaSemanaDe(fecha){ const [y,m,d]=fecha.split('-').map(Number); return new Date(y,m-1,d).getDay(); }
+function ofertaDetalle(r){
+  const hTipo = hashStr(r.id+'oftipo');
+  const tipo = TIPOS_OFERTA[hTipo%3];
+  const detalle = tipo==='Descuento %' ? `${[10,15,20,25,30][hTipo%5]}% OFF` : tipo==='2x1' ? '2x1' : `Combo x${2+(hTipo%2)}`;
+  const origen = (hashStr(r.id+'oforigen')%100) < 60 ? 'Propia' : 'Local';
+  const vigenciaDias = [7,10,14,15,21,30][hashStr(r.id+'ofvig')%6];
+  return {tipo, detalle, origen, vigenciaDias};
 }
 function mkChart(id, config){
   if(charts[id]) charts[id].destroy();
@@ -1771,6 +1802,106 @@ function renderRelevamientos(){
 }
 
 // ============================================================
+// PÁGINA: OFERTAS Y PROMOCIONES
+// ============================================================
+function buildOfertaFotoCard(o){
+  const r = o.r;
+  const pdv = pdvById(r.pdvId), prom = promoterById(r.promotorId);
+  const badgeOrigen = o.origen==='Propia' ? `<span class="ofr-badge ofr-badge-propia">Propia</span>` : `<span class="ofr-badge ofr-badge-local">Local</span>`;
+  return `<div class="ofr-photo-card" onclick='openPhoto("${r.id}","estanteria")'>
+    <div class="evid-photos">
+      <div class="ph-wrap"><img src="${r.fotoEstanteria}" loading="lazy" alt="Góndola"><span class="ph-label">Góndola</span></div>
+      <div class="ph-wrap"><img src="${r.fotoProducto}" loading="lazy" alt="Producto"><span class="ph-label">Producto</span></div>
+      <div class="ph-wrap"><img src="${r.fotoPrecio}" loading="lazy" alt="Precio"><span class="ph-label">Precio</span></div>
+    </div>
+    <div class="ofr-photo-body">
+      <div class="ofr-photo-pdv">${pdv.name}</div>
+      <div class="ofr-photo-meta">${prom.name} · ${dateDisplay(r.fecha)} · ${r.hora}</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${badgeOrigen}<span class="ofr-badge" style="background:#EDE3D3;color:#332219">${o.tipo}</span></div>
+    </div>
+  </div>`;
+}
+function renderOfertas(){
+  const rows = filterVisits();
+  const promoRows = rows.filter(r=>r.tienePromocion);
+  const fechaReferencia = F.fechaHasta || FECHA_MAX;
+  const [refY,refM,refD] = fechaReferencia.split('-').map(Number);
+  const fechaRefDate = new Date(refY,refM-1,refD);
+
+  // Se toma un subconjunto de las visitas con promoción, ponderado por día de la semana (pico viernes/sábado)
+  const ofertas = promoRows.filter(r=>{
+    const dow = diaSemanaDe(r.fecha);
+    const h = hashStr(r.id+'ofertasel')%100;
+    return h < PESO_DIA_OFERTA[dow]*45;
+  }).map(r=>{
+    const det = ofertaDetalle(r);
+    const [y,m,d] = r.fecha.split('-').map(Number);
+    const fechaFinDate = addDays(new Date(y,m-1,d), det.vigenciaDias);
+    const fechaFin = isoDate(fechaFinDate);
+    const diasParaVencer = Math.round((fechaFinDate-fechaRefDate)/86400000);
+    const estado = fechaFin<fechaReferencia ? 'Vencida' : (diasParaVencer<=3 ? 'Próxima a vencer' : 'Activa');
+    return {r, ...det, fechaFin, estado};
+  });
+
+  // Tabla resumen: una fila por combinación PDV × producto (la más reciente)
+  const porCombo = {};
+  ofertas.forEach(o=>{
+    const k = o.r.pdvId+'|'+o.r.producto;
+    if(!porCombo[k] || o.r.fecha>porCombo[k].r.fecha) porCombo[k]=o;
+  });
+  const ofertasTabla = Object.values(porCombo).sort((a,b)=>b.r.fecha.localeCompare(a.r.fecha));
+
+  const DIAS_SEMANA = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+  const countPorDia = Array(7).fill(0);
+  ofertas.forEach(o=>{ const dow=diaSemanaDe(o.r.fecha); countPorDia[dow===0?6:dow-1]++; });
+
+  const origenCount = {Propia:0, Local:0};
+  ofertas.forEach(o=>origenCount[o.origen]++);
+  const totalOfertas = ofertas.length;
+  const pctPropia = totalOfertas? Math.round(origenCount.Propia/totalOfertas*100):0;
+  const pctLocal = totalOfertas? 100-pctPropia:0;
+
+  const badgeOrigen = origen => origen==='Propia' ? `<span class="ofr-badge ofr-badge-propia">Propia</span>` : `<span class="ofr-badge ofr-badge-local">Local</span>`;
+  const badgeEstado = estado => estado==='Activa' ? `<span class="ofr-badge ofr-badge-activa">Activa</span>` : estado==='Próxima a vencer' ? `<span class="ofr-badge ofr-badge-provencer">Próxima a vencer</span>` : `<span class="ofr-badge ofr-badge-vencida">Vencida</span>`;
+
+  document.getElementById('content').innerHTML = `
+    <div class="ofr-card" style="margin-bottom:16px">
+      <div class="ofr-title">Resumen de ofertas</div>
+      <div class="ofr-sub">${ofertasTabla.length} ofertas detectadas en el período filtrado (una por combinación PDV × producto, la más reciente)</div>
+      <div class="tbl-wrap" style="max-height:420px;overflow-y:auto"><table class="cljcard-table"><thead><tr>
+        <th>Punto de venta</th><th>Producto</th><th>Tipo de oferta</th><th>Origen</th><th>Vigencia</th><th>Estado</th>
+      </tr></thead><tbody>
+        ${ofertasTabla.map(o=>{ const pdv=pdvById(o.r.pdvId); return `<tr><td style="font-weight:700">${pdv.name}</td><td>${o.r.producto}</td><td>${o.tipo} (${o.detalle})</td><td>${badgeOrigen(o.origen)}</td><td>${o.vigenciaDias} días</td><td>${badgeEstado(o.estado)}</td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;color:#6E6862;padding:20px">Sin ofertas en el período seleccionado</td></tr>`}
+      </tbody></table></div>
+    </div>
+    <div class="grid grid-2e" style="margin-bottom:16px;gap:16px">
+      <div class="ofr-card">
+        <div class="ofr-title">Frecuencia de ofertas por día</div>
+        <div class="ofr-sub">Volumen de activaciones de lunes a domingo — viernes y sábado concentran la mayor actividad</div>
+        <div class="chart-wrap sm"><canvas id="ch-ofr-dia"></canvas></div>
+      </div>
+      <div class="ofr-card">
+        <div class="ofr-title">Origen de las ofertas</div>
+        <div class="ofr-sub">${pctPropia}% propias · ${pctLocal}% de la cadena/local</div>
+        <div class="chart-wrap sm"><canvas id="ch-ofr-origen"></canvas></div>
+      </div>
+    </div>
+    <div class="ofr-card">
+      <div class="ofr-title">Reporte fotográfico de campo</div>
+      <div class="ofr-sub">${Math.min(24,ofertasTabla.length)} de ${ofertasTabla.length} evidencias de exhibición y activación de ofertas</div>
+      <div class="ofr-gallery">
+        ${ofertasTabla.slice(0,24).map(buildOfertaFotoCard).join('') || `<div style="grid-column:1/-1;text-align:center;color:#6E6862;padding:30px 0">Sin evidencias en el período seleccionado</div>`}
+      </div>
+    </div>`;
+
+  mkChart('ch-ofr-dia',{type:'bar',data:{labels:DIAS_SEMANA,datasets:[{data:countPorDia,backgroundColor:DIAS_SEMANA.map((d,i)=>(i===4||i===5)?'#BA7819':'#D8CBB5'),borderRadius:6,maxBarThickness:34}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(0,0,0,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+  mkChart('ch-ofr-origen',{type:'doughnut',data:{labels:['Propia','Local / Cadena'],datasets:[{data:[origenCount.Propia,origenCount.Local],backgroundColor:['#3DA35D','#5B7C99'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#332219',boxWidth:10,font:{size:11}}}}}});
+}
+
+// ============================================================
 // PÁGINA: ALERTAS Y VENCIMIENTOS
 // ============================================================
 function valorAlerta(productosArr, cantidad){
@@ -2246,6 +2377,7 @@ const PAGES = {
   alertas:{title:'Averiados y Vencimientos', icon:'fa-exclamation-triangle', render:renderAlertas},
   quiebres:{title:'Quiebres de stock', icon:'fa-box-open', render:renderQuiebres},
   relevamientos:{title:'Relevamientos', icon:'fa-clipboard-list', render:renderRelevamientos},
+  ofertas:{title:'Ofertas y Promociones', icon:'fa-percent', render:renderOfertas},
   jornada:{title:'Jornada y Asistencia', icon:'fa-user-clock', render:renderJornada},
   recorrido:{title:'Recorrido por persona', icon:'fa-route', render:renderRecorrido},
   comisiones:{title:'Comisiones', icon:'fa-hand-holding-dollar', render:renderComisiones},
