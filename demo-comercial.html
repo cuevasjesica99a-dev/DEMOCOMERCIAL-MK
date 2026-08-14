@@ -137,6 +137,26 @@ body.light ::-webkit-scrollbar-thumb{background:rgba(15,20,40,.18)}
 .pmarca-box.comp{border-left-color:var(--er)}
 .pmarca-tbl{max-height:320px;overflow-y:auto}
 
+/* ---------- Resumen de clústeres (Resumen ejecutivo) ---------- */
+.cljcard{background:#FAF5EE;border-radius:14px;padding:18px 20px;color:#332219}
+.cljcard-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.cljcard-title{font-weight:800;font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cljbadge-alta{background:#F8E0E0;color:#A82E2E;font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.3px}
+.cljcard-pct{font-size:22px;font-weight:900}
+.cljbar-track{height:8px;border-radius:6px;background:#EDE3D3;overflow:hidden;margin-bottom:10px}
+.cljbar-fill{height:100%;border-radius:6px;transition:width .3s ease}
+.cljcard-info{font-size:12px;color:#6E6862;margin-bottom:12px}
+.cljcard-toggle{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#332219;cursor:pointer;user-select:none}
+.cljcard-toggle i{transition:transform .18s ease;font-size:10px}
+.cljcard-toggle.open i{transform:rotate(180deg)}
+.cljcard-panel{max-height:0;overflow:hidden;transition:max-height .28s ease}
+.cljcard-panel.open{max-height:420px}
+.cljcard-table{width:100%;margin-top:10px;font-size:12px;border-collapse:collapse}
+.cljcard-table th{text-align:left;color:#6E6862;font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:.2px;padding:6px 4px;border-bottom:1px solid #EDE3D3;white-space:nowrap}
+.cljcard-table td{padding:7px 4px;border-bottom:1px solid #EDE3D3;color:#332219;white-space:nowrap}
+.cljcard-table tr:last-child td{border-bottom:none}
+.cljcard-link{display:inline-flex;align-items:center;gap:5px;color:#0B66C3;font-size:12px;font-weight:700;text-decoration:none;margin-top:12px;cursor:pointer}
+
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 th{text-align:left;color:var(--tx3);font-weight:700;text-transform:uppercase;font-size:10.5px;letter-spacing:.3px;padding:9px 10px;border-bottom:1px solid var(--bd);white-space:nowrap}
 td{padding:10px;border-bottom:1px solid var(--bd);white-space:nowrap}
@@ -602,6 +622,7 @@ function fechaEquipoActual(){ return F.fechaHasta || F.fechaDesde || FECHA_MAX; 
 let jornadaFiltroActivo = null;
 let coberturaCadenasAbiertas = new Set();
 let coberturaClusterFiltro = null;
+let resumenClusterAbiertos = new Set();
 let preciosProductoComparado='';
 let preciosDetalleCompetidor=COMPETIDORES[0];
 let preciosLocalBusqueda='';
@@ -954,8 +975,35 @@ function renderResumen(){
   const valorMovilizado = rows.reduce((s,r)=>s+r.unidadesRepuestas*r.precioSugerido,0);
 
   const omitidas = filterOmitidas();
-  const pdvsFiltradosIds = PDVS.filter(pdv=>(!F.cadena||pdv.chain===F.cadena)&&(!F.ciudad||pdv.city===F.ciudad)).map(pdv=>pdv.id);
+  const pdvsFiltrados = PDVS.filter(pdv=>(!F.cadena||pdv.chain===F.cadena)&&(!F.ciudad||pdv.city===F.ciudad));
+  const pdvsFiltradosIds = pdvsFiltrados.map(pdv=>pdv.id);
   const cumplPlanVisitas = coberturaDeVisitas(pdvsFiltradosIds, rows, omitidas).cumpl;
+
+  // Resumen por clúster: cumplimiento de precio Nova Consumo por cada clúster de rotación (mismo criterio que Cobertura y Precios)
+  const clasifRotacionResumen = clasificarLocalesPorRotacion(pdvsFiltrados, rows);
+  const UMBRAL_CUMPLE_PRECIO = 60; // % de visitas con precio propio conforme, para considerar "cumple" a nivel local (mediana real ~62%)
+  const cumplPropioPorPdv = {};
+  rows.filter(r=>!r.tieneQuiebre).forEach(r=>{
+    if(!cumplPropioPorPdv[r.pdvId]) cumplPropioPorPdv[r.pdvId]={cumple:0,n:0};
+    cumplPropioPorPdv[r.pdvId].n++;
+    if(r.cumplePrecioPropio) cumplPropioPorPdv[r.pdvId].cumple++;
+  });
+  const localCumplePrecio = pdvId => {
+    const c = cumplPropioPorPdv[pdvId];
+    return !!(c && c.n>0 && (c.cumple/c.n*100)>=UMBRAL_CUMPLE_PRECIO);
+  };
+  const resumenClusters = CLUSTER_DEF.map(cd=>{
+    const localesCluster = pdvsFiltrados.filter(pdv=>clasifRotacionResumen.clusterDe(pdv.id)===cd.id);
+    const total = localesCluster.length;
+    const cumplen = localesCluster.filter(pdv=>localCumplePrecio(pdv.id)).length;
+    const porCadena = CHAINS.map(cadena=>{
+      const localesCadena = localesCluster.filter(pdv=>pdv.chain===cadena);
+      const totalCad = localesCadena.length;
+      const cumplenCad = localesCadena.filter(pdv=>localCumplePrecio(pdv.id)).length;
+      return {cadena, cumplen:cumplenCad, total:totalCad, pct: totalCad? Math.round(cumplenCad/totalCad*100):0};
+    }).filter(c=>c.total>0);
+    return {...cd, total, cumplen, pct: total? Math.round(cumplen/total*100):0, porCadena};
+  });
 
   const catRiesgo = {};
   rows.filter(r=>!r.tieneQuiebre).forEach(r=>{ if(!catRiesgo[r.categoria]) catRiesgo[r.categoria]={cumple:0,n:0}; catRiesgo[r.categoria].n++; if(r.cumplePrecioPropio) catRiesgo[r.categoria].cumple++; });
@@ -993,6 +1041,31 @@ function renderResumen(){
       ${kpiCard('Góndola promedio', Math.round(gondolaProm), 'participación de espacio', 'fa-border-all', '--vi','k-gondola','auditoria')}
       ${kpiCard('Cumplimiento de ejecución', ejecucionPct, 'criterios + espacios + POP + precios — detalle en Relevamientos', 'fa-clipboard-check', ejecucionPct>=85?'--ok':ejecucionPct>=60?'--wa':'--er','k-ejecucion','relevamientos')}
       ${kpiCard('Valor de mercado movilizado', 0, `${fmtInt(rows.reduce((s,r)=>s+r.unidadesRepuestas,0))} unidades repuestas — ver Precios`, 'fa-coins', '--brand2','k-valormov','precios')}
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <h2 style="font-size:16px;margin-bottom:2px">Resumen por clúster</h2>
+      <p style="font-size:12px;color:var(--tx3);margin-bottom:16px">Cumplimiento de precio Nova Consumo por grupo de rotación — mismos clústeres H/A/B/C que Cobertura y Precios</p>
+      <div class="grid grid-2e" style="gap:14px">
+        ${resumenClusters.map(c=>{
+          const abierto = resumenClusterAbiertos.has(c.id);
+          const colorBar = c.id==='C' ? '#D13838' : '#BA7819';
+          return `<article class="cljcard">
+            <div class="cljcard-hdr">
+              <div class="cljcard-title">${c.label}${c.id==='C'?'<span class="cljbadge-alta">Prioridad alta</span>':''}</div>
+              <div class="cljcard-pct">${c.pct}%</div>
+            </div>
+            <div class="cljbar-track"><div class="cljbar-fill" style="width:${c.pct}%;background:${colorBar}"></div></div>
+            <div class="cljcard-info">${c.cumplen} de ${c.total} locales cumplen con el precio sugerido</div>
+            <div class="cljcard-toggle ${abierto?'open':''}" data-clj="${c.id}"><i class="fas fa-chevron-down"></i><span>Ver por cadena</span></div>
+            <div class="cljcard-panel ${abierto?'open':''}" data-clj-panel="${c.id}">
+              <table class="cljcard-table"><thead><tr><th>Cadena</th><th>Cumplen precio</th><th>Total locales</th><th>%</th></tr></thead><tbody>
+                ${c.porCadena.map(pc=>`<tr><td>${pc.cadena}</td><td>${pc.cumplen}</td><td>${pc.total}</td><td>${pc.pct}%</td></tr>`).join('') || `<tr><td colspan="4" style="text-align:center;color:#6E6862">Sin locales en este clúster</td></tr>`}
+              </tbody></table>
+            </div>
+            <a class="cljcard-link" onclick="goPage('precios')">Ver sucursales en Precios <i class="fas fa-arrow-right"></i></a>
+          </article>`;
+        }).join('')}
+      </div>
     </div>
     <div class="grid grid-3" style="margin-bottom:16px">
       <div class="card" style="cursor:pointer" onclick="goPage('precios')">
@@ -1097,6 +1170,16 @@ function renderResumen(){
       <div><div style="font-weight:700;font-size:12.5px">${pdv.name}</div><div style="font-size:11px;color:var(--tx3)">${prom.name} · ${dateDisplay(r.fecha)} · ${productos.join(', ')}</div></div>
       ${r.tieneVencidos ? badgeVenc(r.estadoVenc) : badgeAveria()}</div>`;
   }).join('') : `<div style="color:var(--tx3);text-align:center;padding:30px 0"><i class="fas fa-check-circle" style="font-size:22px;display:block;margin-bottom:8px;color:var(--ok)"></i>Sin alertas en el período</div>`;
+
+  document.querySelectorAll('.cljcard-toggle').forEach(el=>{
+    el.onclick = ()=>{
+      const id = el.dataset.clj;
+      const panel = document.querySelector(`[data-clj-panel="${id}"]`);
+      const abierto = el.classList.toggle('open');
+      panel.classList.toggle('open', abierto);
+      if(abierto) resumenClusterAbiertos.add(id); else resumenClusterAbiertos.delete(id);
+    };
+  });
 }
 
 // ============================================================
