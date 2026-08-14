@@ -253,6 +253,7 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
       <div class="ni" data-p="cobertura"><i class="fas fa-store"></i>Cobertura</div>
       <div class="ni" data-p="precios"><i class="fas fa-tags"></i>Precios</div>
       <div class="ni" data-p="auditoria"><i class="fas fa-clipboard-check"></i>Auditoría de PDV</div>
+      <div class="ni" data-p="evidencias"><i class="fas fa-camera"></i>Relevamiento fotográfico</div>
       <div class="ni" data-p="alertas"><i class="fas fa-exclamation-triangle"></i>Averiados y Vencimientos<span class="ni-badge" id="nb-alertas">0</span></div>
       <div class="ni" data-p="quiebres"><i class="fas fa-box-open"></i>Quiebres de stock</div>
       <div class="ni" data-p="relevamientos"><i class="fas fa-clipboard-list"></i>Relevamientos</div>
@@ -1136,7 +1137,7 @@ function renderResumen(){
   animateNum(document.getElementById('k-ejecucion'), ejecucionPct, '%');
 
   mkChart('ch-metas',{type:'bar',data:{labels:metas.map(m=>m.label),datasets:[
-      {label:'Meta',data:metas.map(m=>m.meta),backgroundColor:'rgba(255,255,255,.16)',borderRadius:5,maxBarThickness:18},
+      {label:'Meta',data:metas.map(m=>m.meta),backgroundColor:getComputedStyle(document.documentElement).getPropertyValue('--tx3').trim()||'#8c919c',borderRadius:5,maxBarThickness:18},
       {label:'Real',data:metas.map(m=>m.real),backgroundColor:brandColor(),borderRadius:5,maxBarThickness:18},
     ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
       plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}},
@@ -1331,7 +1332,6 @@ function renderCobertura(){
 // PÁGINA: AUDITORÍA DE PUNTO DE VENTA
 // ============================================================
 function renderAuditoria(){
-  const auditoriaSearchTenidoFoco = document.activeElement && document.activeElement.id==='aud-search';
   const all = filterVisits();
   const conStock = all.filter(r=>!r.tieneQuiebre);
   const gondolaProm = all.length? all.reduce((a,r)=>a+r.gondolaPct,0)/all.length : 0;
@@ -1360,13 +1360,6 @@ function renderAuditoria(){
   const popCount = {};
   popPdvRows.filter(r=>r.tienePOP).forEach(r=>popCount[r.popTipo]=(popCount[r.popTipo]||0)+1);
   const pdvsConDatos = PDVS.filter(pdv=>all.some(r=>r.pdvId===pdv.id)).sort((a,b)=>a.name.localeCompare(b.name));
-
-  let fotoRows = all;
-  if(searchTerm){
-    const s = searchTerm.toLowerCase();
-    fotoRows = fotoRows.filter(r=> pdvById(r.pdvId).name.toLowerCase().includes(s) || promoterById(r.promotorId).name.toLowerCase().includes(s));
-  }
-  const fotos = fotoRows.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,30);
 
   document.getElementById('content').innerHTML = `
     <div class="grid grid-kpi" style="margin-bottom:18px">
@@ -1398,20 +1391,8 @@ function renderAuditoria(){
         <div class="tbl-wrap"><table><thead><tr><th>Tipo de material</th><th>Instalaciones</th></tr></thead><tbody>
         ${POP_TYPES.map(t=>`<tr><td>${t}</td><td style="font-weight:700">${popCount[t]||0}</td></tr>`).join('')}
         </tbody></table></div></div>
-    </div>
-    <div class="card">
-      <div class="card-hdr" style="align-items:center">
-        <div><div class="card-title">Relevamiento fotográfico</div><div class="card-sub">${fotoRows.length} evidencias en el período filtrado · mostrando ${fotos.length}</div></div>
-        <input type="text" id="aud-search" placeholder="Buscar por PDV o promotor..." style="max-width:260px" value="${searchTerm}">
-      </div>
-      <div class="evid-grid">
-        ${fotos.map(buildFotoCard).join('') || `<div style="grid-column:1/-1;text-align:center;color:var(--tx3);padding:40px 0"><i class="fas fa-search" style="font-size:24px;display:block;margin-bottom:8px"></i>Sin resultados</div>`}
-      </div>
     </div>`;
 
-  const auSearch = document.getElementById('aud-search');
-  auSearch.oninput = e=>{ searchTerm=e.target.value; renderAuditoria(); };
-  if(auditoriaSearchTenidoFoco){ auSearch.focus(); auSearch.selectionStart = auSearch.value.length; }
   document.getElementById('pop-pdv-filtro').onchange = e=>{ auditoriaPdvFiltro=e.target.value; renderAuditoria(); };
 
   animateNum(document.getElementById('k-gondola2'), Math.round(gondolaProm), '%');
@@ -1431,6 +1412,36 @@ function renderAuditoria(){
 
   mkChart('ch-competencia',{type:'doughnut',data:{labels:accionesLabels,datasets:[{data:accionesLabels.map(a=>accionesCount[a]),backgroundColor:['#5a5252','#5b9bd5','#3cb3a8','#9b7fd4','#e8a045','#e84a55'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}}}});
+}
+
+// ============================================================
+// PÁGINA: RELEVAMIENTO FOTOGRÁFICO
+// ============================================================
+function renderEvidencias(){
+  const fotoSearchTenidoFoco = document.activeElement && document.activeElement.id==='foto-search';
+  const all = filterVisits();
+
+  let fotoRows = all;
+  if(searchTerm){
+    const s = searchTerm.toLowerCase();
+    fotoRows = fotoRows.filter(r=> pdvById(r.pdvId).name.toLowerCase().includes(s) || promoterById(r.promotorId).name.toLowerCase().includes(s));
+  }
+  const fotos = fotoRows.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,30);
+
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-hdr" style="align-items:center">
+        <div><div class="card-title">Relevamiento fotográfico</div><div class="card-sub">${fotoRows.length} evidencias en el período filtrado · mostrando ${fotos.length}</div></div>
+        <input type="text" id="foto-search" placeholder="Buscar por PDV o promotor..." style="max-width:260px" value="${searchTerm}">
+      </div>
+      <div class="evid-grid">
+        ${fotos.map(buildFotoCard).join('') || `<div style="grid-column:1/-1;text-align:center;color:var(--tx3);padding:40px 0"><i class="fas fa-search" style="font-size:24px;display:block;margin-bottom:8px"></i>Sin resultados</div>`}
+      </div>
+    </div>`;
+
+  const fotoSearch = document.getElementById('foto-search');
+  fotoSearch.oninput = e=>{ searchTerm=e.target.value; renderEvidencias(); };
+  if(fotoSearchTenidoFoco){ fotoSearch.focus(); fotoSearch.selectionStart = fotoSearch.value.length; }
 }
 
 // ============================================================
@@ -2296,6 +2307,7 @@ const PAGES = {
   cobertura:{title:'Cobertura', icon:'fa-store', render:renderCobertura},
   precios:{title:'Precios', icon:'fa-tags', render:renderPrecios},
   auditoria:{title:'Auditoría de punto de venta', icon:'fa-clipboard-check', render:renderAuditoria},
+  evidencias:{title:'Relevamiento fotográfico', icon:'fa-camera', render:renderEvidencias},
   alertas:{title:'Averiados y Vencimientos', icon:'fa-exclamation-triangle', render:renderAlertas},
   quiebres:{title:'Quiebres de stock', icon:'fa-box-open', render:renderQuiebres},
   relevamientos:{title:'Relevamientos', icon:'fa-clipboard-list', render:renderRelevamientos},
