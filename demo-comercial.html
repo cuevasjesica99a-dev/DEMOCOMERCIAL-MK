@@ -1374,8 +1374,6 @@ function renderPrecios(){
   const preciosLocalSearchTenidoFoco = document.activeElement && document.activeElement.id==='prec-local-search';
   const all = filterVisits();
   const conStock = all.filter(r=>!r.tieneQuiebre);
-  const diffPrecioProm = conStock.length? conStock.reduce((a,r)=>a+((r.precioNuestro-r.precioCompetidor)/r.precioCompetidor*100),0)/conStock.length : 0;
-  const cumplePrecioPct = conStock.length? conStock.filter(r=>r.cumplePrecioPropio).length/conStock.length*100 : 0;
 
   const preciosCat = CATEGORIES.map(cat=>{
     const rs = conStock.filter(r=>r.categoria===cat);
@@ -1430,8 +1428,6 @@ function renderPrecios(){
     const rs = all.filter(r=>r.producto===prod && r.competidorNombre===preciosDetalleCompetidor);
     return {prod:nombreProductoCompetidor(prod,preciosDetalleCompetidor), min:rs.length?Math.min(...rs.map(r=>r.precioCompetidor)):0, max:rs.length?Math.max(...rs.map(r=>r.precioCompetidor)):0, n:rs.length};
   }).filter(p=>p.n>0).sort((a,b)=>b.n-a.n);
-  const unidadesRepuestasTotal = all.reduce((s,r)=>s+r.unidadesRepuestas,0);
-  const valorMovilizado = all.reduce((s,r)=>s+r.unidadesRepuestas*r.precioSugerido,0);
 
   // Detalle por corte: una fila por producto x marca (propia y las 3 de competencia), con el nombre de producto genérico (sin prefijo de marca)
   const productoGenerico = prod => prod.replace(/^Nova\s/, '');
@@ -1500,12 +1496,6 @@ function renderPrecios(){
         tooltip:`Precio mínimo y máximo de ${c.nombre} (competidor) relevado en el período filtrado.`,
         expandable:true, hint:'Ver top productos por rotación', detail:c.detalle})).join('')}
     </div>
-    <div class="grid grid-kpi" style="margin-bottom:18px">
-      ${kpiCard('Diferencia de precio', Math.round(diffPrecioProm), 'vs. precio promedio competencia', diffPrecioProm<=0?'fa-arrow-down':'fa-arrow-up', diffPrecioProm<=0?'--ok':'--er','k-diffprecio2')}
-      ${kpiCard('Cumplimiento de precio Nova Consumo', Math.round(cumplePrecioPct), 'vs. precio público sugerido', 'fa-tag', '--bl','k-cumplprecio2')}
-      ${kpiCard('Unidades repuestas', unidadesRepuestasTotal, 'repuestas de depósito a góndola', 'fa-arrows-rotate', '--vi','k-unidrepuestas')}
-      ${kpiCard('Valor de mercado movilizado', 0, `${fmtInt(unidadesRepuestasTotal)} unidades × precio sugerido`, 'fa-coins', '--brand2','k-valormov2')}
-    </div>
     <div class="grid grid-2e" style="margin-bottom:16px;align-items:stretch">
       <div class="card">
         <div class="card-hdr" style="align-items:center">
@@ -1573,11 +1563,6 @@ function renderPrecios(){
         }).join('') || `<tr><td colspan="10" style="text-align:center;color:var(--tx3);padding:20px">Sin resultados</td></tr>`}
       </tbody></table></div>
     </div>`;
-
-  animateNum(document.getElementById('k-diffprecio2'), Math.round(diffPrecioProm), '%');
-  animateNum(document.getElementById('k-cumplprecio2'), Math.round(cumplePrecioPct), '%');
-  animateNum(document.getElementById('k-unidrepuestas'), unidadesRepuestasTotal);
-  document.getElementById('k-valormov2').textContent = fmtGs(valorMovilizado);
 
   mkChart('ch-precios',{type:'bar',data:{labels:preciosCat.map(p=>p.cat),datasets:[
       {label:'Nova Consumo',data:preciosCat.map(p=>p.nuestro),backgroundColor:brandColor(),borderRadius:5,maxBarThickness:36},
