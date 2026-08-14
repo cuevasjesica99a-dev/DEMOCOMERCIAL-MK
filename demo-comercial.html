@@ -1880,8 +1880,6 @@ function renderQuiebres(){
   const quiebresRows = rows.filter(r=>r.tieneQuiebre).sort((a,b)=>b.fecha.localeCompare(a.fecha));
   const quiebresGondola = quiebresRows.filter(r=>r.tipoQuiebre==='Góndola');
   const quiebresTotal = quiebresRows.filter(r=>r.tipoQuiebre==='Total');
-  const unidadesPerdidasQuiebre = quiebresRows.reduce((s,r)=>s+r.unidadesPerdidasEstimadas,0);
-  const valorPerdidoQuiebre = quiebresRows.reduce((s,r)=>s+r.valorPerdidoEstimadoQuiebre,0);
   const pdvsConQuiebre = new Set(quiebresRows.map(r=>r.pdvId)).size;
 
   const porPdvMap = {};
@@ -1901,11 +1899,9 @@ function renderQuiebres(){
   const porCadena = CHAINS.map(c=>({cadena:c, n:porCadenaMap[c]||0}));
 
   document.getElementById('content').innerHTML = `
-    <div class="grid grid-4" style="margin-bottom:18px">
+    <div class="grid grid-2e" style="margin-bottom:18px">
       <div class="kpi"><div class="kpi-lbl">Quiebre de góndola</div><div class="kpi-val" style="color:var(--wa)">${quiebresGondola.length}</div><div class="kpi-sub">hay stock en depósito</div></div>
       <div class="kpi"><div class="kpi-lbl">Quiebre total</div><div class="kpi-val" style="color:var(--er)">${quiebresTotal.length}</div><div class="kpi-sub">sin stock en depósito</div></div>
-      <div class="kpi"><div class="kpi-lbl">Unidades no vendidas (est.)</div><div class="kpi-val" style="color:var(--tx2)">${fmtInt(unidadesPerdidasQuiebre)}</div></div>
-      <div class="kpi"><div class="kpi-lbl">Valor perdido estimado</div><div class="kpi-val" style="color:var(--vi)">${fmtGs(valorPerdidoQuiebre)}</div><div class="kpi-sub">a precio público sugerido</div></div>
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div><div class="card-title">Quiebres por PDV</div><div class="card-sub">Top 10 locales con más quiebres detectados</div></div></div>
@@ -1921,10 +1917,10 @@ function renderQuiebres(){
     </div>
     <div class="card">
       <div class="card-hdr"><div><div class="card-title">Detalle de quiebres</div><div class="card-sub">${quiebresRows.length} quiebres detectados en ${pdvsConQuiebre} PDVs</div></div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Cadena</th><th>Producto</th><th>Observación</th><th>Cantidad en góndola</th><th>Cantidad en depósito</th><th>Unid. no vendidas (est.)</th><th>Valor perdido (est.)</th></tr></thead><tbody>
+      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Cadena</th><th>Producto</th><th>Observación</th><th>Cantidad en góndola</th><th>Cantidad en depósito</th></tr></thead><tbody>
         ${quiebresRows.slice(0,15).map(r=>{ const pdv=pdvById(r.pdvId);
-          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.chain}</td><td>${r.producto}</td><td><span class="badge ${r.tipoQuiebre==='Total'?'er':'wa'}">${r.tipoQuiebre}</span></td><td style="text-align:center;font-weight:700;color:var(--er)">${r.cantidadEnGondola}</td><td style="text-align:center;font-weight:700;color:${r.cantidadEnDeposito>0?'var(--wa)':'var(--er)'}">${r.cantidadEnDeposito}</td><td>${r.unidadesPerdidasEstimadas}</td><td class="mono">${fmtGs(r.valorPerdidoEstimadoQuiebre)}</td></tr>`;
-        }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--tx3);padding:30px">Sin quiebres en el período seleccionado</td></tr>`}
+          return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.chain}</td><td>${r.producto}</td><td><span class="badge ${r.tipoQuiebre==='Total'?'er':'wa'}">${r.tipoQuiebre}</span></td><td style="text-align:center;font-weight:700;color:var(--er)">${r.cantidadEnGondola}</td><td style="text-align:center;font-weight:700;color:${r.cantidadEnDeposito>0?'var(--wa)':'var(--er)'}">${r.cantidadEnDeposito}</td></tr>`;
+        }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--tx3);padding:30px">Sin quiebres en el período seleccionado</td></tr>`}
       </tbody></table></div>
     </div>`;
 
