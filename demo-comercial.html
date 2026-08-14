@@ -12,16 +12,16 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{
-  --bg:#0d0c0c;--bg2:#161414;--bg3:#1e1b1b;--bg4:#262222;
+  --bg:#181514;--bg2:#221E1D;--bg3:#2A2624;--bg4:#332E2C;
   --bd:rgba(255,255,255,.08);--bd2:rgba(255,255,255,.14);
   --tx:#f2eeee;--tx2:#9c9494;--tx3:#5a5252;
-  --ok:#3cb3a8;--ok-d:rgba(60,179,168,.14);
+  --ok:#3AAFA0;--ok-d:rgba(58,175,160,.14);
   --er:#e84a55;--er-d:rgba(232,74,85,.14);
   --wa:#e8a045;--wa-d:rgba(232,160,69,.14);
   --bl:#5b9bd5;--bl-d:rgba(91,155,213,.14);
   --vi:#9b7fd4;--vi-d:rgba(155,127,212,.14);
   --br:#c98a4b;--br-d:rgba(201,138,75,.16);
-  --brand:#0052cc;--brand2:#2f7dff;--brand-d:rgba(0,82,204,.16);
+  --brand:#C41E24;--brand2:#E0272E;--brand-d:rgba(196,30,36,.16);
   --r:14px;--r2:9px;--sw:250px;--hh:60px;
   --sh:0 8px 28px rgba(0,0,0,.5);--tr:.18s ease;
 }
@@ -1349,7 +1349,7 @@ function renderCobertura(){
     if(rs.length){
       const conVenc = rs.some(r=>r.tieneVencidos);
       const cumpl = rs.filter(r=>r.cumpleCriterios).length/rs.length*100;
-      color = conVenc ? '#e84a55' : (cumpl>=80 ? '#3cb3a8' : '#e8a045');
+      color = conVenc ? '#e84a55' : (cumpl>=80 ? '#3AAFA0' : '#e8a045');
     }
     const marker = L.circleMarker([pdv.lat,pdv.lng],{radius:6,color,fillColor:color,fillOpacity:.85,weight:1.5}).addTo(mapCobertura);
     marker.bindPopup(`<b>${pdv.name}</b><br>${rs.length} visitas en el período`);
@@ -1442,10 +1442,10 @@ function renderAuditoria(){
       {label:'Competencia',data:gondolaCadenaComp,backgroundColor:'#5a5252',borderRadius:6,maxBarThickness:26},
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
-  mkChart('ch-disponibilidad',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Disponibilidad',data:disponibilidadCadena,backgroundColor:'#3cb3a8',borderRadius:6,maxBarThickness:36}]},
+  mkChart('ch-disponibilidad',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Disponibilidad',data:disponibilidadCadena,backgroundColor:'#3AAFA0',borderRadius:6,maxBarThickness:36}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
-  mkChart('ch-competencia',{type:'doughnut',data:{labels:accionesLabels,datasets:[{data:accionesLabels.map(a=>accionesCount[a]),backgroundColor:['#5a5252','#5b9bd5','#3cb3a8','#9b7fd4','#e8a045','#e84a55'],borderWidth:0}]},
+  mkChart('ch-competencia',{type:'doughnut',data:{labels:accionesLabels,datasets:[{data:accionesLabels.map(a=>accionesCount[a]),backgroundColor:['#5a5252','#5b9bd5','#3AAFA0','#9b7fd4','#e8a045','#e84a55'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}}}});
 }
 
@@ -1982,7 +1982,7 @@ function renderAlertas(){
   mkChart('ch-productos',{type:'bar',data:{labels:prodTop.map(p=>p[0]),datasets:[{label:'Alertas',data:prodTop.map(p=>p[1]),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:26}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false},ticks:{font:{size:10.5}}}}}});
 
-  mkChart('ch-motivos',{type:'doughnut',data:{labels:['Vencido','Vence ≤7d','Vence 8-30d','Vence +30d','Averiados'],datasets:[{data:[vencidos.length,urgente.length,proximo.length,holgado.length,averiados.length],backgroundColor:['#e84a55','#e8a045','#f0c674','#3cb3a8','#c98a4b'],borderWidth:0}]},
+  mkChart('ch-motivos',{type:'doughnut',data:{labels:['Vencido','Vence ≤7d','Vence 8-30d','Vence +30d','Averiados'],datasets:[{data:[vencidos.length,urgente.length,proximo.length,holgado.length,averiados.length],backgroundColor:['#e84a55','#e8a045','#f0c674','#3AAFA0','#c98a4b'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}}}});
 }
 
@@ -2044,7 +2044,7 @@ function renderQuiebres(){
   mkChart('ch-quiebreproducto',{type:'bar',data:{labels:porProductoTop.map(p=>p[0]),datasets:[{label:'Quiebres',data:porProductoTop.map(p=>p[1]),backgroundColor:'#e8a045',borderRadius:6,maxBarThickness:22}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
-  mkChart('ch-quiebrecategoria',{type:'doughnut',data:{labels:porCategoria.map(c=>c.cat),datasets:[{data:porCategoria.map(c=>c.n),backgroundColor:['#5b9bd5','#3cb3a8','#9b7fd4','#e8a045'],borderWidth:0}]},
+  mkChart('ch-quiebrecategoria',{type:'doughnut',data:{labels:porCategoria.map(c=>c.cat),datasets:[{data:porCategoria.map(c=>c.n),backgroundColor:['#5b9bd5','#3AAFA0','#9b7fd4','#e8a045'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}}}});
 
   mkChart('ch-quiebrecadena',{type:'bar',data:{labels:porCadena.map(c=>c.cadena),datasets:[{label:'Quiebres',data:porCadena.map(c=>c.n),backgroundColor:'#9b7fd4',borderRadius:6,maxBarThickness:36}]},
@@ -2202,7 +2202,7 @@ function renderJornada(){
     document.getElementById('kpi-jornada-almuerzo').onclick = ()=>{ jornadaFiltroActivo = jornadaFiltroActivo==='almuerzo'?null:'almuerzo'; renderJornada(); };
     document.getElementById('kpi-jornada-ausentes').onclick = ()=>{ jornadaFiltroActivo = jornadaFiltroActivo==='ausentes'?null:'ausentes'; renderJornada(); };
     const leyenda = document.getElementById('jornada-leyenda-ausentes'); if(leyenda) leyenda.onclick = ()=>{ jornadaFiltroActivo='ausentes'; renderJornada(); };
-    mkChart('ch-horas-entry',{type:'bar',data:{labels:horasLabels,datasets:[{label:'A tiempo',data:horasSlice.map((v,i)=>v-horasTardeSlice[i]),backgroundColor:'#3cb3a8',borderRadius:4},{label:'Tarde',data:horasTardeSlice,backgroundColor:'#e84a55',borderRadius:4}]},
+    mkChart('ch-horas-entry',{type:'bar',data:{labels:horasLabels,datasets:[{label:'A tiempo',data:horasSlice.map((v,i)=>v-horasTardeSlice[i]),backgroundColor:'#3AAFA0',borderRadius:4},{label:'Tarde',data:horasTardeSlice,backgroundColor:'#e84a55',borderRadius:4}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:9}}},y:{stacked:true,beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{stepSize:1}}}}});
   }
 }
@@ -2469,8 +2469,8 @@ document.getElementById('btn-export').onclick = ()=>{
 
 // ---- Selector de color de marca ----
 const THEMES = [
+  {c1:'#C41E24', c2:'#E0272E'},
   {c1:'#0052cc', c2:'#2f7dff'},
-  {c1:'#c11d2a', c2:'#e8293a'},
   {c1:'#1f8a4c', c2:'#33b56a'},
   {c1:'#6a3fd0', c2:'#8b63e8'},
   {c1:'#e07b1a', c2:'#f59a3d'},
