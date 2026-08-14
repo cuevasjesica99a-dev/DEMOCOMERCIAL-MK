@@ -604,6 +604,8 @@ let coberturaCadenasAbiertas = new Set();
 let coberturaClusterFiltro = null;
 let preciosProductoComparado='';
 let preciosDetalleCompetidor=COMPETIDORES[0];
+let preciosLocalBusqueda='';
+let preciosLocalClusterFiltro='';
 let alertasTab='todos';
 let accionarTab='vencidos';
 let auditoriaPdvFiltro='';
@@ -663,6 +665,27 @@ function coberturaDeVisitas(pdvIds, rows, omitidas){
   const realizadas = rows.filter(v=>idSet.has(v.pdvId)).length;
   const esperadas = realizadas + omitidas.filter(o=>idSet.has(o.pdvId)).length;
   return {realizadas, esperadas, cumpl: esperadas? Math.round(realizadas/esperadas*100):100};
+}
+
+// Clasificación de locales por rotación (unidades repuestas), en clústeres H (top 10%) > A (10-30%) > B (30-60%) > C (60-100%).
+// Locales con pocos relevamientos en el período (< MIN_VISITAS_CLASIFICAR) quedan "Sin clasificar" para no rankear con datos insuficientes.
+const CLUSTER_DEF = [
+  {id:'H', label:'Clúster H — Top', hasta:0.10, color:'ok'},
+  {id:'A', label:'Clúster A', hasta:0.30, color:'bl'},
+  {id:'B', label:'Clúster B', hasta:0.60, color:'wa'},
+  {id:'C', label:'Clúster C — Atención', hasta:1.01, color:'er'},
+];
+function clasificarLocalesPorRotacion(pdvsFiltrados, rows){
+  const MIN_VISITAS_CLASIFICAR = 3;
+  const rotacionPorPdv = {}, visitasPorPdv = {};
+  rows.forEach(r=>{ rotacionPorPdv[r.pdvId]=(rotacionPorPdv[r.pdvId]||0)+r.unidadesRepuestas; visitasPorPdv[r.pdvId]=(visitasPorPdv[r.pdvId]||0)+1; });
+  const elegibles = pdvsFiltrados.filter(pdv=>(visitasPorPdv[pdv.id]||0)>=MIN_VISITAS_CLASIFICAR)
+    .map(pdv=>({pdv, unid:rotacionPorPdv[pdv.id]||0}))
+    .sort((a,b)=>b.unid-a.unid);
+  const clasificados = elegibles.map((r,i,arr)=>({...r, cluster: CLUSTER_DEF.find(c=>((i+1)/arr.length)<=c.hasta).id}));
+  const clusterPorPdvId = {};
+  clasificados.forEach(r=>clusterPorPdvId[r.pdv.id]=r.cluster);
+  return { clasificados, clusterDe: pdvId => clusterPorPdvId[pdvId] || null };
 }
 function mkChart(id, config){
   if(charts[id]) charts[id].destroy();
@@ -1142,20 +1165,13 @@ function renderCobertura(){
   const [refY,refM,refD] = fechaReferencia.split('-').map(Number);
   const fechaRefDate = new Date(refY,refM-1,refD);
   const diasDesde = fecha => { const [y,m,d]=fecha.split('-').map(Number); return Math.round((fechaRefDate-new Date(y,m-1,d))/86400000); };
-  // Clústeres de locales por rotación (unidades repuestas) en el período filtrado: H (top 10%) > A (10-30%) > B (30-60%) > C (60-100%)
-  const CLUSTER_DEF = [
-    {id:'H', label:'Clúster H — Top', hasta:0.10, color:'ok'},
-    {id:'A', label:'Clúster A', hasta:0.30, color:'bl'},
-    {id:'B', label:'Clúster B', hasta:0.60, color:'wa'},
-    {id:'C', label:'Clúster C — Atención', hasta:1.01, color:'er'},
-  ];
-  const clusterDeCorte = pct => CLUSTER_DEF.find(c=>pct<=c.hasta).id;
-  const rotacionTotalPdv = {};
-  rows.forEach(r=>rotacionTotalPdv[r.pdvId]=(rotacionTotalPdv[r.pdvId]||0)+r.unidadesRepuestas);
-  const clustersPorLocal = pdvsFiltrados.map(pdv=>({pdv, unid:rotacionTotalPdv[pdv.id]||0}))
-    .sort((a,b)=>b.unid-a.unid)
-    .map((r,i,arr)=>({...r, cluster: clusterDeCorte((i+1)/arr.length)}));
-  const clusterResumen = CLUSTER_DEF.map(c=>({...c, n: clustersPorLocal.filter(r=>r.cluster===c.id).length}));
+  // Clústeres de locales por rotación (unidades repuestas) en el período filtrado
+  const CLUSTER_UI = [...CLUSTER_DEF, {id:'SIN', label:'Sin clasificar', color:null}];
+  const clasifRotacion = clasificarLocalesPorRotacion(pdvsFiltrados, rows);
+  const rotacionPorPdvGlobal = {};
+  rows.forEach(r=>rotacionPorPdvGlobal[r.pdvId]=(rotacionPorPdvGlobal[r.pdvId]||0)+r.unidadesRepuestas);
+  const clustersPorLocal = pdvsFiltrados.map(pdv=>({pdv, unid:rotacionPorPdvGlobal[pdv.id]||0, cluster: clasifRotacion.clusterDe(pdv.id)||'SIN'})).sort((a,b)=>b.unid-a.unid);
+  const clusterResumen = CLUSTER_UI.map(c=>({...c, n: clustersPorLocal.filter(r=>r.cluster===c.id).length}));
   const clustersVisibles = coberturaClusterFiltro? clustersPorLocal.filter(r=>r.cluster===coberturaClusterFiltro) : clustersPorLocal;
 
   const localesSinVisitar = pdvsFiltrados.map(pdv=>{
@@ -1194,12 +1210,12 @@ function renderCobertura(){
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">Clústeres de locales por rotación</div><div class="card-sub">Ranking de los ${pdvsFiltrados.length} locales según unidades repuestas en el período — H es el grupo de mejor desempeño, C el que necesita más atención</div></div></div>
-      <div class="grid grid-4" style="margin-bottom:14px">
-        ${clusterResumen.map(c=>`<div class="kpi ${coberturaClusterFiltro===c.id?'t-ok':''}" id="cob-cluster-${c.id}" style="cursor:pointer;border-color:${coberturaClusterFiltro===c.id?`var(--${c.color})`:''}"><div class="kpi-lbl">${c.label}</div><div class="kpi-val" style="color:var(--${c.color})">${c.n}</div><div class="kpi-sub">locales</div></div>`).join('')}
+      <div class="grid grid-kpi" style="margin-bottom:14px">
+        ${clusterResumen.map(c=>`<div class="kpi ${coberturaClusterFiltro===c.id?'t-ok':''}" id="cob-cluster-${c.id}" style="cursor:pointer;border-color:${coberturaClusterFiltro===c.id&&c.color?`var(--${c.color})`:''}"><div class="kpi-lbl">${c.label}</div><div class="kpi-val" style="color:${c.color?`var(--${c.color})`:'var(--tx3)'}">${c.n}</div><div class="kpi-sub">locales</div></div>`).join('')}
       </div>
-      ${coberturaClusterFiltro?`<div class="banner"><i class="fas fa-filter"></i> Filtrando por ${CLUSTER_DEF.find(c=>c.id===coberturaClusterFiltro).label} — <span style="cursor:pointer;text-decoration:underline" id="cob-cluster-clear">ver todos</span></div>`:''}
+      ${coberturaClusterFiltro?`<div class="banner"><i class="fas fa-filter"></i> Filtrando por ${CLUSTER_UI.find(c=>c.id===coberturaClusterFiltro).label} — <span style="cursor:pointer;text-decoration:underline" id="cob-cluster-clear">ver todos</span></div>`:''}
       <div class="tbl-wrap" style="max-height:360px;overflow-y:auto"><table><thead><tr><th>#</th><th>Local</th><th>Cadena</th><th>Ciudad</th><th>Rotación (unid.)</th><th>Clúster</th></tr></thead><tbody>
-        ${clustersVisibles.map((r,i)=>{ const def=CLUSTER_DEF.find(c=>c.id===r.cluster); return `<tr><td>${i+1}</td><td style="font-weight:700">${r.pdv.name}</td><td>${r.pdv.chain}</td><td>${r.pdv.city}</td><td class="mono">${fmtInt(r.unid)}</td><td><span class="badge ${def.color}">${r.cluster}</span></td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px">Sin datos</td></tr>`}
+        ${clustersVisibles.map((r,i)=>{ const def=CLUSTER_UI.find(c=>c.id===r.cluster); return `<tr><td>${i+1}</td><td style="font-weight:700">${r.pdv.name}</td><td>${r.pdv.chain}</td><td>${r.pdv.city}</td><td class="mono">${fmtInt(r.unid)}</td><td>${def.color?`<span class="badge ${def.color}">${r.cluster}</span>`:`<span class="badge" style="background:var(--bg4);color:var(--tx3)">Sin clasificar</span>`}</td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px">Sin datos</td></tr>`}
       </tbody></table></div>
     </div>
     <div class="card">
@@ -1217,7 +1233,7 @@ function renderCobertura(){
     el.onclick = ()=>{ const c=el.dataset.cadena; if(coberturaCadenasAbiertas.has(c)) coberturaCadenasAbiertas.delete(c); else coberturaCadenasAbiertas.add(c); renderCobertura(); };
   });
 
-  CLUSTER_DEF.forEach(c=>{
+  CLUSTER_UI.forEach(c=>{
     const el = document.getElementById('cob-cluster-'+c.id);
     if(el) el.onclick = ()=>{ coberturaClusterFiltro = coberturaClusterFiltro===c.id? null : c.id; renderCobertura(); };
   });
@@ -1355,6 +1371,7 @@ function renderAuditoria(){
 // ============================================================
 function renderPrecios(){
   const preciosSearchTenidoFoco = document.activeElement && document.activeElement.id==='prec-corte-search';
+  const preciosLocalSearchTenidoFoco = document.activeElement && document.activeElement.id==='prec-local-search';
   const all = filterVisits();
   const conStock = all.filter(r=>!r.tieneQuiebre);
   const diffPrecioProm = conStock.length? conStock.reduce((a,r)=>a+((r.precioNuestro-r.precioCompetidor)/r.precioCompetidor*100),0)/conStock.length : 0;
@@ -1433,6 +1450,30 @@ function renderPrecios(){
     detalleCorteRows = detalleCorteRows.filter(r=>r.corte.toLowerCase().includes(s) || r.marca.toLowerCase().includes(s));
   }
 
+  // Precios por local: un local (PDV) por fila, con su clúster de rotación (mismo criterio que Cobertura) y su rango de precio propio vs. competencia
+  const pdvsFiltradosPrecios = PDVS.filter(pdv=>(!F.cadena||pdv.chain===F.cadena)&&(!F.ciudad||pdv.city===F.ciudad));
+  const clasifRotacionPrecios = clasificarLocalesPorRotacion(pdvsFiltradosPrecios, all);
+  let preciosPorLocal = pdvsFiltradosPrecios.map(pdv=>{
+    const rowsPdv = all.filter(r=>r.pdvId===pdv.id);
+    const rowsPdvConStock = rowsPdv.filter(r=>!r.tieneQuiebre);
+    const productosPropios = new Set(rowsPdvConStock.map(r=>r.producto)).size;
+    const productosComp = new Set(rowsPdv.map(r=>r.producto+'|'+r.competidorNombre)).size;
+    const variacion = rowsPdvConStock.length? rowsPdvConStock.reduce((s,r)=>s+((r.precioNuestro-r.precioCompetidor)/r.precioCompetidor*100),0)/rowsPdvConStock.length : null;
+    return {
+      pdv, n:rowsPdv.length, productosPropios, productosComp,
+      minNova: rowsPdvConStock.length?Math.min(...rowsPdvConStock.map(r=>r.precioNuestro)):0,
+      maxNova: rowsPdvConStock.length?Math.max(...rowsPdvConStock.map(r=>r.precioNuestro)):0,
+      minComp: rowsPdv.length?Math.min(...rowsPdv.map(r=>r.precioCompetidor)):0,
+      maxComp: rowsPdv.length?Math.max(...rowsPdv.map(r=>r.precioCompetidor)):0,
+      variacion, cluster: clasifRotacionPrecios.clusterDe(pdv.id),
+    };
+  }).filter(r=>r.n>0).sort((a,b)=>a.pdv.name.localeCompare(b.pdv.name));
+  if(preciosLocalClusterFiltro) preciosPorLocal = preciosPorLocal.filter(r=>preciosLocalClusterFiltro==='SIN'? !r.cluster : r.cluster===preciosLocalClusterFiltro);
+  if(preciosLocalBusqueda){
+    const s = preciosLocalBusqueda.toLowerCase();
+    preciosPorLocal = preciosPorLocal.filter(r=>r.pdv.name.toLowerCase().includes(s) || r.pdv.chain.toLowerCase().includes(s));
+  }
+
   // Comparativo por producto: Nova Consumo vs. cada competidor, para el producto elegido en el select
   const VARIANTES_COMPETIDOR = ['amber','blue','violet'];
   const COLORES_COMPETIDOR = ['#e8a045','#5b9bd5','#9b7fd4'];
@@ -1502,11 +1543,32 @@ function renderPrecios(){
         </div>
       </div>
     </div>
-    <div class="card">
+    <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">Detalle por corte — mínimo y máximo</div><div class="card-sub">Todos los productos y marcas relevados en el rango elegido</div></div></div>
       <input type="text" id="prec-corte-search" placeholder="Buscar producto o marca..." style="max-width:320px;margin-bottom:14px" value="${searchTerm}">
       <div class="tbl-wrap" style="max-height:420px;overflow-y:auto"><table><thead><tr><th>Producto</th><th>Marca</th><th>Tipo</th><th>Mínimo</th><th>Máximo</th></tr></thead><tbody>
         ${detalleCorteRows.map(r=>`<tr><td style="font-weight:700">${r.corte}</td><td>${r.marca}</td><td><span class="badge ${r.tipo==='Propia'?'ok':'er'}">${r.tipo}</span></td><td class="mono">${fmtGs(r.min)}</td><td class="mono">${fmtGs(r.max)}</td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:20px">Sin resultados</td></tr>`}
+      </tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div><div class="card-title">Precios por local</div><div class="card-sub">Todos los locales con al menos un precio relevado en el rango elegido, propio o de competencia</div></div></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <input type="text" id="prec-local-search" placeholder="Buscar local o cadena..." style="max-width:320px;flex:1" value="${preciosLocalBusqueda}">
+        <select class="select-inline" id="prec-local-cluster">
+          <option value="">Todos los clústeres</option>
+          ${CLUSTER_DEF.map(c=>`<option value="${c.id}" ${preciosLocalClusterFiltro===c.id?'selected':''}>${c.label}</option>`).join('')}
+          <option value="SIN" ${preciosLocalClusterFiltro==='SIN'?'selected':''}>Sin clasificar</option>
+        </select>
+      </div>
+      <div class="tbl-wrap" style="max-height:420px;overflow-y:auto"><table><thead><tr>
+        <th>Local</th><th>Cadena</th><th>Clúster</th><th>Productos propios</th><th>Productos comp.</th><th>Mín. Nova Consumo</th><th>Máx. Nova Consumo</th><th>Mín. Comp.</th><th>Máx. Comp.</th><th>Variación</th>
+      </tr></thead><tbody>
+        ${preciosPorLocal.map(r=>{
+          const def = CLUSTER_DEF.find(c=>c.id===r.cluster);
+          const clusterTxt = def? def.label.replace(' — Top','').replace(' — Atención','') : 'Sin clasificar';
+          const v = r.variacion;
+          return `<tr><td style="font-weight:700">${r.pdv.name}</td><td>${r.pdv.chain}</td><td style="color:${def?`var(--${def.color})`:'var(--tx3)'}">${clusterTxt}</td><td class="mono">${fmtInt(r.productosPropios)}</td><td class="mono">${fmtInt(r.productosComp)}</td><td class="mono">${fmtGs(r.minNova)}</td><td class="mono">${fmtGs(r.maxNova)}</td><td class="mono">${fmtGs(r.minComp)}</td><td class="mono">${fmtGs(r.maxComp)}</td><td>${v==null?'—':`<span class="badge ${v<=0?'ok':'er'}">${v>0?'+':''}${v.toFixed(1)}%</span>`}</td></tr>`;
+        }).join('') || `<tr><td colspan="10" style="text-align:center;color:var(--tx3);padding:20px">Sin resultados</td></tr>`}
       </tbody></table></div>
     </div>`;
 
@@ -1527,6 +1589,11 @@ function renderPrecios(){
   const corteSearch = document.getElementById('prec-corte-search');
   corteSearch.oninput = e=>{ searchTerm=e.target.value; renderPrecios(); };
   if(preciosSearchTenidoFoco){ corteSearch.focus(); corteSearch.selectionStart = corteSearch.value.length; }
+
+  const localSearch = document.getElementById('prec-local-search');
+  localSearch.oninput = e=>{ preciosLocalBusqueda=e.target.value; renderPrecios(); };
+  if(preciosLocalSearchTenidoFoco){ localSearch.focus(); localSearch.selectionStart = localSearch.value.length; }
+  document.getElementById('prec-local-cluster').onchange = e=>{ preciosLocalClusterFiltro=e.target.value; renderPrecios(); };
 
   wireKpiX('precio-nova');
   statsPorCompetidor.forEach((c,i)=>wireKpiX('precio-comp'+i));
