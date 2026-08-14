@@ -827,10 +827,8 @@ function badgeSalidaEstado(j){
   return `<span class="badge wa"><i class="fas fa-arrow-left"></i> Antes de hora</span>`;
 }
 function badgeTardanza(min){
-  if(!min || min<=10) return `<span class="badge ok"><i class="fas fa-check-circle"></i> A horario</span>`;
-  if(min<=15) return `<span class="badge wa"><i class="fas fa-clock"></i> Leve +${min}min</span>`;
-  if(min<=30) return `<span class="badge wa" style="opacity:.8"><i class="fas fa-clock"></i> Moderada +${min}min</span>`;
-  return `<span class="badge er"><i class="fas fa-exclamation-circle"></i> Grave +${min}min</span>`;
+  if(!min || min<=10) return `<span class="badge ok"><i class="fas fa-check-circle"></i> A tiempo</span>`;
+  return `<span class="badge er"><i class="fas fa-clock"></i> Fuera de horario</span>`;
 }
 function chip(label, onclickAttr){
   return `<span class="fbar-chip" onclick="${onclickAttr}"><i class="fas fa-times" style="font-size:9px"></i>${label}</span>`;
@@ -2101,12 +2099,6 @@ function renderJornada(){
     return Math.round((new Date(y2,m2-1,d2)-new Date(y,m-1,d))/86400000);
   };
 
-  const dias14 = [...Array(14)].map((_,i)=>isoDate(addDays(TODAY,-(13-i))));
-  const asistenciaPorDia = dias14.map(f=>{
-    const ausF = new Set(AUSENCIAS.filter(a=>a.fecha===f && promIds.has(a.promotorId)).map(a=>a.promotorId));
-    return {fecha:f, pct: total? Math.round(100*(total-ausF.size)/total):100};
-  });
-
   const riesgoAusentismo = proms.map(p=>{
     const jCount = JORNADAS.filter(j=>j.promotorId===p.id).length;
     const aCount = AUSENCIAS.filter(a=>a.promotorId===p.id).length;
@@ -2163,11 +2155,9 @@ function renderJornada(){
         <span style="cursor:pointer" id="jornada-leyenda-ausentes"><span class="dot er"></span> Ausentes (${dayAusencias.length})</span>
       </div>
     </div>
-    <div class="grid grid-2" style="margin-bottom:16px">
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Horario de entrada</div><div class="card-sub">Distribución de check-ins · ${dateDisplay(fecha)}</div></div></div>
-        <div class="chart-wrap sm"><canvas id="ch-horas-entry"></canvas></div></div>
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Tendencia de asistencia</div><div class="card-sub">% de la nómina presente, últimos 14 días</div></div></div>
-        <div class="chart-wrap sm"><canvas id="ch-asist-tendencia"></canvas></div></div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr"><div><div class="card-title">Horario de entrada</div><div class="card-sub">Distribución de check-ins · ${dateDisplay(fecha)}</div></div></div>
+      <div class="chart-wrap sm"><canvas id="ch-horas-entry"></canvas></div>
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div><div class="card-title">Puntualidad del período</div><div class="card-sub">Todo el histórico cargado, no solo ${dateDisplay(fecha)} — para coaching sostenido</div></div></div>
@@ -2185,7 +2175,7 @@ function renderJornada(){
       </div>
     </div>
     <div class="card">
-      <div class="card-hdr"><div class="card-title">${proms.length} promotores · ${dateDisplay(fecha)}</div><div style="display:flex;gap:8px">
+      <div class="card-hdr"><div><div class="card-title">Resumen de asistencia</div><div class="card-sub">${proms.length} promotores · ${dateDisplay(fecha)}</div></div><div style="display:flex;gap:8px">
         <span class="badge ${dayAusencias.length?'er':'ok'}">${dayAusencias.length} ausentes</span>
         <span class="badge ${tarde.length?'er':'ok'}">${tarde.length} tardanzas</span>
         <span class="badge ${almExcedidos.length?'er':'ok'}">${almExcedidos.length} alm. excedidos</span>
@@ -2214,8 +2204,6 @@ function renderJornada(){
     const leyenda = document.getElementById('jornada-leyenda-ausentes'); if(leyenda) leyenda.onclick = ()=>{ jornadaFiltroActivo='ausentes'; renderJornada(); };
     mkChart('ch-horas-entry',{type:'bar',data:{labels:horasLabels,datasets:[{label:'A tiempo',data:horasSlice.map((v,i)=>v-horasTardeSlice[i]),backgroundColor:'#3cb3a8',borderRadius:4},{label:'Tarde',data:horasTardeSlice,backgroundColor:'#e84a55',borderRadius:4}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:9}}},y:{stacked:true,beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{stepSize:1}}}}});
-    mkChart('ch-asist-tendencia',{type:'line',data:{labels:dias14.map(dateDisplay),datasets:[{data:asistenciaPorDia.map(d=>d.pct),borderColor:'#3cb3a8',backgroundColor:'rgba(60,179,168,.15)',tension:.35,fill:true,pointRadius:3}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}% de la nómina`}}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});
   }
 }
 function exportJornadaCSV(jornadas, ausencias){
