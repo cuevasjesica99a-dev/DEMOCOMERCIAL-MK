@@ -522,7 +522,7 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
       const subcategoria = pick(Object.keys(CATALOGO[categoria]));
       const producto = pick(CATALOGO[categoria][subcategoria]);
       const precioSugerido = PRECIO_SUGERIDO[producto];
-      const tieneQuiebre = chance(0.08-boost*0.03);
+      const tieneQuiebre = chance(0.12-boost*0.045); // tasa de quiebre real de mercado: ~7.5% con buena ejecución (julio), ~16.5% sin ella (junio) — referencia: estudios de disponibilidad en góndola (Nielsen/ECR) ubican el OOS promedio en 8-10%, hasta 15%+ en SKUs de alta rotación sin monitoreo de campo
       const tipoQuiebre = tieneQuiebre ? (chance(0.65)?'Góndola':'Total') : null;
       const unidadesPerdidasEstimadas = tieneQuiebre ? (tipoQuiebre==='Total'?4:2)+Math.floor(rnd()*6) : 0;
       const cantidadEnGondola = tieneQuiebre ? 0 : null;
