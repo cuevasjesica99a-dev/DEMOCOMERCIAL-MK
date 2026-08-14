@@ -372,7 +372,7 @@ const COMPETIDORES = ['Rival Plus','Marca Andina','Sello Azul'];
 const ACCIONES_COMP = ['Promoción 2x1','Degustación en punto','Nueva exhibición','Bajó su precio','Descuento por cantidad'];
 const POP_TYPES = ['Exhibidor de punta','Cenefa','Isla promocional','Stopper de góndola','Habladores de precio'];
 const MOTIVOS_VENC = ['Rotación baja del local','Sobre-stock enviado por el depósito','Vencimiento corto de fábrica','Promoción no vendida a tiempo'];
-const MOTIVOS_PROMO = ['Cartelería faltante','Sin stock promocional','Promoción vencida','Exhibición adicional no armada'];
+const MOTIVOS_PROMO = ['Cartelería faltante','Falta de comunicación al personal del local','Promoción vencida','Exhibición adicional no armada'];
 const CATEGORIA_DE_PRODUCTO = {};
 Object.entries(CATALOGO).forEach(([cat,subs])=>Object.values(subs).flat().forEach(p=>CATEGORIA_DE_PRODUCTO[p]=cat));
 const PRECIO_SUGERIDO = {};
@@ -1706,14 +1706,6 @@ function renderRelevamientos(){
   }).sort((a,b)=>b.n-a.n);
   const cadenasEnRiesgo = porCadena.filter(c=>c.n>=3 && c.dominaCompetencia>=30).sort((a,b)=>b.dominaCompetencia-a.dominaCompetencia).slice(0,3);
 
-  const dias14 = [...Array(14)].map((_,i)=>isoDate(addDays(TODAY,-(13-i))));
-  const indiceDias = dias14.map(fecha=>{
-    const rs = visitasDelDia(fecha);
-    if(!rs.length) return {fecha, pct:null};
-    const score = rs.reduce((s,r)=>s+((r.cumpleCriterios?1:0)+(r.espacioGanado?1:0)+(r.tienePOP?1:0)+(r.tienePromocion?1:0)+(r.presenciaCompetencia==='Menor'?1:0))/5*100,0)/rs.length;
-    return {fecha, pct:Math.round(score)};
-  });
-
   const promoFallidas = rows.filter(r=>!r.tienePromocion).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,8);
   const espaciosGanadosN = rows.filter(r=>r.espacioGanado).length;
   const popInstaladoN = rows.filter(r=>r.tienePOP).length;
@@ -1743,10 +1735,6 @@ function renderRelevamientos(){
       <div class="tbl-wrap"><table><thead><tr><th>Tipo de material POP</th><th>Instalaciones en el período</th></tr></thead><tbody>
         ${POP_TYPES.map(t=>`<tr><td>${t}</td><td style="font-weight:700">${popTipoCount[t]||0}</td></tr>`).join('')}
       </tbody></table></div>
-    </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div><div class="card-title">Índice combinado de relevamiento</div><div class="card-sub">Criterios + espacios + POP + promoción + dominio de góndola — últimos 14 días</div></div></div>
-      <div class="chart-wrap" style="height:190px"><canvas id="ch-relev-indice"></canvas></div>
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">Presencia de competencia en el punto de venta</div><div class="card-sub">Encuesta independiente de precio/vencimientos — quién domina el espacio de exhibición</div></div></div>
@@ -1780,9 +1768,6 @@ function renderRelevamientos(){
   animateNum(document.getElementById('k-promorel'), promoPct, '%');
   animateNum(document.getElementById('k-dominio'), dominamosPct, '%');
   animateNum(document.getElementById('k-totalrelev'), n);
-
-  mkChart('ch-relev-indice',{type:'line',data:{labels:dias14.map(d=>dateDisplay(d)),datasets:[{data:indiceDias.map(d=>d.pct),borderColor:'#9b7fd4',backgroundColor:'rgba(155,127,212,.15)',tension:.35,fill:true,pointRadius:3,spanGaps:true}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`Índice: ${ctx.parsed.y}%`}}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});
 }
 
 // ============================================================
