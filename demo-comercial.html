@@ -629,7 +629,6 @@ let preciosDetalleCompetidor=COMPETIDORES[0];
 let preciosLocalBusqueda='';
 let preciosLocalClusterFiltro='';
 let alertasTab='todos';
-let accionarTab='vencidos';
 let auditoriaPdvFiltro='';
 const charts = {};
 let mapCobertura=null, mapRecorrido=null;
@@ -1797,9 +1796,6 @@ function renderAlertas(){
   const alertRows = rows.filter(r=>r.tieneVencidos||r.tieneAveriados).sort((a,b)=>b.fecha.localeCompare(a.fecha));
 
   const valorVencido = vencidos.reduce((s,r)=>s+valorAlerta(r.productos,r.cantidadVencidos),0);
-  const valorProximo = [...urgente,...proximo,...holgado].reduce((s,r)=>s+valorAlerta(r.productos,r.cantidadVencidos),0);
-  const valorAveriado = averiados.reduce((s,r)=>s+valorAlerta(r.productosAveriados,r.cantidadAveriados),0);
-  const valorEnRiesgo = valorVencido+valorProximo+valorAveriado;
 
   const pdvsConRelevamiento = new Set(rows.map(r=>r.pdvId));
   const pdvsConAlerta = new Set([...vencidos,...averiados].map(r=>r.pdvId));
@@ -1814,30 +1810,6 @@ function renderAlertas(){
   averiados.forEach(r=>r.productosAveriados.forEach(p=>prodCounts[p]=(prodCounts[p]||0)+1));
   const prodTop = Object.entries(prodCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
 
-  const quiebresRows = rows.filter(r=>r.tieneQuiebre).sort((a,b)=>b.fecha.localeCompare(a.fecha));
-
-  const comboMap = {};
-  rows.filter(r=>r.tieneVencidos).forEach(r=>{
-    const pdv = pdvById(r.pdvId);
-    r.productos.forEach(p=>{
-      const k = r.pdvId+'|'+p;
-      if(!comboMap[k]) comboMap[k] = {pdv:pdv.name, cadena:pdv.chain, producto:p, unid:0, vencido:false};
-      comboMap[k].unid += r.cantidadVencidos;
-      if(r.estadoVenc==='vencido') comboMap[k].vencido = true;
-    });
-  });
-  const topCombos = Object.values(comboMap).sort((a,b)=>b.unid-a.unid).slice(0,8);
-
-  const comboQuiebreMap = {};
-  quiebresRows.forEach(r=>{
-    const pdv = pdvById(r.pdvId);
-    const k = r.pdvId+'|'+r.producto;
-    if(!comboQuiebreMap[k]) comboQuiebreMap[k] = {pdv:pdv.name, cadena:pdv.chain, producto:r.producto, unid:0, tipoQuiebre:r.tipoQuiebre};
-    comboQuiebreMap[k].unid += r.unidadesPerdidasEstimadas;
-    if(r.tipoQuiebre==='Total') comboQuiebreMap[k].tipoQuiebre = 'Total';
-  });
-  const topCombosQuiebre = Object.values(comboQuiebreMap).sort((a,b)=>b.unid-a.unid).slice(0,8);
-
   const proximosTotal = urgente.length+proximo.length+holgado.length;
 
   const fechaVencimiento = r => { const [y,m,d]=r.fecha.split('-').map(Number); return dateDisplay(isoDate(addDays(new Date(y,m-1,d), r.diasVenc))); };
@@ -1850,12 +1822,6 @@ function renderAlertas(){
   document.getElementById('content').innerHTML = `
     <div class="section-divider"><i class="fas fa-calendar-times"></i> Vencimientos y averías</div>
     ${vencidos.length?`<div class="banner" style="background:var(--er-d);border-color:var(--er-d);color:var(--er)"><i class="fas fa-calendar-times"></i> <b>${vencidos.length} productos ya vencidos</b> — ${fmtGs(valorVencido)} en riesgo, hay que retirarlos de góndola.</div>`:''}
-    <div class="grid grid-4" style="margin-bottom:16px">
-      <div class="kpi"><div class="kpi-lbl">Valor ya vencido</div><div class="kpi-val" style="color:var(--er)">${fmtGs(valorVencido)}</div></div>
-      <div class="kpi"><div class="kpi-lbl">Valor próximo a vencer</div><div class="kpi-val" style="color:var(--wa)">${fmtGs(valorProximo)}</div></div>
-      <div class="kpi"><div class="kpi-lbl">Valor en averías</div><div class="kpi-val" style="color:var(--br)">${fmtGs(valorAveriado)}</div></div>
-      <div class="kpi"><div class="kpi-lbl">Valor total en riesgo</div><div class="kpi-val" style="color:var(--vi)">${fmtGs(valorEnRiesgo)}</div><div class="kpi-sub">a precio público sugerido</div></div>
-    </div>
     <div class="semaforo" style="grid-template-columns:repeat(4,1fr)">
       <div class="sf-card rojo"><div class="sf-val" style="color:var(--er)">${vencidos.length}</div><div class="sf-lbl">Ya vencido</div></div>
       <div class="sf-card amarillo"><div class="sf-val" style="color:var(--wa)">${proximosTotal}</div><div class="sf-lbl">Próximos a vencer (&lt;90 días)</div></div>
@@ -1867,21 +1833,6 @@ function renderAlertas(){
         <div class="chart-wrap sm"><canvas id="ch-productos"></canvas></div></div>
       <div class="card"><div class="card-hdr"><div class="card-title">Motivos de alerta</div></div>
         <div class="chart-wrap sm"><canvas id="ch-motivos"></canvas></div></div>
-    </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr" style="align-items:center">
-        <div><div class="card-title">Dónde accionar</div><div class="card-sub">Cruce PDV × Producto, ordenado por unidades en riesgo</div></div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <span class="fbar-chip" id="acc-tab-vencidos" style="cursor:pointer">Vencidos (${topCombos.length})</span>
-          <span class="fbar-chip" id="acc-tab-quiebres" style="cursor:pointer">Quiebres (${topCombosQuiebre.length})</span>
-        </div>
-      </div>
-      <div class="tbl-wrap"><table><thead><tr><th>PDV</th><th>Cadena</th><th>Producto</th><th>Estado</th><th>Unidades</th></tr></thead><tbody>
-        ${accionarTab==='vencidos'
-          ? (topCombos.map(x=>`<tr><td style="font-weight:700">${x.pdv}</td><td>${x.cadena}</td><td>${x.producto}</td><td><span class="badge ${x.vencido?'er':'wa'}">${x.vencido?'Vencido':'Próximo'}</span></td><td style="font-weight:800;color:var(--er)">${x.unid}</td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:30px">Sin datos</td></tr>`)
-          : (topCombosQuiebre.map(x=>`<tr><td style="font-weight:700">${x.pdv}</td><td>${x.cadena}</td><td>${x.producto}</td><td><span class="badge ${x.tipoQuiebre==='Total'?'er':'wa'}">${x.tipoQuiebre}</span></td><td style="font-weight:800;color:var(--er)">${x.unid}</td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:30px">Sin datos</td></tr>`)
-        }
-      </tbody></table></div>
     </div>
     <div class="card">
       <div class="card-hdr" style="align-items:center">
@@ -1905,10 +1856,6 @@ function renderAlertas(){
   [['todos','tab-todos'],['vencidos','tab-vencidos'],['proximos','tab-proximos'],['averiados','tab-averiados']].forEach(([tab,id])=>{
     marcarTab(id, alertasTab===tab);
     document.getElementById(id).onclick = ()=>{ alertasTab=tab; renderAlertas(); };
-  });
-  [['vencidos','acc-tab-vencidos'],['quiebres','acc-tab-quiebres']].forEach(([tab,id])=>{
-    marcarTab(id, accionarTab===tab);
-    document.getElementById(id).onclick = ()=>{ accionarTab=tab; renderAlertas(); };
   });
 
   mkChart('ch-productos',{type:'bar',data:{labels:prodTop.map(p=>p[0]),datasets:[{label:'Alertas',data:prodTop.map(p=>p[1]),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:26}]},
