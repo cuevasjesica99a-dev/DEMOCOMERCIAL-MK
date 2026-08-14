@@ -972,7 +972,6 @@ function renderResumen(){
   const dominaCompPct = totalVisitas? Math.round(100*rows.filter(r=>r.presenciaCompetencia==='Mayor').length/totalVisitas) : 0;
 
   const ejecucionPct = totalVisitas? Math.round(100*rows.reduce((s,r)=>s+((r.cumpleCriterios?1:0)+(r.espacioGanado?1:0)+(r.tienePOP?1:0)+(r.tienePrecios?1:0)),0)/(totalVisitas*4)) : 0;
-  const valorMovilizado = rows.reduce((s,r)=>s+r.unidadesRepuestas*r.precioSugerido,0);
 
   const omitidas = filterOmitidas();
   const pdvsFiltrados = PDVS.filter(pdv=>(!F.cadena||pdv.chain===F.cadena)&&(!F.ciudad||pdv.city===F.ciudad));
@@ -1040,7 +1039,6 @@ function renderResumen(){
       ${kpiCard('Promotores activos', promotoresActivos, `de ${PROMOTERS.length} en nómina — ver Jornada`, 'fa-users', '--bl','k-promotores','jornada')}
       ${kpiCard('Góndola promedio', Math.round(gondolaProm), 'participación de espacio', 'fa-border-all', '--vi','k-gondola','auditoria')}
       ${kpiCard('Cumplimiento de ejecución', ejecucionPct, 'criterios + espacios + POP + precios — detalle en Relevamientos', 'fa-clipboard-check', ejecucionPct>=85?'--ok':ejecucionPct>=60?'--wa':'--er','k-ejecucion','relevamientos')}
-      ${kpiCard('Valor de mercado movilizado', 0, `${fmtInt(rows.reduce((s,r)=>s+r.unidadesRepuestas,0))} unidades repuestas — ver Precios`, 'fa-coins', '--brand2','k-valormov','precios')}
     </div>
     <div class="card" style="margin-bottom:16px">
       <h2 style="font-size:16px;margin-bottom:2px">Resumen por clúster</h2>
@@ -1136,7 +1134,6 @@ function renderResumen(){
   animateNum(document.getElementById('k-promotores'), promotoresActivos);
   animateNum(document.getElementById('k-gondola'), Math.round(gondolaProm), '%');
   animateNum(document.getElementById('k-ejecucion'), ejecucionPct, '%');
-  document.getElementById('k-valormov').textContent = fmtGs(valorMovilizado);
 
   mkChart('ch-metas',{type:'bar',data:{labels:metas.map(m=>m.label),datasets:[
       {label:'Meta',data:metas.map(m=>m.meta),backgroundColor:'rgba(255,255,255,.16)',borderRadius:5,maxBarThickness:18},
