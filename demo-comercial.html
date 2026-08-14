@@ -256,10 +256,10 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
 
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-mark" id="brand-mark">NC</div>
+      <div class="brand-mark" id="brand-mark">+M</div>
       <div>
-        <div class="brand-name">Nova Consumo</div>
-        <div class="brand-sub">Panel +Marka · Paraguay</div>
+        <div class="brand-name">+Marka</div>
+        <div class="brand-sub">Nova Consumo · Paraguay</div>
       </div>
     </div>
     <div class="demo-badge"><i class="fas fa-circle" style="font-size:6px"></i> Demo comercial</div>
@@ -1317,12 +1317,12 @@ function renderCobertura(){
     </div>
     <div class="card">
       <div class="card-hdr"><div><div class="card-title">Locales sin visitar</div><div class="card-sub">${localesSinVisitar.length} de ${pdvsFiltrados.length} PDVs con al menos una visita no realizada en los últimos ${VENTANA_RECIENTE} días</div></div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>PDV</th><th>Cadena</th><th>Ciudad</th><th>Promotor</th><th>Última visita</th><th>Fechas sin cubrir (últimos ${VENTANA_RECIENTE} días)</th><th>Alerta</th></tr></thead><tbody>
+      <div class="tbl-wrap"><table><thead><tr><th>PDV</th><th>Cadena</th><th>Ciudad</th><th>Promotor</th><th>Fechas sin cubrir (últimos ${VENTANA_RECIENTE} días)</th><th>Alerta</th></tr></thead><tbody>
       ${localesSinVisitar.map(z=>{
         const detalleFechas = z.fechasNoCubiertas.slice(0,5).map(f=>`${dateDisplay(f.fecha)} — ${f.motivo}`).join('<br>') || '—';
         const reincidente = z.fechasNoCubiertas.length>1;
-        return `<tr><td style="font-weight:700">${z.pdv.name}</td><td>${z.pdv.chain}</td><td>${z.pdv.city}</td><td>${z.promotor?z.promotor.name:'—'}</td><td>${z.dias==null?'<span class="badge er">Sin visitas registradas</span>':`<span class="badge wa">Hace ${z.dias} días</span>`}</td><td style="font-size:11px;color:var(--tx2)">${detalleFechas}</td><td>${reincidente?`<span class="badge er"><i class="fas fa-triangle-exclamation"></i> Reincidente (${z.fechasNoCubiertas.length}x)</span>`:'—'}</td></tr>`;
-      }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--tx3);padding:20px"><i class="fas fa-check-circle" style="color:var(--ok);margin-right:6px"></i>Todos los PDVs con visita en los últimos ${VENTANA_RECIENTE} días</td></tr>`}
+        return `<tr><td style="font-weight:700">${z.pdv.name}</td><td>${z.pdv.chain}</td><td>${z.pdv.city}</td><td>${z.promotor?z.promotor.name:'—'}</td><td style="font-size:11px;color:var(--tx2)">${detalleFechas}</td><td>${reincidente?`<span class="badge er"><i class="fas fa-triangle-exclamation"></i> Reincidente (${z.fechasNoCubiertas.length}x)</span>`:'—'}</td></tr>`;
+      }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px"><i class="fas fa-check-circle" style="color:var(--ok);margin-right:6px"></i>Todos los PDVs con visita en los últimos ${VENTANA_RECIENTE} días</td></tr>`}
       </tbody></table></div>
     </div>`;
 
