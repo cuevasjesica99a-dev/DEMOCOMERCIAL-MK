@@ -547,6 +547,7 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
         presenciaCompetencia,
         popTipo: tienePOP ? pick(POP_TYPES) : null,
         gondolaPct: tieneQuiebre ? 0 : Math.max(5,Math.min(95,Math.round(15+rnd()*35+boost*5))),
+        gondolaPctCompetidor: tieneQuiebre ? 0 : Math.max(5,Math.min(95,Math.round(20+rnd()*35-boost*4))),
         espacioGanado: !tieneQuiebre && chance(0.22+boost*0.05),
         competidorNombre: pick(COMPETIDORES),
         precioSugerido, precioNuestro, precioCompetidor, cumplePrecioPropio,
@@ -1348,6 +1349,10 @@ function renderAuditoria(){
     const rs = all.filter(r=>pdvById(r.pdvId).chain===c);
     return rs.length? Math.round(rs.reduce((a,r)=>a+r.gondolaPct,0)/rs.length):0;
   });
+  const gondolaCadenaComp = CHAINS.map(c=>{
+    const rs = all.filter(r=>pdvById(r.pdvId).chain===c);
+    return rs.length? Math.round(rs.reduce((a,r)=>a+r.gondolaPctCompetidor,0)/rs.length):0;
+  });
   const disponibilidadCadena = CHAINS.map(c=>{
     const rs = all.filter(r=>pdvById(r.pdvId).chain===c);
     return rs.length? Math.round((1-rs.filter(r=>r.tieneQuiebre).length/rs.length)*100):100;
@@ -1372,7 +1377,7 @@ function renderAuditoria(){
       ${kpiCard('Diferencia de precio', Math.round(diffPrecioProm), 'vs. precio promedio competencia — ver Precios', diffPrecioProm<=0?'fa-arrow-down':'fa-arrow-up', diffPrecioProm<=0?'--ok':'--er','k-diffprecio','precios')}
     </div>
     <div class="grid grid-2e" style="margin-bottom:16px">
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Participación en góndola por cadena</div><div class="card-sub">% de espacio de exhibición ocupado por Nova Consumo</div></div></div>
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Participación en góndola por cadena</div><div class="card-sub">% de espacio de exhibición, Nova Consumo vs. competencia</div></div></div>
         <div class="chart-wrap sm"><canvas id="ch-gondola"></canvas></div></div>
       <div class="card"><div class="card-hdr"><div><div class="card-title">Disponibilidad de stock por cadena</div><div class="card-sub">% de visitas sin quiebre de stock</div></div></div>
         <div class="chart-wrap sm"><canvas id="ch-disponibilidad"></canvas></div></div>
@@ -1403,8 +1408,10 @@ function renderAuditoria(){
   animateNum(document.getElementById('k-espacios'), espaciosGanados);
   animateNum(document.getElementById('k-diffprecio'), Math.round(diffPrecioProm), '%');
 
-  mkChart('ch-gondola',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Góndola',data:gondolaCadena,backgroundColor:'#9b7fd4',borderRadius:6,maxBarThickness:36}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+  mkChart('ch-gondola',{type:'bar',data:{labels:CHAINS,datasets:[
+      {label:'Nova Consumo',data:gondolaCadena,backgroundColor:'#9b7fd4',borderRadius:6,maxBarThickness:26},
+      {label:'Competencia',data:gondolaCadenaComp,backgroundColor:'#5a5252',borderRadius:6,maxBarThickness:26},
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
   mkChart('ch-disponibilidad',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Disponibilidad',data:disponibilidadCadena,backgroundColor:'#3cb3a8',borderRadius:6,maxBarThickness:36}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
