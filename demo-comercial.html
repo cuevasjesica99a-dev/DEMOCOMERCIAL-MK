@@ -1506,22 +1506,24 @@ function renderPrecios(){
       ${kpiCard('Unidades repuestas', unidadesRepuestasTotal, 'repuestas de depósito a góndola', 'fa-arrows-rotate', '--vi','k-unidrepuestas')}
       ${kpiCard('Valor de mercado movilizado', 0, `${fmtInt(unidadesRepuestasTotal)} unidades × precio sugerido`, 'fa-coins', '--brand2','k-valormov2')}
     </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div><div class="card-title">Precio Nova Consumo vs. competencia</div><div class="card-sub">Promedio por categoría (Gs.) — excluye visitas con quiebre</div></div></div>
-      <div class="chart-wrap"><canvas id="ch-precios"></canvas></div>
-    </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr" style="align-items:center">
-        <div><div class="card-title">Comparativo por producto</div><div class="card-sub">Rango de precios de Nova Consumo vs. cada competidor, para el producto elegido</div></div>
-        <select class="select-inline" id="prec-compara-producto">
-          <option value="">Elegí un producto...</option>
-          ${TODOS_PRODUCTOS.map(p=>`<option value="${p}" ${p===preciosProductoComparado?'selected':''}>${p}</option>`).join('')}
-        </select>
+    <div class="grid grid-2e" style="margin-bottom:16px;align-items:stretch">
+      <div class="card">
+        <div class="card-hdr" style="align-items:center">
+          <div><div class="card-title">Comparativo por producto</div><div class="card-sub">Rango de precios de Nova Consumo vs. cada competidor, para el producto elegido</div></div>
+          <select class="select-inline" id="prec-compara-producto">
+            <option value="">Elegí un producto...</option>
+            ${TODOS_PRODUCTOS.map(p=>`<option value="${p}" ${p===preciosProductoComparado?'selected':''}>${p}</option>`).join('')}
+          </select>
+        </div>
+        ${preciosProductoComparado ? `<div style="font-size:11px;color:var(--tx3);margin-bottom:10px">Producto equivalente por marca: ${comparativoStats.map(e=>`<b style="color:var(--tx2)">${e.nombre}</b>: ${e.nombre==='Nova Consumo'?preciosProductoComparado:nombreProductoCompetidor(preciosProductoComparado, e.nombre)}`).join(' · ')}</div>
+          <div class="chart-wrap" style="height:220px"><canvas id="ch-compara-producto"></canvas></div>
+          ${comparativoStats.some(e=>!e.n)?`<div style="font-size:11px;color:var(--tx3);margin-top:8px">Sin relevamientos de este producto para: ${comparativoStats.filter(e=>!e.n).map(e=>e.nombre).join(', ')}</div>`:''}`
+          : `<div style="text-align:center;color:var(--tx3);padding:40px 0"><i class="fas fa-chart-simple" style="font-size:22px;display:block;margin-bottom:8px"></i>Seleccioná un producto de Nova Consumo para comparar su rango de precios contra la competencia</div>`}
       </div>
-      ${preciosProductoComparado ? `<div style="font-size:11px;color:var(--tx3);margin-bottom:10px">Producto equivalente por marca: ${comparativoStats.map(e=>`<b style="color:var(--tx2)">${e.nombre}</b>: ${e.nombre==='Nova Consumo'?preciosProductoComparado:nombreProductoCompetidor(preciosProductoComparado, e.nombre)}`).join(' · ')}</div>
-        <div class="chart-wrap" style="height:220px"><canvas id="ch-compara-producto"></canvas></div>
-        ${comparativoStats.some(e=>!e.n)?`<div style="font-size:11px;color:var(--tx3);margin-top:8px">Sin relevamientos de este producto para: ${comparativoStats.filter(e=>!e.n).map(e=>e.nombre).join(', ')}</div>`:''}`
-        : `<div style="text-align:center;color:var(--tx3);padding:40px 0"><i class="fas fa-chart-simple" style="font-size:22px;display:block;margin-bottom:8px"></i>Seleccioná un producto de Nova Consumo para comparar su rango de precios contra la competencia</div>`}
+      <div class="card">
+        <div class="card-hdr"><div><div class="card-title">Precio Nova Consumo vs. competencia</div><div class="card-sub">Promedio por categoría (Gs.) — excluye visitas con quiebre</div></div></div>
+        <div class="chart-wrap"><canvas id="ch-precios"></canvas></div>
+      </div>
     </div>
     <div class="card">
       <div class="card-hdr"><div><div class="card-title">Precios por marca</div><div class="card-sub">Elegí una marca (Nova Consumo o competencia) para ver el precio de cada producto que se relevó</div></div></div>
