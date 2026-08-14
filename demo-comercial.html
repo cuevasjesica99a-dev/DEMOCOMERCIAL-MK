@@ -2273,7 +2273,7 @@ function renderComisiones(){
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div class="card-title">Top 10 comisiones del período</div></div>
         <div class="chart-wrap"><canvas id="ch-comisiones"></canvas></div></div>
-      <div class="card"><div class="card-hdr"><div class="card-title">Cómo se compone</div></div>
+      <div class="card"><div class="card-hdr"><div class="card-title">Objetivos a cumplir</div></div>
         <div style="font-size:12.5px;color:var(--tx2);line-height:2.1">
           ${Object.entries(COMISION_KPIS).map(([k,v])=>`<div><span class="dot ${k==='precios'?'bl':k==='rotacion'?'vi':k==='disponibilidad'?'ok':k==='vencimientos'?'er':k==='visitas'?'wa':'bl'}"></span> ${v.label}: ${Math.round(v.peso*100)}% · ${fmtGs(v.monto)}</div>`).join('')}
         </div></div>
