@@ -968,10 +968,6 @@ function renderResumen(){
   const masCaras = posicionamiento.filter(p=>p.indice>105).sort((a,b)=>b.indice-a.indice).slice(0,3);
   const masBaratas = posicionamiento.filter(p=>p.indice<95).sort((a,b)=>a.indice-b.indice).slice(0,3);
 
-  const dias14evol = [...Array(14)].map((_,i)=>isoDate(addDays(TODAY,-(13-i))));
-  const serieDesvioPropio = dias14evol.map(d=>{ const rs=visitasDelDia(d).filter(r=>!r.tieneQuiebre); return rs.length? Math.round(rs.reduce((s,r)=>s+((r.precioNuestro-r.precioSugerido)/r.precioSugerido*100),0)/rs.length*10)/10 : null; });
-  const serieDesvioComp = dias14evol.map(d=>{ const rs=visitasDelDia(d); return rs.length? Math.round(rs.reduce((s,r)=>s+((r.precioCompetidor-r.precioSugerido)/r.precioSugerido*100),0)/rs.length*10)/10 : null; });
-
   const metas = [
     {label:'Cumplimiento de criterios', meta:90, real:Math.round(cumplPct)},
     {label:'Cobertura de PDVs', meta:95, real:Math.round(pdvsUnicos/PDVS.length*100)},
@@ -1017,10 +1013,6 @@ function renderResumen(){
         <div style="font-size:9.5px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">Más económicas que su categoría</div>
         ${masBaratas.map(m=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${m.prod}</span><span style="font-weight:700;color:var(--ok)">${m.indice-100}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Ninguna</div>`}
       </div>
-    </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div><div class="card-title">Evolución de precios</div><div class="card-sub">Desviación promedio vs. precio público sugerido, Nova Consumo vs. competencia — últimos 14 días</div></div></div>
-      <div class="chart-wrap" style="height:190px"><canvas id="ch-evolprecios"></canvas></div>
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">Julio vs. Junio</div><div class="card-sub">Comparativo mensual e índice de competitividad</div></div></div>
@@ -1072,11 +1064,6 @@ function renderResumen(){
   animateNum(document.getElementById('k-gondola'), Math.round(gondolaProm), '%');
   animateNum(document.getElementById('k-ejecucion'), ejecucionPct, '%');
   document.getElementById('k-valormov').textContent = fmtGs(valorMovilizado);
-
-  mkChart('ch-evolprecios',{type:'line',data:{labels:dias14evol.map(dateDisplay),datasets:[
-      {label:'Nova Consumo',data:serieDesvioPropio,borderColor:'#e0722a',backgroundColor:'rgba(224,114,42,.15)',tension:.35,fill:true,spanGaps:true,pointRadius:2},
-      {label:'Competencia',data:serieDesvioComp,borderColor:'#5b9bd5',backgroundColor:'rgba(91,155,213,.1)',tension:.35,fill:true,spanGaps:true,pointRadius:2},
-    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y>0?'+':''}${ctx.parsed.y}% vs. PVP`}}},scales:{y:{grid:{color:'rgba(255,255,255,.06)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});
 
   mkChart('ch-metas',{type:'bar',data:{labels:metas.map(m=>m.label),datasets:[
       {label:'Meta',data:metas.map(m=>m.meta),backgroundColor:'rgba(255,255,255,.16)',borderRadius:5,maxBarThickness:18},
