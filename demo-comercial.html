@@ -101,6 +101,11 @@ body.light ::-webkit-scrollbar-thumb{background:rgba(15,20,40,.18)}
 .kpi-val{font-size:24px;font-weight:800;margin-top:6px;letter-spacing:-.5px}
 .kpi-sub{font-size:11px;color:var(--tx3);margin-top:4px}
 .kpi-ico{position:absolute;right:14px;top:14px;font-size:22px;opacity:.35}
+.kpi-link{font-size:10.5px;font-weight:700;color:var(--tx3);margin-top:8px;display:flex;align-items:center;gap:4px}
+.kpi.clickable:hover .kpi-link{color:var(--brand2)}
+.kpi-link i{font-size:9px}
+.card-nav-hint{font-size:10.5px;font-weight:700;color:var(--brand2);white-space:nowrap;display:flex;align-items:center;gap:4px;flex-shrink:0}
+.card-nav-hint i{font-size:9px}
 
 /* ---------- Tarjeta KPI expandible (kpix) ---------- */
 .kpix{position:relative;border-radius:var(--r);padding:16px 18px 18px;border:1px solid var(--bd);box-shadow:var(--sh);transition:transform var(--tr), box-shadow var(--tr)}
@@ -710,10 +715,10 @@ function coberturaDeVisitas(pdvIds, rows, omitidas){
 // Clasificación de locales por rotación (unidades repuestas), en clústeres H (top 10%) > A (10-30%) > B (30-60%) > C (60-100%).
 // Locales con pocos relevamientos en el período (< MIN_VISITAS_CLASIFICAR) quedan "Sin clasificar" para no rankear con datos insuficientes.
 const CLUSTER_DEF = [
-  {id:'H', label:'Clúster H — Top', hasta:0.10, color:'ok'},
+  {id:'H', label:'Clúster H', hasta:0.10, color:'ok'},
   {id:'A', label:'Clúster A', hasta:0.30, color:'bl'},
   {id:'B', label:'Clúster B', hasta:0.60, color:'wa'},
-  {id:'C', label:'Clúster C — Atención', hasta:1.01, color:'er'},
+  {id:'C', label:'Clúster C', hasta:1.01, color:'er'},
 ];
 function clasificarLocalesPorRotacion(pdvsFiltrados, rows){
   const MIN_VISITAS_CLASIFICAR = 3;
@@ -775,6 +780,7 @@ function kpiCard(label, value, sub, icon, colorVar, id, target){
     <div class="kpi-lbl">${label}</div>
     <div class="kpi-val" style="color:var(${colorVar})" id="${id}">0</div>
     <div class="kpi-sub">${sub}</div>
+    ${target?`<div class="kpi-link">Ver detalle <i class="fas fa-arrow-right"></i></div>`:''}
     <i class="fas ${icon} kpi-ico" style="color:var(${colorVar})"></i>
   </div>`;
 }
@@ -1097,7 +1103,7 @@ function renderResumen(){
     </div>
     <div class="grid grid-3" style="margin-bottom:16px">
       <div class="card" style="cursor:pointer" onclick="goPage('precios')">
-        <div class="card-hdr"><div><div class="card-title">Ranking de categorías</div><div class="card-sub">por rotación de producto →</div></div></div>
+        <div class="card-hdr"><div><div class="card-title">Ranking de categorías</div><div class="card-sub">por rotación de producto</div></div><div class="card-nav-hint">Ver detalle <i class="fas fa-arrow-right"></i></div></div>
         ${topRotacion.map(([p,unid],i)=>`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px"><span style="color:var(--tx2)">${p}</span><span style="font-weight:700">${unid} unid.</span></div><div style="height:6px;background:var(--bg4);border-radius:4px;overflow:hidden"><div style="height:100%;width:${Math.round(unid/(topRotacion[0][1]||1)*100)}%;background:${i===0?brandColor():'var(--tx3)'}"></div></div></div>`).join('') || `<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px 0">Sin datos</div>`}
       </div>
       <div class="card">
@@ -1108,7 +1114,7 @@ function renderResumen(){
         ${topRotacion.map(([p,unid])=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${p}</span><span style="font-weight:700;color:var(--ok)">${unid} unid.</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Sin datos suficientes</div>`}
       </div>
       <div class="card" style="cursor:pointer" onclick="goPage('precios')">
-        <div class="card-hdr"><div><div class="card-title">Posicionamiento competitivo</div><div class="card-sub">precio Nova Consumo vs. promedio de la categoría →</div></div></div>
+        <div class="card-hdr"><div><div class="card-title">Posicionamiento competitivo</div><div class="card-sub">precio Nova Consumo vs. promedio de la categoría</div></div><div class="card-nav-hint">Ver detalle <i class="fas fa-arrow-right"></i></div></div>
         <div style="font-size:9.5px;font-weight:700;color:var(--er);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Más caras que su categoría</div>
         ${masCaras.map(m=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${m.prod}</span><span style="font-weight:700;color:var(--er)">+${m.indice-100}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Ninguna</div>`}
         <div style="font-size:9.5px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">Más económicas que su categoría</div>
@@ -1670,7 +1676,7 @@ function renderPrecios(){
       </tr></thead><tbody>
         ${preciosPorLocal.map(r=>{
           const def = CLUSTER_DEF.find(c=>c.id===r.cluster);
-          const clusterTxt = def? def.label.replace(' — Top','').replace(' — Atención','') : 'Sin clasificar';
+          const clusterTxt = def? def.label : 'Sin clasificar';
           const v = r.variacion;
           return `<tr><td style="font-weight:700">${r.pdv.name}</td><td>${r.pdv.chain}</td><td style="color:${def?`var(--${def.color})`:'var(--tx3)'}">${clusterTxt}</td><td class="mono">${fmtInt(r.productosPropios)}</td><td class="mono">${fmtInt(r.productosComp)}</td><td class="mono">${fmtGs(r.minNova)}</td><td class="mono">${fmtGs(r.maxNova)}</td><td class="mono">${fmtGs(r.minComp)}</td><td class="mono">${fmtGs(r.maxComp)}</td><td>${v==null?'—':`<span class="badge ${v<=0?'ok':'er'}">${v>0?'+':''}${v.toFixed(1)}%</span>`}</td></tr>`;
         }).join('') || `<tr><td colspan="10" style="text-align:center;color:var(--tx3);padding:20px">Sin resultados</td></tr>`}
