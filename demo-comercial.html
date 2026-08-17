@@ -281,17 +281,20 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
     <div class="nav-sect">Análisis</div>
     <nav class="nav" id="nav">
       <div class="ni active" data-p="resumen"><i class="fas fa-chart-pie"></i>Resumen ejecutivo</div>
-      <div class="ni" data-p="cobertura"><i class="fas fa-store"></i>Cobertura</div>
       <div class="ni" data-p="precios"><i class="fas fa-tags"></i>Precios</div>
       <div class="ni" data-p="auditoria"><i class="fas fa-clipboard-check"></i>Auditoría de PDV</div>
       <div class="ni" data-p="evidencias"><i class="fas fa-camera"></i>Relevamiento fotográfico</div>
+      <div class="ni" data-p="relevamientos"><i class="fas fa-clipboard-list"></i>Relevamientos</div>
+    </nav>
+    <div class="nav-sect">Producto</div>
+    <nav class="nav" id="nav3">
       <div class="ni" data-p="alertas"><i class="fas fa-exclamation-triangle"></i>Averiados y Vencimientos<span class="ni-badge" id="nb-alertas">0</span></div>
       <div class="ni" data-p="quiebres"><i class="fas fa-box-open"></i>Quiebres de stock</div>
-      <div class="ni" data-p="relevamientos"><i class="fas fa-clipboard-list"></i>Relevamientos</div>
       <div class="ni" data-p="ofertas"><i class="fas fa-percent"></i>Ofertas y Promociones</div>
     </nav>
     <div class="nav-sect">Equipo</div>
     <nav class="nav" id="nav2">
+      <div class="ni" data-p="cobertura"><i class="fas fa-store"></i>Cobertura</div>
       <div class="ni" data-p="jornada"><i class="fas fa-user-clock"></i>Jornada y Asistencia<span class="ni-badge" id="nb-tardanzas">0</span><span class="ni-badge" id="nb-ausentes">0</span></div>
       <div class="ni" data-p="recorrido"><i class="fas fa-route"></i>Recorrido por persona</div>
       <div class="ni" data-p="comisiones"><i class="fas fa-hand-holding-dollar"></i>Comisiones</div>
@@ -2403,6 +2406,7 @@ function goPage(page){
 }
 document.getElementById('nav').addEventListener('click', e=>{ const ni=e.target.closest('.ni'); if(ni) goPage(ni.dataset.p); });
 document.getElementById('nav2').addEventListener('click', e=>{ const ni=e.target.closest('.ni'); if(ni) goPage(ni.dataset.p); });
+document.getElementById('nav3').addEventListener('click', e=>{ const ni=e.target.closest('.ni'); if(ni) goPage(ni.dataset.p); });
 
 function renderFbarChips(){
   const chips=[];
