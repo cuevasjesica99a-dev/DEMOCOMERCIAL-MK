@@ -283,7 +283,6 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
       <div class="ni active" data-p="resumen"><i class="fas fa-chart-pie"></i>Resumen ejecutivo</div>
       <div class="ni" data-p="precios"><i class="fas fa-tags"></i>Precios</div>
       <div class="ni" data-p="auditoria"><i class="fas fa-clipboard-check"></i>Auditoría de PDV</div>
-      <div class="ni" data-p="relevamientos"><i class="fas fa-clipboard-list"></i>Relevamientos</div>
       <div class="ni" data-p="evidencias"><i class="fas fa-camera"></i>Relevamiento fotográfico</div>
     </nav>
     <div class="nav-sect">Productos</div>
@@ -1093,7 +1092,7 @@ function renderResumen(){
       ${kpiCard('Alertas activas', alertas, 'vencidos, por vencer y averiados', 'fa-exclamation-triangle', '--er','k-alertas','alertas')}
       ${kpiCard('Promotores activos', promotoresActivos, `de ${PROMOTERS.length} en nómina — ver Jornada`, 'fa-users', '--bl','k-promotores','jornada')}
       ${kpiCard('Góndola promedio', Math.round(gondolaProm), 'participación de espacio', 'fa-border-all', '--vi','k-gondola','auditoria')}
-      ${kpiCard('Cumplimiento de ejecución', ejecucionPct, 'criterios + espacios + POP + precios — detalle en Relevamientos', 'fa-clipboard-check', ejecucionPct>=85?'--ok':ejecucionPct>=60?'--wa':'--er','k-ejecucion','relevamientos')}
+      ${kpiCard('Cumplimiento de ejecución', ejecucionPct, 'criterios + espacios + POP + precios — detalle en Auditoría de PDV', 'fa-clipboard-check', ejecucionPct>=85?'--ok':ejecucionPct>=60?'--wa':'--er','k-ejecucion','auditoria')}
     </div>
     <div class="card" style="margin-bottom:16px">
       <h2 style="font-size:16px;margin-bottom:2px">Resumen por clúster</h2>
@@ -1387,17 +1386,24 @@ function renderCobertura(){
 // ============================================================
 function renderAuditoria(){
   const all = filterVisits();
+  const n = all.length;
   const conStock = all.filter(r=>!r.tieneQuiebre);
-  const gondolaProm = all.length? all.reduce((a,r)=>a+r.gondolaPct,0)/all.length : 0;
-  const pctPOP = all.length? all.filter(r=>r.tienePOP).length/all.length*100 : 0;
-  const espaciosGanados = all.filter(r=>r.espacioGanado).length;
+  const gondolaProm = n? all.reduce((a,r)=>a+r.gondolaPct,0)/n : 0;
+  const pctPOP = n? all.filter(r=>r.tienePOP).length/n*100 : 0;
+  const espaciosGanadosN = all.filter(r=>r.espacioGanado).length;
+  const espaciosPct = n? Math.round(100*espaciosGanadosN/n) : 0;
+  const materialesPct = n? Math.round((espaciosPct+pctPOP)/2) : 0;
   const diffPrecioProm = conStock.length? conStock.reduce((a,r)=>a+((r.precioNuestro-r.precioCompetidor)/r.precioCompetidor*100),0)/conStock.length : 0;
   const quiebres = all.filter(r=>r.tieneQuiebre).length;
-  const disponibilidad = all.length? (1-quiebres/all.length)*100 : 100;
+  const disponibilidad = n? (1-quiebres/n)*100 : 100;
   const cumplePrecioPct = conStock.length? conStock.filter(r=>r.cumplePrecioPropio).length/conStock.length*100 : 0;
   const unidadesRepuestasTotal = all.reduce((a,r)=>a+r.unidadesRepuestas,0);
-  const rotacionPct = all.length? Math.min(100, Math.round(unidadesRepuestasTotal/(all.length*META_REPOSICION_POR_VISITA)*100)) : 0;
-  const cumplePromoPct = all.length? all.filter(r=>r.tienePromocion).length/all.length*100 : 0;
+  const rotacionPct = n? Math.min(100, Math.round(unidadesRepuestasTotal/(n*META_REPOSICION_POR_VISITA)*100)) : 0;
+  const promoPct = n? all.filter(r=>r.tienePromocion).length/n*100 : 0;
+  const coberturaPct = n? Math.round(100*all.filter(r=>r.cumpleCriterios).length/n) : 0;
+  const dominamosPct = n? Math.round(100*all.filter(r=>r.presenciaCompetencia==='Menor').length/n) : 0;
+  const empatePct = n? Math.round(100*all.filter(r=>r.presenciaCompetencia==='Igual').length/n) : 0;
+  const dominaCompPct = n? Math.round(100*all.filter(r=>r.presenciaCompetencia==='Mayor').length/n) : 0;
 
   const gondolaCadena = CHAINS.map(c=>{
     const rs = all.filter(r=>pdvById(r.pdvId).chain===c);
@@ -1419,15 +1425,29 @@ function renderAuditoria(){
   popPdvRows.filter(r=>r.tienePOP).forEach(r=>popCount[r.popTipo]=(popCount[r.popTipo]||0)+1);
   const pdvsConDatos = PDVS.filter(pdv=>all.some(r=>r.pdvId===pdv.id)).sort((a,b)=>a.name.localeCompare(b.name));
 
+  const porCadena = CHAINS.map(cadena=>{
+    const rs = all.filter(r=>pdvById(r.pdvId).chain===cadena);
+    return {
+      cadena, n:rs.length,
+      cobertura: rs.length?Math.round(100*rs.filter(r=>r.cumpleCriterios).length/rs.length):0,
+      materiales: rs.length?Math.round(100*(rs.filter(r=>r.espacioGanado).length+rs.filter(r=>r.tienePOP).length)/(2*rs.length)):0,
+      promociones: rs.length?Math.round(100*rs.filter(r=>r.tienePromocion).length/rs.length):0,
+      dominaCompetencia: rs.length?Math.round(100*rs.filter(r=>r.presenciaCompetencia==='Mayor').length/rs.length):0,
+    };
+  }).sort((a,b)=>b.n-a.n);
+  const cadenasEnRiesgo = porCadena.filter(c=>c.n>=3 && c.dominaCompetencia>=30).sort((a,b)=>b.dominaCompetencia-a.dominaCompetencia).slice(0,3);
+  const promoFallidas = all.filter(r=>!r.tienePromocion).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,8);
+
   document.getElementById('content').innerHTML = `
     <div class="grid grid-kpi" style="margin-bottom:18px">
+      ${kpiCard('Cobertura de criterios', coberturaPct, `${n} relevamientos en el período`, 'fa-clipboard-check', coberturaPct>=85?'--ok':coberturaPct>=60?'--wa':'--er','k-cobertura')}
       ${kpiCard('Participación en góndola', Math.round(gondolaProm), 'promedio del período', 'fa-border-all', '--vi','k-gondola2')}
+      ${kpiCard('Dominio de góndola', dominamosPct, `vs. ${dominaCompPct}% donde domina la competencia`, 'fa-flag', dominamosPct>=dominaCompPct?'--ok':'--er','k-dominio')}
       ${kpiCard('Disponibilidad de stock', Math.round(disponibilidad), `${quiebres} quiebres detectados`, 'fa-box-open', quiebres?'--wa':'--ok','k-disp')}
       ${kpiCard('Cumplimiento de precio Nova Consumo', Math.round(cumplePrecioPct), 'vs. precio público sugerido — ver Precios', 'fa-tag', '--bl','k-cumplprecio','precios')}
       ${kpiCard('Rotación de producto', rotacionPct, `${fmtInt(unidadesRepuestasTotal)} unidades repuestas — ver Precios`, 'fa-arrows-rotate', '--vi','k-rotacion','precios')}
-      ${kpiCard('Cumplimiento de promoción', Math.round(cumplePromoPct), 'promoción vigente ejecutada — ver Relevamientos', 'fa-bullhorn', '--ok','k-promo','relevamientos')}
-      ${kpiCard('PDVs con materiales POP', Math.round(pctPOP), 'de las visitas relevadas', 'fa-tags', '--bl','k-pop')}
-      ${kpiCard('Espacios ganados', espaciosGanados, 'facings adicionales al planograma — ver Relevamientos', 'fa-arrow-up-right-dots', '--ok','k-espacios','relevamientos')}
+      ${kpiCard('Cumplimiento de promociones', Math.round(promoPct), `de ${n} visitas relevadas`, 'fa-bullhorn', promoPct>=85?'--ok':promoPct>=60?'--wa':'--er','k-promo')}
+      ${kpiCard('Estado de materiales', materialesPct, `espacios ${espaciosPct}% + POP ${Math.round(pctPOP)}%`, 'fa-box', materialesPct>=85?'--ok':materialesPct>=60?'--wa':'--er','k-materiales')}
       ${kpiCard('Diferencia de precio', Math.round(diffPrecioProm), 'vs. precio promedio competencia — ver Precios', diffPrecioProm<=0?'fa-arrow-down':'fa-arrow-up', diffPrecioProm<=0?'--ok':'--er','k-diffprecio','precios')}
     </div>
     <div class="grid grid-2e" style="margin-bottom:16px">
@@ -1439,27 +1459,66 @@ function renderAuditoria(){
     <div class="grid grid-2e" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div class="card-title">Acciones de competencia detectadas</div></div>
         <div class="chart-wrap sm"><canvas id="ch-competencia"></canvas></div></div>
-      <div class="card"><div class="card-hdr" style="align-items:center">
-          <div class="card-title">Materiales POP instalados</div>
-          <select class="select-inline" id="pop-pdv-filtro" style="max-width:220px">
-            <option value="">Todos los PDVs</option>
-            ${pdvsConDatos.map(pdv=>`<option value="${pdv.id}" ${auditoriaPdvFiltro===pdv.id?'selected':''}>${pdv.name}</option>`).join('')}
-          </select>
+      <div class="card">
+        <div class="card-hdr"><div><div class="card-title">Presencia de competencia en el punto de venta</div><div class="card-sub">Encuesta independiente de precio/vencimientos — quién domina el espacio de exhibición</div></div></div>
+        <div style="height:14px;border-radius:7px;overflow:hidden;display:flex;gap:2px;margin-bottom:12px">
+          ${dominamosPct?`<div style="flex:${dominamosPct};background:var(--ok)"></div>`:''}
+          ${empatePct?`<div style="flex:${empatePct};background:var(--bl)"></div>`:''}
+          ${dominaCompPct?`<div style="flex:${dominaCompPct};background:var(--er)"></div>`:''}
         </div>
-        <div class="tbl-wrap"><table><thead><tr><th>Tipo de material</th><th>Instalaciones</th></tr></thead><tbody>
-        ${POP_TYPES.map(t=>`<tr><td>${t}</td><td style="font-weight:700">${popCount[t]||0}</td></tr>`).join('')}
-        </tbody></table></div></div>
+        <div style="display:flex;gap:16px;font-size:11px;flex-wrap:wrap;margin-bottom:${cadenasEnRiesgo.length?'12px':'0'}">
+          <span><span class="dot ok"></span> Dominamos nosotros (${dominamosPct}%)</span>
+          <span><span class="dot bl"></span> Empate (${empatePct}%)</span>
+          <span><span class="dot er"></span> Domina la competencia (${dominaCompPct}%)</span>
+        </div>
+        ${cadenasEnRiesgo.length?`<div class="banner" style="background:var(--er-d);border-color:var(--er-d);color:var(--er)"><i class="fas fa-triangle-exclamation"></i> Cadenas donde la competencia gana espacio: ${cadenasEnRiesgo.map(c=>`${c.cadena} (${c.dominaCompetencia}%)`).join(' · ')} — priorizar negociación de espacio/POP ahí.</div>`:''}
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr" style="align-items:center">
+        <div><div class="card-title">Estado de materiales</div><div class="card-sub">Espacios adicionales y materiales POP relevados en cada visita</div></div>
+        <select class="select-inline" id="pop-pdv-filtro" style="max-width:220px">
+          <option value="">Todos los PDVs</option>
+          ${pdvsConDatos.map(pdv=>`<option value="${pdv.id}" ${auditoriaPdvFiltro===pdv.id?'selected':''}>${pdv.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="grid grid-2e" style="margin-bottom:14px">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px"><span style="color:var(--tx2)">Espacios adicionales conseguidos</span><span style="font-weight:700">${espaciosPct}% · ${espaciosGanadosN} de ${n}</span></div>
+          <div style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden"><div style="height:100%;width:${espaciosPct}%;background:var(--ok)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px"><span style="color:var(--tx2)">Materiales POP instalados</span><span style="font-weight:700">${Math.round(pctPOP)}% · ${all.filter(r=>r.tienePOP).length} de ${n}</span></div>
+          <div style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden"><div style="height:100%;width:${pctPOP}%;background:var(--vi)"></div></div>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>Tipo de material</th><th>Instalaciones</th></tr></thead><tbody>
+      ${POP_TYPES.map(t=>`<tr><td>${t}</td><td style="font-weight:700">${popCount[t]||0}</td></tr>`).join('')}
+      </tbody></table></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr"><div class="card-title">Relevamiento por cadena</div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Cadena</th><th>Visitas</th><th>Cobertura</th><th>Materiales</th><th>Promociones</th><th>Domina competencia</th></tr></thead><tbody>
+      ${porCadena.map(c=>`<tr><td style="font-weight:700">${c.cadena}</td><td>${c.n}</td><td><span class="badge ${c.cobertura>=85?'ok':c.cobertura>=60?'wa':'er'}">${c.cobertura}%</span></td><td><span class="badge ${c.materiales>=85?'ok':c.materiales>=60?'wa':'er'}">${c.materiales}%</span></td><td><span class="badge ${c.promociones>=85?'ok':c.promociones>=60?'wa':'er'}">${c.promociones}%</span></td><td><span class="badge ${c.dominaCompetencia>=30?'er':c.dominaCompetencia>=15?'wa':'ok'}">${c.dominaCompetencia}%</span></td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px">Sin datos</td></tr>`}
+      </tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div><div class="card-title">Promociones no cumplidas</div><div class="card-sub">${n-all.filter(r=>r.tienePromocion).length} de ${n}</div></div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Cadena</th><th>Promotor</th><th>Motivo</th></tr></thead><tbody>
+      ${promoFallidas.map(r=>{ const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId); return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.chain}</td><td>${prom.name}</td><td style="color:var(--wa)">${r.motivoIncumplimientoPromo}</td></tr>`; }).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:20px"><i class="fas fa-check-circle" style="color:var(--ok);margin-right:6px"></i>Todas las promociones relevadas están cumplidas</td></tr>`}
+      </tbody></table></div>
     </div>`;
 
   document.getElementById('pop-pdv-filtro').onchange = e=>{ auditoriaPdvFiltro=e.target.value; renderAuditoria(); };
 
+  animateNum(document.getElementById('k-cobertura'), coberturaPct, '%');
   animateNum(document.getElementById('k-gondola2'), Math.round(gondolaProm), '%');
+  animateNum(document.getElementById('k-dominio'), dominamosPct, '%');
   animateNum(document.getElementById('k-disp'), Math.round(disponibilidad), '%');
   animateNum(document.getElementById('k-cumplprecio'), Math.round(cumplePrecioPct), '%');
   animateNum(document.getElementById('k-rotacion'), rotacionPct, '%');
-  animateNum(document.getElementById('k-promo'), Math.round(cumplePromoPct), '%');
-  animateNum(document.getElementById('k-pop'), Math.round(pctPOP), '%');
-  animateNum(document.getElementById('k-espacios'), espaciosGanados);
+  animateNum(document.getElementById('k-promo'), Math.round(promoPct), '%');
+  animateNum(document.getElementById('k-materiales'), materialesPct, '%');
   animateNum(document.getElementById('k-diffprecio'), Math.round(diffPrecioProm), '%');
 
   mkChart('ch-gondola',{type:'bar',data:{labels:CHAINS,datasets:[
@@ -1729,99 +1788,6 @@ function renderPrecios(){
     mkChart('ch-compara-producto',{type:'bar',data:{labels:conDatos.map(e=>e.nombre),datasets:[{data:conDatos.map(e=>[e.min,e.max]),backgroundColor:conDatos.map(e=>e.color),borderRadius:6,maxBarThickness:38}]},
       options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${fmtGs(ctx.raw[0])} – ${fmtGs(ctx.raw[1])}`}}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{callback:v=>fmtInt(v)}},y:{grid:{display:false}}}}});
   }
-}
-
-// ============================================================
-// PÁGINA: RELEVAMIENTOS (log crudo de visitas)
-// ============================================================
-function renderRelevamientos(){
-  const rows = filterVisits();
-  const n = rows.length;
-  const colorPct = pct => pct>=85?'var(--ok)':pct>=60?'var(--wa)':'var(--er)';
-
-  const coberturaPct = n? Math.round(100*rows.filter(r=>r.cumpleCriterios).length/n) : 0;
-  const espaciosPct = n? Math.round(100*rows.filter(r=>r.espacioGanado).length/n) : 0;
-  const popPct = n? Math.round(100*rows.filter(r=>r.tienePOP).length/n) : 0;
-  const materialesPct = n? Math.round((espaciosPct+popPct)/2) : 0;
-  const promoPct = n? Math.round(100*rows.filter(r=>r.tienePromocion).length/n) : 0;
-  const dominamosPct = n? Math.round(100*rows.filter(r=>r.presenciaCompetencia==='Menor').length/n) : 0;
-  const empatePct = n? Math.round(100*rows.filter(r=>r.presenciaCompetencia==='Igual').length/n) : 0;
-  const dominaCompPct = n? Math.round(100*rows.filter(r=>r.presenciaCompetencia==='Mayor').length/n) : 0;
-
-  const porCadena = CHAINS.map(cadena=>{
-    const rs = rows.filter(r=>pdvById(r.pdvId).chain===cadena);
-    return {
-      cadena, n:rs.length,
-      cobertura: rs.length?Math.round(100*rs.filter(r=>r.cumpleCriterios).length/rs.length):0,
-      materiales: rs.length?Math.round(100*(rs.filter(r=>r.espacioGanado).length+rs.filter(r=>r.tienePOP).length)/(2*rs.length)):0,
-      promociones: rs.length?Math.round(100*rs.filter(r=>r.tienePromocion).length/rs.length):0,
-      dominaCompetencia: rs.length?Math.round(100*rs.filter(r=>r.presenciaCompetencia==='Mayor').length/rs.length):0,
-    };
-  }).sort((a,b)=>b.n-a.n);
-  const cadenasEnRiesgo = porCadena.filter(c=>c.n>=3 && c.dominaCompetencia>=30).sort((a,b)=>b.dominaCompetencia-a.dominaCompetencia).slice(0,3);
-
-  const promoFallidas = rows.filter(r=>!r.tienePromocion).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,8);
-  const espaciosGanadosN = rows.filter(r=>r.espacioGanado).length;
-  const popInstaladoN = rows.filter(r=>r.tienePOP).length;
-  const popTipoCount = {};
-  rows.filter(r=>r.tienePOP).forEach(r=>popTipoCount[r.popTipo]=(popTipoCount[r.popTipo]||0)+1);
-
-  document.getElementById('content').innerHTML = `
-    <div class="grid grid-kpi" style="margin-bottom:18px">
-      ${kpiCard('Cobertura de criterios', coberturaPct, `${n} relevamientos en el período`, 'fa-clipboard-check', coberturaPct>=85?'--ok':coberturaPct>=60?'--wa':'--er','k-cobertura')}
-      ${kpiCard('Estado de materiales', materialesPct, `espacios ${espaciosPct}% + POP ${popPct}%`, 'fa-box', materialesPct>=85?'--ok':materialesPct>=60?'--wa':'--er','k-materiales')}
-      ${kpiCard('Cumplimiento de promociones', promoPct, `de ${n} visitas relevadas`, 'fa-bullhorn', promoPct>=85?'--ok':promoPct>=60?'--wa':'--er','k-promorel')}
-      ${kpiCard('Dominio de góndola', dominamosPct, `vs. ${dominaCompPct}% donde domina la competencia`, 'fa-flag', dominamosPct>=dominaCompPct?'--ok':'--er','k-dominio')}
-      ${kpiCard('Relevamientos totales', n, 'con evidencia fotográfica', 'fa-images', '--bl','k-totalrelev')}
-    </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div><div class="card-title">Estado de materiales</div><div class="card-sub">Espacios adicionales y materiales POP relevados en cada visita</div></div></div>
-      <div class="grid grid-2e" style="margin-bottom:14px">
-        <div>
-          <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px"><span style="color:var(--tx2)">Espacios adicionales conseguidos</span><span style="font-weight:700">${espaciosPct}% · ${espaciosGanadosN} de ${n}</span></div>
-          <div style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden"><div style="height:100%;width:${espaciosPct}%;background:var(--ok)"></div></div>
-        </div>
-        <div>
-          <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px"><span style="color:var(--tx2)">Materiales POP instalados</span><span style="font-weight:700">${popPct}% · ${popInstaladoN} de ${n}</span></div>
-          <div style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden"><div style="height:100%;width:${popPct}%;background:var(--vi)"></div></div>
-        </div>
-      </div>
-      <div class="tbl-wrap"><table><thead><tr><th>Tipo de material POP</th><th>Instalaciones en el período</th></tr></thead><tbody>
-        ${POP_TYPES.map(t=>`<tr><td>${t}</td><td style="font-weight:700">${popTipoCount[t]||0}</td></tr>`).join('')}
-      </tbody></table></div>
-    </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div><div class="card-title">Presencia de competencia en el punto de venta</div><div class="card-sub">Encuesta independiente de precio/vencimientos — quién domina el espacio de exhibición</div></div></div>
-      <div style="height:14px;border-radius:7px;overflow:hidden;display:flex;gap:2px;margin-bottom:12px">
-        ${dominamosPct?`<div style="flex:${dominamosPct};background:var(--ok)"></div>`:''}
-        ${empatePct?`<div style="flex:${empatePct};background:var(--bl)"></div>`:''}
-        ${dominaCompPct?`<div style="flex:${dominaCompPct};background:var(--er)"></div>`:''}
-      </div>
-      <div style="display:flex;gap:16px;font-size:11px;flex-wrap:wrap;margin-bottom:${cadenasEnRiesgo.length?'12px':'0'}">
-        <span><span class="dot ok"></span> Dominamos nosotros (${dominamosPct}%)</span>
-        <span><span class="dot bl"></span> Empate (${empatePct}%)</span>
-        <span><span class="dot er"></span> Domina la competencia (${dominaCompPct}%)</span>
-      </div>
-      ${cadenasEnRiesgo.length?`<div class="banner" style="background:var(--er-d);border-color:var(--er-d);color:var(--er)"><i class="fas fa-triangle-exclamation"></i> Cadenas donde la competencia gana espacio: ${cadenasEnRiesgo.map(c=>`${c.cadena} (${c.dominaCompetencia}%)`).join(' · ')} — priorizar negociación de espacio/POP ahí.</div>`:''}
-    </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr"><div class="card-title">Relevamiento por cadena</div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Cadena</th><th>Visitas</th><th>Cobertura</th><th>Materiales</th><th>Promociones</th><th>Domina competencia</th></tr></thead><tbody>
-      ${porCadena.map(c=>`<tr><td style="font-weight:700">${c.cadena}</td><td>${c.n}</td><td><span class="badge ${c.cobertura>=85?'ok':c.cobertura>=60?'wa':'er'}">${c.cobertura}%</span></td><td><span class="badge ${c.materiales>=85?'ok':c.materiales>=60?'wa':'er'}">${c.materiales}%</span></td><td><span class="badge ${c.promociones>=85?'ok':c.promociones>=60?'wa':'er'}">${c.promociones}%</span></td><td><span class="badge ${c.dominaCompetencia>=30?'er':c.dominaCompetencia>=15?'wa':'ok'}">${c.dominaCompetencia}%</span></td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px">Sin datos</td></tr>`}
-      </tbody></table></div>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div><div class="card-title">Promociones no cumplidas</div><div class="card-sub">${rows.length-rows.filter(r=>r.tienePromocion).length} de ${n}</div></div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Cadena</th><th>Promotor</th><th>Motivo</th></tr></thead><tbody>
-      ${promoFallidas.map(r=>{ const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId); return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.chain}</td><td>${prom.name}</td><td style="color:var(--wa)">${r.motivoIncumplimientoPromo}</td></tr>`; }).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:20px"><i class="fas fa-check-circle" style="color:var(--ok);margin-right:6px"></i>Todas las promociones relevadas están cumplidas</td></tr>`}
-      </tbody></table></div>
-    </div>`;
-
-  animateNum(document.getElementById('k-cobertura'), coberturaPct, '%');
-  animateNum(document.getElementById('k-materiales'), materialesPct, '%');
-  animateNum(document.getElementById('k-promorel'), promoPct, '%');
-  animateNum(document.getElementById('k-dominio'), dominamosPct, '%');
-  animateNum(document.getElementById('k-totalrelev'), n);
 }
 
 // ============================================================
@@ -2389,7 +2355,6 @@ const PAGES = {
   evidencias:{title:'Relevamiento fotográfico', icon:'fa-camera', render:renderEvidencias},
   alertas:{title:'Averiados y Vencimientos', icon:'fa-exclamation-triangle', render:renderAlertas},
   quiebres:{title:'Quiebres de stock', icon:'fa-box-open', render:renderQuiebres},
-  relevamientos:{title:'Relevamientos', icon:'fa-clipboard-list', render:renderRelevamientos},
   ofertas:{title:'Ofertas y Promociones', icon:'fa-percent', render:renderOfertas},
   jornada:{title:'Jornada y Asistencia', icon:'fa-user-clock', render:renderJornada},
   recorrido:{title:'Recorrido por persona', icon:'fa-route', render:renderRecorrido},
