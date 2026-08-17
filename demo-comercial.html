@@ -18,8 +18,8 @@
   --ok:#3AAFA0;--ok-d:rgba(58,175,160,.14);
   --er:#e84a55;--er-d:rgba(232,74,85,.14);
   --wa:#e8a045;--wa-d:rgba(232,160,69,.14);
-  --bl:#5b9bd5;--bl-d:rgba(91,155,213,.14);
-  --vi:#9b7fd4;--vi-d:rgba(155,127,212,.14);
+  --bl:#7C93A8;--bl-d:rgba(124,147,168,.14);
+  --vi:#9C8FA6;--vi-d:rgba(156,143,166,.14);
   --br:#c98a4b;--br-d:rgba(201,138,75,.16);
   --brand:#C41E24;--brand2:#E0272E;--brand-d:rgba(196,30,36,.16);
   --r:14px;--r2:9px;--sw:250px;--hh:60px;
@@ -251,7 +251,7 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
 .delta-badge.flat{background:var(--bg4);color:var(--tx3)}
 </style>
 </head>
-<body>
+<body class="light">
 <div class="app">
 
   <aside class="sidebar">
@@ -286,7 +286,7 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
     <div class="sidebar-foot">
       <div class="fbar-label" style="margin-bottom:8px"><i class="fas fa-palette"></i> Color de marca</div>
       <div class="swatches" id="swatches"></div>
-      <div class="theme-toggle" id="theme-toggle"><i class="fas fa-moon" id="theme-icon"></i><span id="theme-label">Modo oscuro</span></div>
+      <div class="theme-toggle" id="theme-toggle"><i class="fas fa-sun" id="theme-icon"></i><span id="theme-label">Modo claro</span></div>
       <div class="foot-note">Todos los datos de este panel son ficticios y se generan localmente con fines de demostración comercial.</div>
     </div>
   </aside>
@@ -771,7 +771,7 @@ function animateNum(el, target, suffix=''){
 // ============================================================
 function kpiCard(label, value, sub, icon, colorVar, id, target){
   const clickable = target ? `class="kpi clickable" onclick="goPage('${target}')" title="Ver detalle"` : `class="kpi"`;
-  return `<div ${clickable}>
+  return `<div ${clickable} style="background:linear-gradient(135deg, var(${colorVar}-d), var(--bg2) 70%)">
     <div class="kpi-lbl">${label}</div>
     <div class="kpi-val" style="color:var(${colorVar})" id="${id}">0</div>
     <div class="kpi-sub">${sub}</div>
@@ -1438,14 +1438,14 @@ function renderAuditoria(){
   animateNum(document.getElementById('k-diffprecio'), Math.round(diffPrecioProm), '%');
 
   mkChart('ch-gondola',{type:'bar',data:{labels:CHAINS,datasets:[
-      {label:'Nova Consumo',data:gondolaCadena,backgroundColor:'#9b7fd4',borderRadius:6,maxBarThickness:26},
+      {label:'Nova Consumo',data:gondolaCadena,backgroundColor:'#3AAFA0',borderRadius:6,maxBarThickness:26},
       {label:'Competencia',data:gondolaCadenaComp,backgroundColor:'#5a5252',borderRadius:6,maxBarThickness:26},
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
   mkChart('ch-disponibilidad',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Disponibilidad',data:disponibilidadCadena,backgroundColor:'#3AAFA0',borderRadius:6,maxBarThickness:36}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
-  mkChart('ch-competencia',{type:'doughnut',data:{labels:accionesLabels,datasets:[{data:accionesLabels.map(a=>accionesCount[a]),backgroundColor:['#5a5252','#5b9bd5','#3AAFA0','#9b7fd4','#e8a045','#e84a55'],borderWidth:0}]},
+  mkChart('ch-competencia',{type:'doughnut',data:{labels:accionesLabels,datasets:[{data:accionesLabels.map(a=>accionesCount[a]),backgroundColor:['#5a5252','#7C93A8','#3AAFA0','#9C8FA6','#e8a045','#e84a55'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}}}});
 }
 
@@ -1585,9 +1585,9 @@ function renderPrecios(){
 
   // Comparativo por producto: Nova Consumo vs. cada competidor, para el producto elegido en el select
   const VARIANTES_COMPETIDOR = ['amber','blue','violet'];
-  const COLORES_COMPETIDOR = ['#e8a045','#5b9bd5','#9b7fd4'];
+  const COLORES_COMPETIDOR = ['#e8a045','#7C93A8','#9C8FA6'];
   const comparativoStats = preciosProductoComparado ? (() => {
-    const entidades = [{nombre:'Nova Consumo', color:brandColor()}, ...COMPETIDORES.map((n,i)=>({nombre:n, color:COLORES_COMPETIDOR[i]}))];
+    const entidades = [{nombre:'Nova Consumo', color:'#3AAFA0'}, ...COMPETIDORES.map((n,i)=>({nombre:n, color:COLORES_COMPETIDOR[i]}))];
     return entidades.map((e,i)=>{
       const rs = i===0
         ? conStock.filter(r=>r.producto===preciosProductoComparado)
@@ -1678,7 +1678,7 @@ function renderPrecios(){
     </div>`;
 
   mkChart('ch-precios',{type:'bar',data:{labels:preciosCat.map(p=>p.cat),datasets:[
-      {label:'Nova Consumo',data:preciosCat.map(p=>p.nuestro),backgroundColor:brandColor(),borderRadius:5,maxBarThickness:36},
+      {label:'Nova Consumo',data:preciosCat.map(p=>p.nuestro),backgroundColor:'#3AAFA0',borderRadius:5,maxBarThickness:36},
       {label:'Competencia',data:preciosCat.map(p=>p.competidor),backgroundColor:'#5a5252',borderRadius:5,maxBarThickness:36},
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false}}}}});
 
@@ -2014,8 +2014,8 @@ function renderQuiebres(){
 
   document.getElementById('content').innerHTML = `
     <div class="grid grid-2e" style="margin-bottom:18px">
-      <div class="kpi"><div class="kpi-lbl">Quiebre de góndola</div><div class="kpi-val" style="color:var(--wa)">${quiebresGondola.length}</div><div class="kpi-sub">hay stock en depósito</div></div>
-      <div class="kpi"><div class="kpi-lbl">Quiebre total</div><div class="kpi-val" style="color:var(--er)">${quiebresTotal.length}</div><div class="kpi-sub">sin stock en depósito</div></div>
+      <div class="kpi" style="background:linear-gradient(135deg, var(--wa-d), var(--bg2) 70%)"><div class="kpi-lbl">Quiebre de góndola</div><div class="kpi-val" style="color:var(--wa)">${quiebresGondola.length}</div><div class="kpi-sub">hay stock en depósito</div></div>
+      <div class="kpi" style="background:linear-gradient(135deg, var(--er-d), var(--bg2) 70%)"><div class="kpi-lbl">Quiebre total</div><div class="kpi-val" style="color:var(--er)">${quiebresTotal.length}</div><div class="kpi-sub">sin stock en depósito</div></div>
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div><div class="card-title">Quiebres por PDV</div><div class="card-sub">Top 10 locales con más quiebres detectados</div></div></div>
@@ -2044,10 +2044,10 @@ function renderQuiebres(){
   mkChart('ch-quiebreproducto',{type:'bar',data:{labels:porProductoTop.map(p=>p[0]),datasets:[{label:'Quiebres',data:porProductoTop.map(p=>p[1]),backgroundColor:'#e8a045',borderRadius:6,maxBarThickness:22}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
-  mkChart('ch-quiebrecategoria',{type:'doughnut',data:{labels:porCategoria.map(c=>c.cat),datasets:[{data:porCategoria.map(c=>c.n),backgroundColor:['#5b9bd5','#3AAFA0','#9b7fd4','#e8a045'],borderWidth:0}]},
+  mkChart('ch-quiebrecategoria',{type:'doughnut',data:{labels:porCategoria.map(c=>c.cat),datasets:[{data:porCategoria.map(c=>c.n),backgroundColor:['#7C93A8','#3AAFA0','#9C8FA6','#e8a045'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}}}});
 
-  mkChart('ch-quiebrecadena',{type:'bar',data:{labels:porCadena.map(c=>c.cadena),datasets:[{label:'Quiebres',data:porCadena.map(c=>c.n),backgroundColor:'#9b7fd4',borderRadius:6,maxBarThickness:36}]},
+  mkChart('ch-quiebrecadena',{type:'bar',data:{labels:porCadena.map(c=>c.cadena),datasets:[{label:'Quiebres',data:porCadena.map(c=>c.n),backgroundColor:'#9C8FA6',borderRadius:6,maxBarThickness:36}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
 }
 
@@ -2115,11 +2115,11 @@ function renderJornada(){
     </div>
     ${esDomingo? `<div class="banner"><i class="fas fa-store-slash"></i> Domingo — día no laboral, sin relevamiento.</div>` : `
     <div class="grid grid-kpi" style="margin-bottom:18px">
-      <div class="kpi t-ok"><div class="kpi-lbl">Presentes</div><div class="kpi-val" style="color:var(--ok)">${presentes.length}<span style="font-size:14px;font-weight:600;color:var(--tx3)"> / ${total}</span></div><div class="kpi-sub">${pctPresentes}% de nómina</div><i class="fas fa-user-check kpi-ico"></i></div>
-      <div class="kpi" id="kpi-jornada-ausentes" style="cursor:pointer"><div class="kpi-lbl">Ausentes</div><div class="kpi-val" style="color:${dayAusencias.length?'var(--er)':'var(--ok)'}">${dayAusencias.length}</div><div class="kpi-sub">sin marcaciones hoy</div><i class="fas fa-user-times kpi-ico"></i></div>
-      <div class="kpi" id="kpi-jornada-tardanzas" style="cursor:pointer"><div class="kpi-lbl">Tardanzas</div><div class="kpi-val" style="color:${tarde.length?'var(--er)':'var(--ok)'}">${tarde.length}</div><div class="kpi-sub">después de 08:10 · ${dayJornadas.length?Math.round(tarde.length/dayJornadas.length*100):0}% de los presentes</div><i class="fas fa-clock kpi-ico"></i></div>
-      <div class="kpi"><div class="kpi-lbl">Jornada prom.</div><div class="kpi-val" style="color:var(--bl);font-size:22px">${Math.floor(promDur/60)}h ${promDur%60}m</div><div class="kpi-sub">en campo</div><i class="fas fa-hourglass-half kpi-ico"></i></div>
-      <div class="kpi" id="kpi-jornada-almuerzo" style="cursor:pointer"><div class="kpi-lbl">Alm. excedidos</div><div class="kpi-val" style="color:${almExcedidos.length?'var(--er)':'var(--ok)'}">${almExcedidos.length}</div><div class="kpi-sub">+${sinAlm.length} sin registrar</div><i class="fas fa-exclamation-triangle kpi-ico"></i></div>
+      <div class="kpi" style="background:linear-gradient(135deg, var(--ok-d), var(--bg2) 70%)"><div class="kpi-lbl">Presentes</div><div class="kpi-val" style="color:var(--ok)">${presentes.length}<span style="font-size:14px;font-weight:600;color:var(--tx3)"> / ${total}</span></div><div class="kpi-sub">${pctPresentes}% de nómina</div><i class="fas fa-user-check kpi-ico"></i></div>
+      <div class="kpi" id="kpi-jornada-ausentes" style="cursor:pointer;background:linear-gradient(135deg, var(${dayAusencias.length?'--er-d':'--ok-d'}), var(--bg2) 70%)"><div class="kpi-lbl">Ausentes</div><div class="kpi-val" style="color:${dayAusencias.length?'var(--er)':'var(--ok)'}">${dayAusencias.length}</div><div class="kpi-sub">sin marcaciones hoy</div><i class="fas fa-user-times kpi-ico"></i></div>
+      <div class="kpi" id="kpi-jornada-tardanzas" style="cursor:pointer;background:linear-gradient(135deg, var(${tarde.length?'--er-d':'--ok-d'}), var(--bg2) 70%)"><div class="kpi-lbl">Tardanzas</div><div class="kpi-val" style="color:${tarde.length?'var(--er)':'var(--ok)'}">${tarde.length}</div><div class="kpi-sub">después de 08:10 · ${dayJornadas.length?Math.round(tarde.length/dayJornadas.length*100):0}% de los presentes</div><i class="fas fa-clock kpi-ico"></i></div>
+      <div class="kpi" style="background:linear-gradient(135deg, var(--bl-d), var(--bg2) 70%)"><div class="kpi-lbl">Jornada prom.</div><div class="kpi-val" style="color:var(--bl);font-size:22px">${Math.floor(promDur/60)}h ${promDur%60}m</div><div class="kpi-sub">en campo</div><i class="fas fa-hourglass-half kpi-ico"></i></div>
+      <div class="kpi" id="kpi-jornada-almuerzo" style="cursor:pointer;background:linear-gradient(135deg, var(${almExcedidos.length?'--er-d':'--ok-d'}), var(--bg2) 70%)"><div class="kpi-lbl">Alm. excedidos</div><div class="kpi-val" style="color:${almExcedidos.length?'var(--er)':'var(--ok)'}">${almExcedidos.length}</div><div class="kpi-sub">+${sinAlm.length} sin registrar</div><i class="fas fa-exclamation-triangle kpi-ico"></i></div>
     </div>
     ${jornadaFiltroActivo==='tardanzas'?`<div class="tw" style="border:2px solid var(--er);margin-bottom:16px">
       <div class="tf"><i class="fas fa-clock" style="color:var(--er)"></i><span style="font-weight:700;font-size:13px">Filtrado: Tardanzas — ${tarde.length}</span></div>
