@@ -653,6 +653,7 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
 // ESTADO / FILTROS
 // ============================================================
 let currentPage='resumen';
+let temaActivoIdx=0; // índice del tema de color de marca activo (ver THEMES) — 0 = rojo
 const FECHA_MIN = isoDate(addDays(TODAY,-DIAS_HISTORIAL));
 const FECHA_MAX = isoDate(TODAY);
 const ANIO_DEMO = TODAY.getFullYear();
@@ -859,6 +860,10 @@ function chip(label, onclickAttr){
 }
 function brandColor(){ return getComputedStyle(document.documentElement).getPropertyValue('--brand').trim(); }
 function brandColor2(){ return getComputedStyle(document.documentElement).getPropertyValue('--brand2').trim(); }
+// Color de acento para gráficos/tarjetas de datos (no de estado): si la marca elegida es roja, se evita el rojo
+// porque en este tablero el rojo ya significa "alerta/malo" — se usa un verde agua neutral en su lugar.
+function chartAccent(){ return temaActivoIdx===0 ? getComputedStyle(document.documentElement).getPropertyValue('--ok').trim() : brandColor(); }
+function chartAccent2(){ return temaActivoIdx===0 ? getComputedStyle(document.documentElement).getPropertyValue('--ok').trim() : brandColor2(); }
 // Estándar de color semáforo para gráficos de cumplimiento/estado: verde = bien, amarillo = regular, rojo = mal.
 function pctColor(pct){ return getComputedStyle(document.documentElement).getPropertyValue(pct>=85?'--ok':pct>=60?'--wa':'--er').trim(); }
 function pctLegend(){
@@ -1099,7 +1104,7 @@ function renderResumen(){
   document.getElementById('content').innerHTML = `
     <div class="banner"><i class="fas fa-info-circle"></i> Panel de demostración — toda la información (visitas, PDVs, alertas) es ficticia y se genera en el navegador para fines comerciales.</div>
     <div class="grid grid-kpi" style="margin-bottom:18px">
-      ${kpiCard('Visitas totales', totalVisitas, periodoLabel, 'fa-clipboard-check', '--brand2','k-visitas','cobertura')}
+      ${kpiCard('Visitas totales', totalVisitas, periodoLabel, 'fa-clipboard-check', temaActivoIdx===0?'--ok':'--brand2','k-visitas','cobertura')}
       ${kpiCard('PDVs cubiertos', pdvsUnicos, `de ${PDVS.length} puntos totales — al menos 1 visita`, 'fa-store', '--ok','k-pdvs','cobertura')}
       ${kpiCard('Cumplimiento', Math.round(cumplPct), 'promedio de criterios — ver Cobertura', 'fa-check-circle', '--ok','k-cumpl','cobertura')}
       ${kpiCard('Alertas activas', alertas, 'vencidos, por vencer y averiados', 'fa-exclamation-triangle', '--er','k-alertas','alertas')}
@@ -1136,7 +1141,7 @@ function renderResumen(){
     <div class="grid grid-3" style="margin-bottom:16px">
       <div class="card" style="cursor:pointer" onclick="goPage('precios')">
         <div class="card-hdr"><div><div class="card-title">Ranking de categorías</div><div class="card-sub">por rotación de producto</div></div><div class="card-nav-hint">Ver detalle <i class="fas fa-arrow-right"></i></div></div>
-        ${topRotacion.map(([p,unid],i)=>`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px"><span style="color:var(--tx2)">${p}</span><span style="font-weight:700">${unid} unid.</span></div><div style="height:6px;background:var(--bg4);border-radius:4px;overflow:hidden"><div style="height:100%;width:${Math.round(unid/(topRotacion[0][1]||1)*100)}%;background:${i===0?brandColor():'var(--tx3)'}"></div></div></div>`).join('') || `<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px 0">Sin datos</div>`}
+        ${topRotacion.map(([p,unid],i)=>`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px"><span style="color:var(--tx2)">${p}</span><span style="font-weight:700">${unid} unid.</span></div><div style="height:6px;background:var(--bg4);border-radius:4px;overflow:hidden"><div style="height:100%;width:${Math.round(unid/(topRotacion[0][1]||1)*100)}%;background:${i===0?chartAccent():'var(--tx3)'}"></div></div></div>`).join('') || `<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px 0">Sin datos</div>`}
         ${infoTip('Top 3 productos por unidades repuestas totales en el período (suma de reposición registrada en cada visita).')}
       </div>
       <div class="card">
@@ -1162,7 +1167,7 @@ function renderResumen(){
       <div class="grid grid-2" style="align-items:stretch">
         <div>
           <div class="roi-lbl" style="margin-bottom:6px">Índice de competitividad<small>Pondera participación en góndola, ausencia de acciones agresivas de la competencia y competitividad de precio</small></div>
-          <div class="impact-hero"><span class="big">${julio.indice}</span><span style="color:var(--tx3);font-size:13px">/ 100</span>${deltaBadgePts(julio.indice, junio.indice)}</div>
+          <div class="impact-hero"><span class="big" style="color:${chartAccent2()}">${julio.indice}</span><span style="color:var(--tx3);font-size:13px">/ 100</span>${deltaBadgePts(julio.indice, junio.indice)}</div>
         </div>
         <div class="tbl-wrap"><table><thead><tr><th>Métrica</th><th>Junio</th><th>Julio</th><th>Variación</th></tr></thead><tbody>
           <tr><td>Visitas</td><td class="mono">${fmtInt(junio.visitas)}</td><td class="mono">${fmtInt(julio.visitas)}</td><td>${deltaBadgePct(julio.visitas, junio.visitas)}</td></tr>
@@ -1213,7 +1218,7 @@ function renderResumen(){
 
   mkChart('ch-metas',{type:'bar',data:{labels:metas.map(m=>m.label),datasets:[
       {label:'Meta',data:metas.map(m=>m.meta),backgroundColor:getComputedStyle(document.documentElement).getPropertyValue('--tx3').trim()||'#8c919c',borderRadius:5,maxBarThickness:18},
-      {label:'Real',data:metas.map(m=>m.real),backgroundColor:brandColor(),borderRadius:5,maxBarThickness:18},
+      {label:'Real',data:metas.map(m=>m.real),backgroundColor:chartAccent(),borderRadius:5,maxBarThickness:18},
     ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
       plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}},
       scales:{x:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false}}}}});
@@ -1222,7 +1227,7 @@ function renderResumen(){
   const serieJulio = serieDiariaMes(7, rs=>rs.length? Math.round(rs.filter(r=>r.cumpleCriterios).length/rs.length*100) : null);
   mkChart('ch-mesalinea',{type:'line',data:{labels:[...Array(31)].map((_,i)=>i+1),datasets:[
       {label:'Junio',data:serieJunio,borderColor:'#9c9494',backgroundColor:'transparent',tension:.3,pointRadius:2,spanGaps:true},
-      {label:'Julio',data:serieJulio,borderColor:brandColor2(),backgroundColor:brandColor2()+'22',fill:true,tension:.3,pointRadius:2,spanGaps:true},
+      {label:'Julio',data:serieJulio,borderColor:chartAccent2(),backgroundColor:chartAccent2()+'22',fill:true,tension:.3,pointRadius:2,spanGaps:true},
     ]},options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}},
       scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'},title:{display:true,text:'% Cumplimiento',color:getComputedStyle(document.body).color,font:{size:10.5}}},
@@ -1388,7 +1393,7 @@ function renderCobertura(){
   const clusterClear = document.getElementById('cob-cluster-clear');
   if(clusterClear) clusterClear.onclick = ()=>{ coberturaClusterFiltro=null; renderCobertura(); };
 
-  mkChart('ch-ciudad',{type:'bar',data:{labels:visitasPorCiudadChart.map(c=>c.nombre),datasets:[{label:'Visitas',data:visitasPorCiudadChart.map(c=>c.visitas),backgroundColor:brandColor(),borderRadius:6,maxBarThickness:34}]},
+  mkChart('ch-ciudad',{type:'bar',data:{labels:visitasPorCiudadChart.map(c=>c.nombre),datasets:[{label:'Visitas',data:visitasPorCiudadChart.map(c=>c.visitas),backgroundColor:chartAccent(),borderRadius:6,maxBarThickness:34}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false}}}}});
 
   if(mapCobertura){ mapCobertura.remove(); mapCobertura=null; }
@@ -2304,7 +2309,7 @@ function renderComisiones(){
   document.getElementById('content').innerHTML = `
     <div class="banner"><i class="fas fa-calculator"></i> Comisión de Gs. ${fmtInt(COMISION_TOTAL)} compuesta por 6 KPIs medibles a partir de los datos de campo — sin evaluación subjetiva.</div>
     <div class="grid grid-kpi" style="margin-bottom:18px">
-      ${kpiCard('Comisión total de la pauta', 0, `${Object.keys(COMISION_KPIS).length} KPIs, 100% medibles con datos de campo`, 'fa-coins', '--brand2','k-total')}
+      ${kpiCard('Comisión total de la pauta', 0, `${Object.keys(COMISION_KPIS).length} KPIs, 100% medibles con datos de campo`, 'fa-coins', temaActivoIdx===0?'--ok':'--brand2','k-total')}
       ${kpiCard('Promedio del equipo', 0, `${data.length} promotores con datos en el período`, 'fa-chart-bar', '--ok','k-promedio')}
       ${kpiCard('Cumplimiento de precio (equipo)', promPreciosGlobal, 'vs. precio público sugerido', 'fa-tag', '--bl','k-precioequipo')}
       ${kpiCard('Quiebres de stock', quiebresTotal, `de ${totalControles} visitas — ver Quiebres`, 'fa-box-open', quiebresTotal?'--wa':'--ok','k-quiebres','quiebres')}
@@ -2333,7 +2338,7 @@ function renderComisiones(){
   animateNum(document.getElementById('k-quiebres'), quiebresTotal);
 
   const top10 = data.slice(0,10);
-  mkChart('ch-comisiones',{type:'bar',data:{labels:top10.map(d=>d.p.name.split(' ')[0]),datasets:[{label:'Comisión total',data:top10.map(d=>d.total),backgroundColor:brandColor(),borderRadius:6,maxBarThickness:30}]},
+  mkChart('ch-comisiones',{type:'bar',data:{labels:top10.map(d=>d.p.name.split(' ')[0]),datasets:[{label:'Comisión total',data:top10.map(d=>d.total),backgroundColor:chartAccent(),borderRadius:6,maxBarThickness:30}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmtGs(ctx.parsed.y)}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{callback:v=>fmtInt(v)}},x:{grid:{display:false},ticks:{font:{size:10.5}}}}}});
 }
 
@@ -2372,7 +2377,7 @@ function drawRecorrido(){
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapRecorrido);
 
   const latlngs = dia.map(r=>{ const pdv=pdvById(r.pdvId); return [pdv.lat,pdv.lng]; });
-  if(latlngs.length>1) L.polyline(latlngs,{color:brandColor2(),weight:3,dashArray:'6,6'}).addTo(mapRecorrido);
+  if(latlngs.length>1) L.polyline(latlngs,{color:chartAccent2(),weight:3,dashArray:'6,6'}).addTo(mapRecorrido);
   dia.forEach((r,i)=>{
     const pdv = pdvById(r.pdvId);
     L.marker([pdv.lat,pdv.lng]).addTo(mapRecorrido).bindPopup(`<b>${i+1}. ${pdv.name}</b><br>${r.hora} · ${r.duracion} min`);
@@ -2520,6 +2525,7 @@ const THEMES = [
 ];
 function applyTheme(i){
   const t = THEMES[i];
+  temaActivoIdx = i;
   document.documentElement.style.setProperty('--brand', t.c1);
   document.documentElement.style.setProperty('--brand2', t.c2);
   document.documentElement.style.setProperty('--brand-d', t.c1+'29');
