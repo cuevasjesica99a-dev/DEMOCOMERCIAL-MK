@@ -96,7 +96,7 @@ body.light ::-webkit-scrollbar-thumb{background:rgba(15,20,40,.18)}
 .grid-4{grid-template-columns:repeat(4,1fr)}
 @media(max-width:1100px){.grid-2,.grid-3,.grid-4,.grid-2e{grid-template-columns:1fr}}
 
-.card{background:var(--bg2);border:1px solid var(--bd);border-radius:16px;padding:18px}
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:16px;padding:18px;position:relative}
 .card-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px}
 .card-title{font-size:14px;font-weight:700}
 .card-sub{font-size:11.5px;color:var(--tx3);margin-top:2px}
@@ -172,7 +172,7 @@ body.light ::-webkit-scrollbar-thumb{background:rgba(15,20,40,.18)}
 .cljcard-link{display:inline-flex;align-items:center;gap:5px;color:#0B66C3;font-size:12px;font-weight:700;text-decoration:none;margin-top:12px;cursor:pointer}
 
 /* ---------- Ofertas y Promociones ---------- */
-.ofr-card{background:var(--bg2);border-radius:16px;padding:18px 20px;color:var(--tx);border:1px solid var(--bd)}
+.ofr-card{background:var(--bg2);border-radius:16px;padding:18px 20px;color:var(--tx);border:1px solid var(--bd);position:relative}
 .ofr-title{font-size:15px;font-weight:800;margin-bottom:2px}
 .ofr-sub{font-size:12px;color:var(--tx3);margin-bottom:14px}
 .ofr-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:10.5px;font-weight:800;white-space:nowrap}
@@ -859,6 +859,19 @@ function chip(label, onclickAttr){
 }
 function brandColor(){ return getComputedStyle(document.documentElement).getPropertyValue('--brand').trim(); }
 function brandColor2(){ return getComputedStyle(document.documentElement).getPropertyValue('--brand2').trim(); }
+// Estándar de color semáforo para gráficos de cumplimiento/estado: verde = bien, amarillo = regular, rojo = mal.
+function pctColor(pct){ return getComputedStyle(document.documentElement).getPropertyValue(pct>=85?'--ok':pct>=60?'--wa':'--er').trim(); }
+function pctLegend(){
+  return `<div style="display:flex;gap:14px;font-size:10.5px;flex-wrap:wrap;margin-top:10px;color:var(--tx3)">
+    <span><span class="dot ok"></span> ≥85% cumple objetivo</span>
+    <span><span class="dot wa"></span> 60-84% regular</span>
+    <span><span class="dot er"></span> &lt;60% necesita atención</span>
+  </div>`;
+}
+// Ícono "i" con tooltip explicando qué muestra el gráfico/panel y cómo se calcula. Requiere un contenedor con position:relative.
+function infoTip(text){
+  return `<div class="kpix-info" onclick="event.stopPropagation()">i<div class="kpix-tooltip">${text}</div></div>`;
+}
 
 function buildFotoCard(r){
   const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId);
@@ -1097,6 +1110,7 @@ function renderResumen(){
     <div class="card" style="margin-bottom:16px">
       <h2 style="font-size:16px;margin-bottom:2px">Resumen por clúster</h2>
       <p style="font-size:12px;color:var(--tx3);margin-bottom:16px">Cumplimiento de precio Nova Consumo por grupo de rotación — mismos clústeres H/A/B/C que Cobertura y Precios</p>
+      ${infoTip('Locales agrupados por rotación (unidades repuestas): H = top 10%, A = 10-30%, B = 30-60%, C = 60-100%. El % muestra cuántos locales de cada grupo cumplen el precio sugerido (≥60% de sus visitas con precio propio conforme).')}
       <div class="grid grid-2e" style="gap:14px">
         ${resumenClusters.map(c=>{
           const abierto = resumenClusterAbiertos.has(c.id);
@@ -1123,6 +1137,7 @@ function renderResumen(){
       <div class="card" style="cursor:pointer" onclick="goPage('precios')">
         <div class="card-hdr"><div><div class="card-title">Ranking de categorías</div><div class="card-sub">por rotación de producto</div></div><div class="card-nav-hint">Ver detalle <i class="fas fa-arrow-right"></i></div></div>
         ${topRotacion.map(([p,unid],i)=>`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px"><span style="color:var(--tx2)">${p}</span><span style="font-weight:700">${unid} unid.</span></div><div style="height:6px;background:var(--bg4);border-radius:4px;overflow:hidden"><div style="height:100%;width:${Math.round(unid/(topRotacion[0][1]||1)*100)}%;background:${i===0?brandColor():'var(--tx3)'}"></div></div></div>`).join('') || `<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px 0">Sin datos</div>`}
+        ${infoTip('Top 3 productos por unidades repuestas totales en el período (suma de reposición registrada en cada visita).')}
       </div>
       <div class="card">
         <div class="card-hdr"><div class="card-title">Riesgos y oportunidades</div></div>
@@ -1130,6 +1145,7 @@ function renderResumen(){
         ${categoriasRiesgo.map(cc=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${cc.cat}</span><span style="font-weight:700;color:${cc.pct<70?'var(--er)':'var(--wa)'}">${cc.pct}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Sin datos suficientes</div>`}
         <div style="font-size:9.5px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">📈 Mejor rotación</div>
         ${topRotacion.map(([p,unid])=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${p}</span><span style="font-weight:700;color:var(--ok)">${unid} unid.</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Sin datos suficientes</div>`}
+        ${infoTip('Las 3 categorías con menor % de cumplimiento de precio propio (rojo si &lt;70%, amarillo si ≥70%), y los 3 productos con más unidades repuestas.')}
       </div>
       <div class="card" style="cursor:pointer" onclick="goPage('precios')">
         <div class="card-hdr"><div><div class="card-title">Posicionamiento competitivo</div><div class="card-sub">precio Nova Consumo vs. promedio de la categoría</div></div><div class="card-nav-hint">Ver detalle <i class="fas fa-arrow-right"></i></div></div>
@@ -1137,10 +1153,12 @@ function renderResumen(){
         ${masCaras.map(m=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${m.prod}</span><span style="font-weight:700;color:var(--er)">+${m.indice-100}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Ninguna</div>`}
         <div style="font-size:9.5px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">Más económicas que su categoría</div>
         ${masBaratas.map(m=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${m.prod}</span><span style="font-weight:700;color:var(--ok)">${m.indice-100}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Ninguna</div>`}
+        ${infoTip('Índice de precio = precio Nova Consumo ÷ precio promedio de la categoría × 100. &gt;105 = más cara que su categoría, &lt;95 = más económica.')}
       </div>
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">Julio vs. Junio</div><div class="card-sub">Comparativo mensual e índice de competitividad</div></div></div>
+      ${infoTip('Índice de competitividad (0-100): pondera participación en góndola, ausencia de acciones agresivas de la competencia y competitividad de precio. La variación compara el valor de julio contra junio.')}
       <div class="grid grid-2" style="align-items:stretch">
         <div>
           <div class="roi-lbl" style="margin-bottom:6px">Índice de competitividad<small>Pondera participación en góndola, ausencia de acciones agresivas de la competencia y competitividad de precio</small></div>
@@ -1162,6 +1180,7 @@ function renderResumen(){
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">Metas vs. cumplimiento</div><div class="card-sub">Objetivos comerciales definidos vs. resultado real del período</div></div></div>
       <div class="chart-wrap" style="height:220px"><canvas id="ch-metas"></canvas></div>
+      ${infoTip('Cada barra "Real" es el % efectivamente logrado en el período contra la meta comercial definida para ese indicador (ej: cobertura de PDVs, participación en góndola, asistencia puntual).')}
     </div>
     <div class="grid grid-3">
       <div class="card"><div class="card-hdr"><div><div class="card-title">Presencia de competencia en el PDV</div><div class="card-sub">Quién domina el espacio de exhibición</div></div></div>
@@ -1174,11 +1193,14 @@ function renderResumen(){
           <span><span class="dot ok"></span> Dominamos (${dominamosPct}%)</span>
           <span><span class="dot bl"></span> Empate (${empatePct}%)</span>
           <span><span class="dot er"></span> Competencia (${dominaCompPct}%)</span>
-        </div></div>
+        </div>
+        ${infoTip('Encuesta independiente registrada en cada visita sobre quién domina el espacio de exhibición en el PDV: nosotros, empate o la competencia.')}</div>
       <div class="card"><div class="card-hdr"><div><div class="card-title">% Cumplimiento por cadena</div><div class="card-sub">Criterios de visibilidad y exhibición</div></div></div>
-        <div class="chart-wrap sm"><canvas id="ch-cadena"></canvas></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-cadena"></canvas></div>${pctLegend()}
+        ${infoTip('% de visitas que cumplen los criterios de visibilidad/exhibición, por cadena: (visitas con criterios cumplidos ÷ visitas totales de la cadena) × 100.')}</div>
       <div class="card"><div class="card-hdr"><div><div class="card-title">Alertas recientes</div><div class="card-sub">Últimos vencimientos y averías detectados</div></div></div>
-        <div id="lista-alertas-mini"></div></div>
+        <div id="lista-alertas-mini"></div>
+        ${infoTip('Últimas alertas de productos vencidos, próximos a vencer o averiados detectados en las visitas — detalle completo en Averiados y Vencimientos.')}</div>
     </div>`;
 
   animateNum(document.getElementById('k-visitas'), totalVisitas);
@@ -1210,7 +1232,7 @@ function renderResumen(){
     const rs = rows.filter(r=>pdvById(r.pdvId).chain===c);
     return rs.length? Math.round(rs.filter(r=>r.cumpleCriterios).length/rs.length*100) : 0;
   });
-  mkChart('ch-cadena',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Cumplimiento',data:cadenaPct,backgroundColor:brandColor(),borderRadius:6,maxBarThickness:40}]},
+  mkChart('ch-cadena',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Cumplimiento',data:cadenaPct,backgroundColor:cadenaPct.map(pctColor),borderRadius:6,maxBarThickness:40}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false}}}}});
 
   const alertRows = rows.filter(r=>r.tieneVencidos||r.tieneAveriados).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,5);
@@ -1308,9 +1330,11 @@ function renderCobertura(){
         <div id="map-cobertura"></div>
         <div style="display:flex;gap:16px;margin-top:12px;font-size:11.5px;color:var(--tx2);flex-wrap:wrap">
           <span><span class="dot ok"></span> Cumple</span><span><span class="dot wa"></span> Cumplimiento bajo</span><span><span class="dot er"></span> Con vencidos</span><span><span class="dot" style="background:var(--tx3)"></span> Sin visitas</span>
-        </div></div>
+        </div>
+        ${infoTip('Cada PDV se colorea según su última visita: verde si cumplió criterios, amarillo si el cumplimiento fue bajo, rojo si tenía productos vencidos, gris si no tiene visitas registradas.')}</div>
       <div class="card"><div class="card-hdr"><div><div class="card-title">Visitas por ciudad</div></div></div>
-        <div class="chart-wrap"><canvas id="ch-ciudad"></canvas></div></div>
+        <div class="chart-wrap"><canvas id="ch-ciudad"></canvas></div>
+        ${infoTip('Cantidad total de visitas realizadas por ciudad en el período filtrado.')}</div>
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr">
@@ -1328,9 +1352,11 @@ function renderCobertura(){
         return filaCadena+filasLocal;
       }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px">Sin datos</td></tr>`}
       </tbody></table></div>
+      ${infoTip('Cumplimiento = visitas realizadas ÷ visitas esperadas (esperadas = realizadas + omitidas por el promotor) × 100, por cadena y por local.')}
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">Clústeres de locales por rotación</div><div class="card-sub">Ranking de los ${pdvsFiltrados.length} locales según unidades repuestas en el período — H es el grupo de mejor desempeño, C el que necesita más atención</div></div></div>
+      ${infoTip('Locales ordenados por unidades repuestas y agrupados en clústeres: H = top 10%, A = 10-30%, B = 30-60%, C = 60-100%. Locales con menos de 3 visitas en el período quedan "Sin clasificar".')}
       <div class="grid grid-kpi" style="margin-bottom:14px">
         ${clusterResumen.map(c=>`<div class="kpi ${coberturaClusterFiltro===c.id?'t-ok':''}" id="cob-cluster-${c.id}" style="cursor:pointer;border-color:${coberturaClusterFiltro===c.id&&c.color?`var(--${c.color})`:''}"><div class="kpi-lbl">${c.label}</div><div class="kpi-val" style="color:${c.color?`var(--${c.color})`:'var(--tx3)'}">${c.n}</div><div class="kpi-sub">locales</div></div>`).join('')}
       </div>
@@ -1348,6 +1374,7 @@ function renderCobertura(){
         return `<tr><td style="font-weight:700">${z.pdv.name}</td><td>${z.pdv.chain}</td><td>${z.pdv.city}</td><td>${z.promotor?z.promotor.name:'—'}</td><td style="font-size:11px;color:var(--tx2)">${detalleFechas}</td><td>${reincidente?`<span class="badge er"><i class="fas fa-triangle-exclamation"></i> Reincidente (${z.fechasNoCubiertas.length}x)</span>`:'—'}</td></tr>`;
       }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px"><i class="fas fa-check-circle" style="color:var(--ok);margin-right:6px"></i>Todos los PDVs con visita en los últimos ${VENTANA_RECIENTE} días</td></tr>`}
       </tbody></table></div>
+      ${infoTip('PDVs con al menos una visita planificada y no realizada (omitida) en los últimos '+VENTANA_RECIENTE+' días. "Reincidente" = más de una fecha sin cubrir en esa ventana.')}
     </div>`;
 
   document.querySelectorAll('.cob-row-cadena').forEach(el=>{
@@ -1446,13 +1473,16 @@ function renderAuditoria(){
     </div>
     <div class="grid grid-2e" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div><div class="card-title">Participación en góndola por cadena</div><div class="card-sub">% de espacio de exhibición, Nova Consumo vs. competencia</div></div></div>
-        <div class="chart-wrap sm"><canvas id="ch-gondola"></canvas></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-gondola"></canvas></div>
+        ${infoTip('% promedio de espacio de góndola ocupado por Nova Consumo vs. competencia, relevado en cada visita, por cadena.')}</div>
       <div class="card"><div class="card-hdr"><div><div class="card-title">Disponibilidad de stock por cadena</div><div class="card-sub">% de visitas sin quiebre de stock</div></div></div>
-        <div class="chart-wrap sm"><canvas id="ch-disponibilidad"></canvas></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-disponibilidad"></canvas></div>${pctLegend()}
+        ${infoTip('(1 − visitas con quiebre de stock ÷ visitas totales) × 100, por cadena.')}</div>
     </div>
     <div class="grid grid-2e" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div class="card-title">Acciones de competencia detectadas</div></div>
-        <div class="chart-wrap sm"><canvas id="ch-competencia"></canvas></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-competencia"></canvas></div>
+        ${infoTip('Tipo de acción de la competencia observada por el promotor en cada visita (ej: bajada de precio, nueva promoción, ganancia de espacio).')}</div>
       <div class="card">
         <div class="card-hdr"><div><div class="card-title">Presencia de competencia en el punto de venta</div><div class="card-sub">Encuesta independiente de precio/vencimientos — quién domina el espacio de exhibición</div></div></div>
         <div style="height:14px;border-radius:7px;overflow:hidden;display:flex;gap:2px;margin-bottom:12px">
@@ -1466,6 +1496,7 @@ function renderAuditoria(){
           <span><span class="dot er"></span> Domina la competencia (${dominaCompPct}%)</span>
         </div>
         ${cadenasEnRiesgo.length?`<div class="banner" style="background:var(--er-d);border-color:var(--er-d);color:var(--er)"><i class="fas fa-triangle-exclamation"></i> Cadenas donde la competencia gana espacio: ${cadenasEnRiesgo.map(c=>`${c.cadena} (${c.dominaCompetencia}%)`).join(' · ')} — priorizar negociación de espacio/POP ahí.</div>`:''}
+        ${infoTip('En cada visita el promotor registra quién domina el espacio de exhibición: nosotros, empate o la competencia. "Cadenas en riesgo" = 3+ visitas y la competencia domina en ≥30% de ellas.')}
       </div>
     </div>
     <div class="card" style="margin-bottom:16px">
@@ -1476,6 +1507,7 @@ function renderAuditoria(){
           ${pdvsConDatos.map(pdv=>`<option value="${pdv.id}" ${auditoriaPdvFiltro===pdv.id?'selected':''}>${pdv.name}</option>`).join('')}
         </select>
       </div>
+      ${infoTip('% de visitas con un espacio adicional ganado (fuera del planograma) y % con algún material POP instalado. La tabla de abajo se puede filtrar por PDV específico.')}
       <div class="grid grid-2e" style="margin-bottom:14px">
         <div>
           <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px"><span style="color:var(--tx2)">Espacios adicionales conseguidos</span><span style="font-weight:700">${espaciosPct}% · ${espaciosGanadosN} de ${n}</span></div>
@@ -1495,12 +1527,14 @@ function renderAuditoria(){
       <div class="tbl-wrap"><table><thead><tr><th>Cadena</th><th>Visitas</th><th>Cobertura</th><th>Materiales</th><th>Promociones</th><th>Domina competencia</th></tr></thead><tbody>
       ${porCadena.map(c=>`<tr><td style="font-weight:700">${c.cadena}</td><td>${c.n}</td><td><span class="badge ${c.cobertura>=85?'ok':c.cobertura>=60?'wa':'er'}">${c.cobertura}%</span></td><td><span class="badge ${c.materiales>=85?'ok':c.materiales>=60?'wa':'er'}">${c.materiales}%</span></td><td><span class="badge ${c.promociones>=85?'ok':c.promociones>=60?'wa':'er'}">${c.promociones}%</span></td><td><span class="badge ${c.dominaCompetencia>=30?'er':c.dominaCompetencia>=15?'wa':'ok'}">${c.dominaCompetencia}%</span></td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px">Sin datos</td></tr>`}
       </tbody></table></div>
+      ${infoTip('Cobertura, materiales y promociones: % de visitas de esa cadena que cumplen cada criterio. Domina competencia: % de visitas donde el promotor registró que la competencia domina el espacio de exhibición.')}
     </div>
     <div class="card">
       <div class="card-hdr"><div><div class="card-title">Promociones no cumplidas</div><div class="card-sub">${n-all.filter(r=>r.tienePromocion).length} de ${n}</div></div></div>
       <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>PDV</th><th>Cadena</th><th>Promotor</th><th>Motivo</th></tr></thead><tbody>
       ${promoFallidas.map(r=>{ const pdv=pdvById(r.pdvId), prom=promoterById(r.promotorId); return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.chain}</td><td>${prom.name}</td><td style="color:var(--wa)">${r.motivoIncumplimientoPromo}</td></tr>`; }).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:20px"><i class="fas fa-check-circle" style="color:var(--ok);margin-right:6px"></i>Todas las promociones relevadas están cumplidas</td></tr>`}
       </tbody></table></div>
+      ${infoTip('Últimas 8 visitas donde la promoción vigente no se encontró ejecutada correctamente en el punto de venta, con el motivo registrado por el promotor.')}
     </div>`;
 
   document.getElementById('pop-pdv-filtro').onchange = e=>{ auditoriaPdvFiltro=e.target.value; renderAuditoria(); };
@@ -1517,7 +1551,7 @@ function renderAuditoria(){
       {label:'Competencia',data:gondolaCadenaComp,backgroundColor:'#5a5252',borderRadius:6,maxBarThickness:26},
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
-  mkChart('ch-disponibilidad',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Disponibilidad',data:disponibilidadCadena,backgroundColor:'#3AAFA0',borderRadius:6,maxBarThickness:36}]},
+  mkChart('ch-disponibilidad',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Disponibilidad',data:disponibilidadCadena,backgroundColor:disponibilidadCadena.map(pctColor),borderRadius:6,maxBarThickness:36}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
   mkChart('ch-competencia',{type:'doughnut',data:{labels:accionesLabels,datasets:[{data:accionesLabels.map(a=>accionesCount[a]),backgroundColor:['#5a5252','#7C93A8','#3AAFA0','#9C8FA6','#e8a045','#e84a55'],borderWidth:0}]},
@@ -1547,6 +1581,7 @@ function renderEvidencias(){
       <div class="evid-grid">
         ${fotos.map(buildFotoCard).join('') || `<div style="grid-column:1/-1;text-align:center;color:var(--tx3);padding:40px 0"><i class="fas fa-search" style="font-size:24px;display:block;margin-bottom:8px"></i>Sin resultados</div>`}
       </div>
+      ${infoTip('Últimas 30 visitas del período filtrado con evidencia fotográfica (góndola, producto y precio) cargada por el promotor.')}
     </div>`;
 
   const fotoSearch = document.getElementById('foto-search');
@@ -1697,14 +1732,17 @@ function renderPrecios(){
           <div class="chart-wrap" style="height:220px"><canvas id="ch-compara-producto"></canvas></div>
           ${comparativoStats.some(e=>!e.n)?`<div style="font-size:11px;color:var(--tx3);margin-top:8px">Sin relevamientos de este producto para: ${comparativoStats.filter(e=>!e.n).map(e=>e.nombre).join(', ')}</div>`:''}`
           : `<div style="text-align:center;color:var(--tx3);padding:40px 0"><i class="fas fa-chart-simple" style="font-size:22px;display:block;margin-bottom:8px"></i>Seleccioná un producto de Nova Consumo para comparar su rango de precios contra la competencia</div>`}
+        ${infoTip('Rango mín-máx de precio relevado del producto elegido, comparando Nova Consumo contra cada competidor en el período filtrado.')}
       </div>
       <div class="card">
         <div class="card-hdr"><div><div class="card-title">Precio Nova Consumo vs. competencia</div><div class="card-sub">Promedio por categoría (Gs.) — excluye visitas con quiebre</div></div></div>
         <div class="chart-wrap"><canvas id="ch-precios"></canvas></div>
+        ${infoTip('Precio promedio por categoría, solo visitas sin quiebre de stock (con quiebre no hay precio de góndola confiable para relevar).')}
       </div>
     </div>
     <div class="card">
       <div class="card-hdr"><div><div class="card-title">Precios por marca</div><div class="card-sub">Elegí una marca (Nova Consumo o competencia) para ver el precio de cada producto que se relevó</div></div></div>
+      ${infoTip('Precio mínimo y máximo relevado por producto, para la marca seleccionada, en el período filtrado.')}
       <div class="grid grid-2e" style="margin-top:6px;gap:18px">
         <div>
           <div class="pmarca-lbl" style="color:var(--ok)">Nova Consumo</div>
@@ -1729,9 +1767,11 @@ function renderPrecios(){
       <div class="tbl-wrap" style="max-height:420px;overflow-y:auto"><table><thead><tr><th>Producto</th><th>Marca</th><th>Tipo</th><th>Mínimo</th><th>Máximo</th></tr></thead><tbody>
         ${detalleCorteRows.map(r=>`<tr><td style="font-weight:700">${r.corte}</td><td>${r.marca}</td><td><span class="badge ${r.tipo==='Propia'?'ok':'er'}">${r.tipo}</span></td><td class="mono">${fmtGs(r.min)}</td><td class="mono">${fmtGs(r.max)}</td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:20px">Sin resultados</td></tr>`}
       </tbody></table></div>
+      ${infoTip('Precio mínimo y máximo relevado de cada producto, para cada marca (propia y competencia), en el rango elegido.')}
     </div>
     <div class="card">
       <div class="card-hdr"><div><div class="card-title">Precios por local</div><div class="card-sub">Todos los locales con al menos un precio relevado en el rango elegido, propio o de competencia</div></div></div>
+      ${infoTip('Variación = (precio Nova Consumo − precio competencia) ÷ precio competencia × 100, promedio del local. Verde = igual o más barato que la competencia, rojo = más caro. Clúster: mismo criterio de rotación que Cobertura.')}
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
         <input type="text" id="prec-local-search" placeholder="Buscar local o cadena..." style="max-width:320px;flex:1" value="${preciosLocalBusqueda}">
         <select class="select-inline" id="prec-local-cluster">
@@ -1853,17 +1893,20 @@ function renderOfertas(){
       </tr></thead><tbody>
         ${ofertasTabla.map(o=>{ const pdv=pdvById(o.r.pdvId); return `<tr><td style="font-weight:700">${pdv.name}</td><td>${o.r.producto}</td><td>${o.tipo} (${o.detalle})</td><td>${badgeOrigen(o.origen)}</td><td>${o.vigenciaDias} días</td><td>${badgeEstado(o.estado)}</td></tr>`; }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px">Sin ofertas en el período seleccionado</td></tr>`}
       </tbody></table></div>
+      ${infoTip('Una fila por combinación PDV × producto (la más reciente). Estado: Activa (vigente), Próxima a vencer (≤3 días) o Vencida.')}
     </div>
     <div class="grid grid-2e" style="margin-bottom:16px;gap:16px">
       <div class="ofr-card">
         <div class="ofr-title">Frecuencia de ofertas por día</div>
         <div class="ofr-sub">Volumen de activaciones de lunes a domingo — viernes y sábado concentran la mayor actividad</div>
         <div class="chart-wrap sm"><canvas id="ch-ofr-dia"></canvas></div>
+        ${infoTip('Cantidad de ofertas detectadas por día de la semana en el período filtrado.')}
       </div>
       <div class="ofr-card">
         <div class="ofr-title">Origen de las ofertas</div>
         <div class="ofr-sub">${pctPropia}% propias · ${pctLocal}% de la cadena/local</div>
         <div class="chart-wrap sm"><canvas id="ch-ofr-origen"></canvas></div>
+        ${infoTip('"Propia" = oferta definida por Nova Consumo. "Local/Cadena" = promoción decidida por la cadena o el local, no por nosotros.')}
       </div>
     </div>
     <div class="ofr-card">
@@ -1872,6 +1915,7 @@ function renderOfertas(){
       <div class="ofr-gallery">
         ${ofertasTabla.slice(0,24).map(buildOfertaFotoCard).join('') || `<div style="grid-column:1/-1;text-align:center;color:var(--tx3);padding:30px 0">Sin evidencias en el período seleccionado</div>`}
       </div>
+      ${infoTip('Evidencia fotográfica de la exhibición/activación de la oferta, cargada por el promotor en cada visita.')}
     </div>`;
 
   mkChart('ch-ofr-dia',{type:'bar',data:{labels:DIAS_SEMANA,datasets:[{data:countPorDia,backgroundColor:DIAS_SEMANA.map((d,i)=>(i===4||i===5)?'#BA7819':'#D8CBB5'),borderRadius:6,maxBarThickness:34}]},
@@ -1933,9 +1977,11 @@ function renderAlertas(){
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div class="card-title">Productos más alertados</div><div class="card-sub">Incluye vencimientos y averías</div></div>
-        <div class="chart-wrap sm"><canvas id="ch-productos"></canvas></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-productos"></canvas></div>
+        ${infoTip('Top 6 productos con más alertas de vencimiento o avería registradas en el período.')}</div>
       <div class="card"><div class="card-hdr"><div class="card-title">Motivos de alerta</div></div>
-        <div class="chart-wrap sm"><canvas id="ch-motivos"></canvas></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-motivos"></canvas></div>
+        ${infoTip('Composición de las alertas por estado: vencido, próximo a vencer (en 3 franjas de días) o averiado.')}</div>
     </div>
     <div class="card">
       <div class="card-hdr" style="align-items:center">
@@ -1953,6 +1999,7 @@ function renderAlertas(){
           return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.city}</td><td>${prom.name}</td><td><span class="badge br">Avería</span></td><td>${r.productosAveriados.join(', ')}</td><td style="font-weight:700">${r.cantidadAveriados} u.</td><td style="color:var(--tx3)">—</td><td style="font-size:11px;color:var(--tx2)">${r.motivoAveriado}</td><td>${badgeAveria()}</td></tr>`;
         }).join('') || `<tr><td colspan="10" style="text-align:center;color:var(--tx3);padding:30px">Sin alertas en el período seleccionado</td></tr>`}
       </tbody></table></div>
+      ${infoTip('Listado de visitas con productos vencidos o averiados registrados por el promotor, con motivo declarado. Usá las pestañas para filtrar por tipo.')}
     </div>`;
 
   const marcarTab = (id, activo) => { const el=document.getElementById(id); if(activo){ el.style.background='var(--brand-d)'; el.style.color='var(--brand2)'; el.style.borderColor='var(--brand-d)'; } else { el.style.background=''; el.style.color=''; el.style.borderColor=''; } };
@@ -2001,15 +2048,19 @@ function renderQuiebres(){
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div><div class="card-title">Quiebres por PDV</div><div class="card-sub">Top 10 locales con más quiebres detectados</div></div></div>
-        <div class="chart-wrap"><canvas id="ch-quiebrepdv"></canvas></div></div>
+        <div class="chart-wrap"><canvas id="ch-quiebrepdv"></canvas></div>
+        ${infoTip('Cantidad de visitas con quiebre de stock (góndola o total) detectadas por local, top 10.')}</div>
       <div class="card"><div class="card-hdr"><div><div class="card-title">Quiebres por producto</div><div class="card-sub">Top 10 productos más afectados</div></div></div>
-        <div class="chart-wrap"><canvas id="ch-quiebreproducto"></canvas></div></div>
+        <div class="chart-wrap"><canvas id="ch-quiebreproducto"></canvas></div>
+        ${infoTip('Cantidad de visitas con quiebre de stock detectadas por producto, top 10.')}</div>
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div class="card-title">Quiebres por categoría</div></div>
-        <div class="chart-wrap sm"><canvas id="ch-quiebrecategoria"></canvas></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-quiebrecategoria"></canvas></div>
+        ${infoTip('Distribución de los quiebres de stock detectados en el período, por categoría de producto.')}</div>
       <div class="card"><div class="card-hdr"><div class="card-title">Quiebres por cadena</div></div>
-        <div class="chart-wrap sm"><canvas id="ch-quiebrecadena"></canvas></div></div>
+        <div class="chart-wrap sm"><canvas id="ch-quiebrecadena"></canvas></div>
+        ${infoTip('Cantidad de visitas con quiebre de stock detectadas por cadena.')}</div>
     </div>
     <div class="card">
       <div class="card-hdr"><div><div class="card-title">Detalle de quiebres</div><div class="card-sub">${quiebresRows.length} quiebres detectados en ${pdvsConQuiebre} PDVs</div></div></div>
@@ -2018,18 +2069,19 @@ function renderQuiebres(){
           return `<tr><td>${dateDisplay(r.fecha)}</td><td style="font-weight:700">${pdv.name}</td><td>${pdv.chain}</td><td>${r.producto}</td><td><span class="badge ${r.tipoQuiebre==='Total'?'er':'wa'}">${r.tipoQuiebre}</span></td><td style="text-align:center;font-weight:700;color:var(--er)">${r.cantidadEnGondola}</td><td style="text-align:center;font-weight:700;color:${r.cantidadEnDeposito>0?'var(--wa)':'var(--er)'}">${r.cantidadEnDeposito}</td></tr>`;
         }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--tx3);padding:30px">Sin quiebres en el período seleccionado</td></tr>`}
       </tbody></table></div>
+      ${infoTip('"Góndola" = sin stock en el exhibidor pero sí en depósito (reponible en el momento). "Total" = sin stock ni en góndola ni en depósito.')}
     </div>`;
 
   mkChart('ch-quiebrepdv',{type:'bar',data:{labels:porPdvTop.map(p=>p[0]),datasets:[{label:'Quiebres',data:porPdvTop.map(p=>p[1]),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:22}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
-  mkChart('ch-quiebreproducto',{type:'bar',data:{labels:porProductoTop.map(p=>p[0]),datasets:[{label:'Quiebres',data:porProductoTop.map(p=>p[1]),backgroundColor:'#e8a045',borderRadius:6,maxBarThickness:22}]},
+  mkChart('ch-quiebreproducto',{type:'bar',data:{labels:porProductoTop.map(p=>p[0]),datasets:[{label:'Quiebres',data:porProductoTop.map(p=>p[1]),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:22}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
   mkChart('ch-quiebrecategoria',{type:'doughnut',data:{labels:porCategoria.map(c=>c.cat),datasets:[{data:porCategoria.map(c=>c.n),backgroundColor:['#7C93A8','#3AAFA0','#9C8FA6','#e8a045'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}}}});
 
-  mkChart('ch-quiebrecadena',{type:'bar',data:{labels:porCadena.map(c=>c.cadena),datasets:[{label:'Quiebres',data:porCadena.map(c=>c.n),backgroundColor:'#9C8FA6',borderRadius:6,maxBarThickness:36}]},
+  mkChart('ch-quiebrecadena',{type:'bar',data:{labels:porCadena.map(c=>c.cadena),datasets:[{label:'Quiebres',data:porCadena.map(c=>c.n),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:36}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
 }
 
@@ -2136,10 +2188,12 @@ function renderJornada(){
         <span><span class="dot wa"></span> Tarde (${tarde.length})</span>
         <span style="cursor:pointer" id="jornada-leyenda-ausentes"><span class="dot er"></span> Ausentes (${dayAusencias.length})</span>
       </div>
+      ${infoTip('% de promotores con marcación de entrada ese día sobre el total de la nómina (filtrada por ciudad, si aplica).')}
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">Horario de entrada</div><div class="card-sub">Distribución de check-ins · ${dateDisplay(fecha)}</div></div></div>
       <div class="chart-wrap sm"><canvas id="ch-horas-entry"></canvas></div>
+      ${infoTip('Cantidad de marcaciones de entrada por franja de 15 minutos, separando quienes llegaron a tiempo de quienes llegaron tarde (después de las 08:10).')}
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div><div class="card-title">Puntualidad del período</div><div class="card-sub">Todo el histórico cargado, no solo ${dateDisplay(fecha)} — para coaching sostenido</div></div></div>
@@ -2151,9 +2205,11 @@ function renderJornada(){
             ${peoresPuntuales.map(r=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${nombreCorto(r.p.name)}</span><span style="font-weight:700;color:var(--er)">${r.pct}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Sin datos suficientes</div>`}
           </div>
         </div>
+        ${infoTip('% de jornadas a tiempo sobre el total histórico registrado, solo promotores con 5+ jornadas cargadas.')}
       </div>
       <div class="card"><div class="card-hdr"><div class="card-title">Riesgo de ausentismo</div><div class="card-sub">Más días sin marcar en todo el período cargado</div></div>
         ${riesgoAusentismo.map(r=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd)"><span style="font-size:11.5px;font-weight:600">${r.p.name}</span><span style="font-weight:700;font-size:11.5px;color:${r.pct>20?'var(--er)':'var(--wa)'}">${r.ausencias} días · ${r.pct}%</span></div>`).join('') || `<div style="color:var(--ok);font-size:12px"><i class="fas fa-check-circle" style="margin-right:5px"></i>Sin ausencias relevantes en el período</div>`}
+        ${infoTip('Top 5 promotores por cantidad de ausencias históricas. % = ausencias ÷ (jornadas + ausencias) del promotor.')}
       </div>
     </div>
     <div class="card">
@@ -2175,6 +2231,7 @@ function renderJornada(){
             <td style="text-align:center"><span class="badge bl">${nPdv}</span></td></tr>`;
         }).join('') || `<tr><td colspan="10" style="text-align:center;color:var(--tx3);padding:24px">Sin datos para esta fecha</td></tr>`}
       </tbody></table></div>
+      ${infoTip('Marcaciones de entrada/salida y almuerzo de cada promotor para la fecha seleccionada. Estado: "a tiempo" si entró antes de las 08:10, "fuera de horario" si entró después.')}
     </div>`}`;
 
   document.getElementById('jornada-dia').onchange = e=>{ F.fechaDesde=e.target.value; F.fechaHasta=e.target.value; jornadaFiltroActivo=null; applyFilters(); };
@@ -2254,17 +2311,20 @@ function renderComisiones(){
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div class="card-title">Top 10 comisiones del período</div></div>
-        <div class="chart-wrap"><canvas id="ch-comisiones"></canvas></div></div>
+        <div class="chart-wrap"><canvas id="ch-comisiones"></canvas></div>
+        ${infoTip('Comisión total estimada por promotor, sumando los 6 KPIs de la pauta según su cumplimiento individual.')}</div>
       <div class="card"><div class="card-hdr"><div class="card-title">Objetivos a cumplir</div></div>
         <div style="font-size:12.5px;color:var(--tx2);line-height:2.1">
           ${Object.entries(COMISION_KPIS).map(([k,v])=>`<div><span class="dot ${k==='precios'?'bl':k==='rotacion'?'vi':k==='disponibilidad'?'ok':k==='vencimientos'?'er':k==='visitas'?'wa':'bl'}"></span> ${v.label}: ${Math.round(v.peso*100)}% · ${fmtGs(v.monto)}</div>`).join('')}
-        </div></div>
+        </div>
+        ${infoTip('Composición de la pauta de comisión: 6 KPIs medibles con datos de campo, cada uno con su peso (%) y monto máximo en guaraníes.')}</div>
     </div>
     <div class="card">
       <div class="card-hdr"><div class="card-title">Detalle por promotor</div><div class="card-sub">${data.length} repositores con datos en el período</div></div>
       <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Promotor</th><th style="text-align:center">Precio (25%)</th><th style="text-align:center">Rotación (20%)</th><th style="text-align:center">Disponib. (15%)</th><th style="text-align:center">Vencim. (15%)</th><th style="text-align:center">Visitas (15%)</th><th style="text-align:center">Puntual. (10%)</th><th style="text-align:center">Comisión</th></tr></thead><tbody>
       ${data.map((d,i)=>`<tr><td><span class="rank-medal" style="background:${medalColor(i)}">${i+1}</span></td><td style="font-weight:700">${d.p.name}</td>${cell(d.pcts.precios)}${cell(d.pcts.rotacion)}${cell(d.pcts.disponibilidad)}${cell(d.pcts.vencimientos)}${cell(d.pcts.visitas)}${cell(d.pcts.puntualidad)}<td style="text-align:center;font-weight:800" class="mono">${fmtGs(d.total)}</td></tr>`).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--tx3);padding:30px">Sin datos en el período seleccionado</td></tr>`}
       </tbody></table></div>
+      ${infoTip('% de cumplimiento de cada KPI por promotor (verde ≥80%, amarillo 60-79%, rojo &lt;60%) y la comisión total resultante.')}
     </div>`;
 
   document.getElementById('k-total').textContent = fmtGs(totalPagar);
@@ -2287,6 +2347,7 @@ function renderRecorrido(){
         <select class="select-inline" id="sel-recorrido">${PROMOTERS.map(p=>`<option value="${p.id}" ${p.id===recorridoPromotor?'selected':''}>${p.name} — ${p.city}</option>`).join('')}</select>
       </div>
       <div id="map-recorrido"></div>
+      ${infoTip('Secuencia de PDVs visitados el último día con actividad registrada del promotor seleccionado, en orden cronológico según la hora de cada visita.')}
     </div>
     <div class="grid grid-2" style="margin-top:16px">
       <div class="card"><div class="card-hdr"><div class="card-title">Paradas del día</div></div>
