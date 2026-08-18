@@ -866,6 +866,8 @@ function chartAccent(){ return temaActivoIdx===0 ? getComputedStyle(document.doc
 function chartAccent2(){ return temaActivoIdx===0 ? getComputedStyle(document.documentElement).getPropertyValue('--ok').trim() : brandColor2(); }
 // Estándar de color semáforo para gráficos de cumplimiento/estado: verde = bien, amarillo = regular, rojo = mal.
 function pctColor(pct){ return getComputedStyle(document.documentElement).getPropertyValue(pct>=85?'--ok':pct>=60?'--wa':'--er').trim(); }
+// Semáforo relativo a una meta (para métricas con metas distintas entre sí, ej. 35% vs. 95%): verde si la alcanza o supera, amarillo si está cerca, rojo si está lejos.
+function metaColor(real, meta){ const ratio = meta? real/meta*100 : 100; return getComputedStyle(document.documentElement).getPropertyValue(ratio>=100?'--ok':ratio>=85?'--wa':'--er').trim(); }
 function pctLegend(){
   return `<div style="display:flex;gap:14px;font-size:10.5px;flex-wrap:wrap;margin-top:10px;color:var(--tx3)">
     <span><span class="dot ok"></span> ≥85% cumple objetivo</span>
@@ -1185,7 +1187,12 @@ function renderResumen(){
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">Metas vs. cumplimiento</div><div class="card-sub">Objetivos comerciales definidos vs. resultado real del período</div></div></div>
       <div class="chart-wrap" style="height:220px"><canvas id="ch-metas"></canvas></div>
-      ${infoTip('Cada barra "Real" es el % efectivamente logrado en el período contra la meta comercial definida para ese indicador (ej: cobertura de PDVs, participación en góndola, asistencia puntual).')}
+      <div style="display:flex;gap:14px;font-size:10.5px;flex-wrap:wrap;margin-top:10px;color:var(--tx3)">
+        <span><span class="dot ok"></span> Alcanza o supera la meta</span>
+        <span><span class="dot wa"></span> Cerca (≥85% de la meta)</span>
+        <span><span class="dot er"></span> Lejos (&lt;85% de la meta)</span>
+      </div>
+      ${infoTip('Cada barra "Real" es el % efectivamente logrado en el período contra la meta comercial definida para ese indicador. El color depende de qué tan cerca está del 100% de su propia meta, no del valor absoluto.')}
     </div>
     <div class="grid grid-3">
       <div class="card"><div class="card-hdr"><div><div class="card-title">Presencia de competencia en el PDV</div><div class="card-sub">Quién domina el espacio de exhibición</div></div></div>
@@ -1218,7 +1225,7 @@ function renderResumen(){
 
   mkChart('ch-metas',{type:'bar',data:{labels:metas.map(m=>m.label),datasets:[
       {label:'Meta',data:metas.map(m=>m.meta),backgroundColor:getComputedStyle(document.documentElement).getPropertyValue('--tx3').trim()||'#8c919c',borderRadius:5,maxBarThickness:18},
-      {label:'Real',data:metas.map(m=>m.real),backgroundColor:chartAccent(),borderRadius:5,maxBarThickness:18},
+      {label:'Real',data:metas.map(m=>m.real),backgroundColor:metas.map(m=>metaColor(m.real,m.meta)),borderRadius:5,maxBarThickness:18},
     ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
       plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}},
       scales:{x:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false}}}}});
