@@ -1564,10 +1564,10 @@ function renderAuditoria(){
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div class="card-title">Relevamiento por cadena</div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Cadena</th><th>Visitas</th><th>Cobertura</th><th>Materiales</th><th>Promociones</th><th>Domina competencia</th></tr></thead><tbody>
-      ${porCadena.map(c=>`<tr><td style="font-weight:700">${c.cadena}</td><td>${c.n}</td><td><span class="badge ${c.cobertura>=85?'ok':c.cobertura>=60?'wa':'er'}">${c.cobertura}%</span></td><td><span class="badge ${c.materiales>=85?'ok':c.materiales>=60?'wa':'er'}">${c.materiales}%</span></td><td><span class="badge ${c.promociones>=85?'ok':c.promociones>=60?'wa':'er'}">${c.promociones}%</span></td><td><span class="badge ${c.dominaCompetencia>=30?'er':c.dominaCompetencia>=15?'wa':'ok'}">${c.dominaCompetencia}%</span></td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px">Sin datos</td></tr>`}
+      <div class="tbl-wrap"><table><thead><tr><th>Cadena</th><th>Visitas</th><th>Cobertura</th><th>Materiales</th><th>Promociones</th></tr></thead><tbody>
+      ${porCadena.map(c=>`<tr><td style="font-weight:700">${c.cadena}</td><td>${c.n}</td><td><span class="badge ${c.cobertura>=85?'ok':c.cobertura>=60?'wa':'er'}">${c.cobertura}%</span></td><td><span class="badge ${c.materiales>=85?'ok':c.materiales>=60?'wa':'er'}">${c.materiales}%</span></td><td><span class="badge ${c.promociones>=85?'ok':c.promociones>=60?'wa':'er'}">${c.promociones}%</span></td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:20px">Sin datos</td></tr>`}
       </tbody></table></div>
-      ${infoTip('Cobertura, materiales y promociones: % de visitas de esa cadena que cumplen cada criterio. Domina competencia: % de visitas donde el promotor registró que la competencia domina el espacio de exhibición.')}
+      ${infoTip('Cobertura, materiales y promociones: % de visitas de esa cadena que cumplen cada criterio.')}
     </div>
     <div class="card">
       <div class="card-hdr"><div><div class="card-title">Promociones no cumplidas</div><div class="card-sub">${n-all.filter(r=>r.tienePromocion).length} de ${n}</div></div></div>
