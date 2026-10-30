@@ -1,293 +1,407 @@
 <!-- NOVA CONSUMO — DEMO COMERCIAL +Marka — Datos 100% ficticios (Paraguay) -->
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nova Consumo — Panel de Relevamiento de Campo | Demo +Marka</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.468.0/font/lucide.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
+/* Tokens y estilo del tablero Resumen operativo del Controller (+MARKA Design System:
+   masmarka-field/admin-app/src/design-system/tokens.css). */
 :root{
-  --bg:#181514;--bg2:#221E1D;--bg3:#2A2624;--bg4:#332E2C;
-  --bd:rgba(255,255,255,.08);--bd2:rgba(255,255,255,.14);
-  --tx:#f2eeee;--tx2:#9c9494;--tx3:#5a5252;
-  --ok:#3AAFA0;--ok-d:rgba(58,175,160,.14);
-  --er:#e84a55;--er-d:rgba(232,74,85,.14);
-  --wa:#e8a045;--wa-d:rgba(232,160,69,.14);
-  --bl:#7C93A8;--bl-d:rgba(124,147,168,.14);
-  --vi:#9C8FA6;--vi-d:rgba(156,143,166,.14);
-  --br:#c98a4b;--br-d:rgba(201,138,75,.16);
-  --brand:#C41E24;--brand2:#E0272E;--brand-d:rgba(196,30,36,.16);
-  --r2:8px;--sw:250px;--hh:60px;
-  --sh:0 8px 28px rgba(0,0,0,.5);--tr:.18s ease;
+  --background:#f6f8f7;--surface:#ffffff;--surface-secondary:#f0f3f2;--surface-tertiary:#e8ecea;
+  --border:#e2e7e5;--border-subtle:#edf1ef;--border-strong:#ccd4d1;
+  --text-primary:#101816;--text-secondary:#5b6a66;--text-tertiary:#8d9a96;
+  --brand:#3cb3a8;--brand-soft:#e5f4f2;--brand-ink:#0e5c55;
+  --success:#2f9e6b;--success-soft:rgba(47,158,107,.12);
+  --warning:#b8850f;--warning-soft:rgba(184,133,15,.12);
+  --danger:#cf4b4b;--danger-soft:rgba(207,75,75,.12);
+  --semaforo-rojo:#e53935;--semaforo-amarillo:#f9c400;--semaforo-verde:#22a447;
+  --info:#3d78c0;--info-soft:rgba(61,120,192,.12);
+  --neutral:#8d9a96;--neutral-soft:rgba(141,154,150,.12);
+  --violeta:#8b5cf6;--violeta-soft:rgba(139,92,246,.12);
+  --data-viz-1:#3cb3a8;--data-viz-2:#3d5f9e;--data-viz-3:#c9913a;--data-viz-4:#b5566a;--data-viz-5:#6b7a8f;--data-viz-6:#7fa86b;
+  --shell:#101716;--shell-line:rgba(255,255,255,.08);--shell-ink:#ffffff;--shell-secondary:rgba(255,255,255,.66);--shell-tertiary:rgba(255,255,255,.42);--shell-active:rgba(60,179,168,.18);--shell-accent:#58d6c9;
+  --stage:radial-gradient(120% 80% at 50% -10%,#eef3f1 0%,var(--background) 55%);
+  --radius-control:9px;--radius-field:12px;--radius-card:14px;--radius-modal:20px;--radius-pill:999px;
+  --shadow-sm:0 1px 2px rgba(16,24,22,.06);--shadow-md:0 4px 16px -4px rgba(16,24,22,.12);--shadow-lg:0 24px 60px -12px rgba(16,24,22,.26);
+  --font-ui:'Outfit',sans-serif;--font-mono:'JetBrains Mono',monospace;
+  /* Nombres internos del tablero, apuntando a los tokens del Controller */
+  --bg:var(--background);--bg2:var(--surface);--bg3:var(--surface-secondary);--bg4:var(--surface-tertiary);
+  --bd:var(--border);--bd2:var(--border-strong);
+  --tx:var(--text-primary);--tx2:var(--text-secondary);--tx3:var(--text-tertiary);
+  --ok:var(--success);--ok-d:var(--success-soft);--er:var(--danger);--er-d:var(--danger-soft);
+  --wa:var(--warning);--wa-d:var(--warning-soft);--bl:var(--info);--bl-d:var(--info-soft);
+  --vi:var(--violeta);--vi-d:var(--violeta-soft);--br:var(--data-viz-3);--br-d:color-mix(in srgb,var(--data-viz-3) 14%,transparent);
+  --brand2:var(--brand-ink);--brand-d:var(--brand-soft);
+  --r2:var(--radius-control);--sw:248px;--hh:64px;--sh:var(--shadow-md);--tr:.15s ease;
 }
+:root[data-theme="dark"]{
+  --background:#0d1211;--surface:#141a19;--surface-secondary:#1b2321;--surface-tertiary:#232c2a;
+  --border:#26302e;--border-subtle:#1e2725;--border-strong:#34403d;
+  --text-primary:#eef2f1;--text-secondary:#a1aeaa;--text-tertiary:#6f7d79;
+  --brand:#45c6ba;--brand-soft:#16302e;--brand-ink:#9fe3db;
+  --success:#4bbd85;--success-soft:rgba(75,189,133,.16);--warning:#d8a63c;--warning-soft:rgba(216,166,60,.16);
+  --danger:#e26a6a;--danger-soft:rgba(226,106,106,.16);
+  --semaforo-rojo:#ef5350;--semaforo-amarillo:#ffd23f;--semaforo-verde:#3cc265;
+  --info:#5f9ada;--info-soft:rgba(95,154,218,.16);--neutral:#6f7d79;--neutral-soft:rgba(111,125,121,.16);
+  --data-viz-1:#58d6c9;--data-viz-2:#6a8fd6;--data-viz-3:#e0b466;--data-viz-4:#d888a0;--data-viz-5:#9aa9bd;--data-viz-6:#a3d192;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.3);--shadow-md:0 4px 16px -4px rgba(0,0,0,.45);--shadow-lg:0 24px 60px -12px rgba(0,0,0,.6);
+  --stage:radial-gradient(120% 80% at 50% -10%,#1b2321 0%,var(--background) 55%);
+}
+/* Color de marca elegido en Preferencias: el resto de la paleta se deriva del elegido */
+:root[data-marca="custom"]{--brand-soft:color-mix(in srgb,var(--brand) 14%,var(--surface));--brand-ink:color-mix(in srgb,var(--brand) 55%,#000)}
+:root[data-marca="custom"][data-theme="dark"]{--brand-ink:color-mix(in srgb,var(--brand) 55%,#fff)}
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-size:14px;line-height:1.5;overflow:hidden}
-button,input,select{font-family:'Outfit',sans-serif;font-size:13px}
-::-webkit-scrollbar{width:6px;height:6px}
+body{font-family:var(--font-ui);background:var(--background);color:var(--text-primary);font-size:13.5px;line-height:1.5;overflow:hidden}
+button,input,select{font-family:var(--font-ui);font-size:13px}
+*{scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent}
+::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}
-body.light{--bg:#eef1f5;--bg2:#ffffff;--bg3:#f5f7fa;--bg4:#e8ecf1;--bd:rgba(15,20,40,.09);--bd2:rgba(15,20,40,.16);--tx:#111317;--tx2:#454a55;--tx3:#8c919c;--sh:0 4px 20px rgba(15,20,40,.1),0 1px 4px rgba(15,20,40,.06);}
-body.light ::-webkit-scrollbar-thumb{background:rgba(15,20,40,.18)}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:99px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background-color:var(--text-tertiary)}
+
+/* Íconos lineales, los mismos del Controller */
+.fas{font-family:'lucide';font-style:normal;font-weight:400;display:inline-block;line-height:1;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+.fa-spin{animation:mk-spin .7s linear infinite}
+@keyframes mk-spin{to{transform:rotate(360deg)}}
+.fa-arrow-left:before{content:"\e04c"}.fa-arrow-right:before{content:"\e04d"}.fa-arrow-up:before{content:"\e04e"}.fa-arrow-down:before{content:"\e046"}.fa-border-all:before{content:"\e104"}.fa-box:before{content:"\e065"}.fa-box-open:before{content:"\e2cb"}.fa-bullhorn:before{content:"\e234"}.fa-calculator:before{content:"\e1bb"}.fa-calendar:before{content:"\e067"}.fa-calendar-times:before{content:"\e2bd"}.fa-calendar-week:before{content:"\e2bc"}.fa-camera:before{content:"\e068"}.fa-chart-bar:before{content:"\e2a2"}.fa-chart-pie:before{content:"\e06f"}.fa-chart-simple:before{content:"\e2a2"}.fa-check:before{content:"\e070"}.fa-check-circle:before{content:"\e225"}.fa-check-double:before{content:"\e391"}.fa-chevron-right:before{content:"\e073"}.fa-chevron-down:before{content:"\e071"}.fa-circle:before{content:"\e07a"}.fa-clipboard-check:before{content:"\e218"}.fa-clock:before{content:"\e08b"}.fa-coins:before{content:"\e09b"}.fa-exclamation-triangle:before{content:"\e192"}.fa-file-csv:before{content:"\e326"}.fa-file-export:before{content:"\e0b6"}.fa-filter:before{content:"\e0d5"}.fa-hand-holding-dollar:before{content:"\e5bc"}.fa-hourglass-half:before{content:"\e295"}.fa-info-circle:before{content:"\e0fe"}.fa-minus:before{content:"\e11f"}.fa-moon:before{content:"\e121"}.fa-palette:before{content:"\e1dc"}.fa-percent:before{content:"\e135"}.fa-route:before{content:"\e542"}.fa-search:before{content:"\e154"}.fa-sliders:before{content:"\e299"}.fa-store:before{content:"\e3e7"}.fa-store-slash:before{content:"\e3e7"}.fa-sun:before{content:"\e17b"}.fa-sync-alt:before{content:"\e148"}.fa-tag:before{content:"\e182"}.fa-tags:before{content:"\e35f"}.fa-times:before{content:"\e1b1"}.fa-times-circle:before{content:"\e088"}.fa-triangle-exclamation:before{content:"\e192"}.fa-user-check:before{content:"\e19f"}.fa-user-clock:before{content:"\e19f"}.fa-users:before{content:"\e1a3"}.fa-user-times:before{content:"\e1a2"}.fa-user-xmark:before{content:"\e1a2"}.fa-utensils:before{content:"\e2f5"}.fa-bars:before{content:"\e118"}.fa-grid-mk:before{content:"\e104"}.fa-table:before{content:"\e2f8"}
 
 .app{display:flex;height:100vh}
 
-/* ---------- SIDEBAR ---------- */
-.sidebar{width:var(--sw);flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;padding:18px 14px;overflow-y:auto}
-.brand{display:flex;align-items:center;gap:10px;padding:4px 6px 18px;border-bottom:1px solid var(--bd);margin-bottom:14px}
-.brand-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0;box-shadow:0 4px 14px var(--brand-d)}
-.brand-name{font-weight:800;font-size:15px;letter-spacing:-.2px}
-.brand-sub{font-size:10.5px;color:var(--tx3);font-weight:600;letter-spacing:.3px;text-transform:uppercase}
-.demo-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--brand2);background:var(--brand-d);border:1px solid var(--brand-d);padding:3px 8px;border-radius:20px;margin-top:8px}
-.nav{display:flex;flex-direction:column;gap:2px;margin-top:2px}
-.ni{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:var(--r2);color:var(--tx2);font-weight:600;font-size:13px;cursor:pointer;transition:var(--tr);white-space:nowrap}
-.ni i{width:16px;text-align:center;font-size:14px}
-.ni:hover{background:var(--bg3);color:var(--tx)}
-.ni.active{background:var(--brand-d);color:var(--brand2)}
-.ni-badge{margin-left:auto;background:var(--er);color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px}
-.nav-sect{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--tx3);margin:16px 8px 6px}
-.sidebar-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--bd)}
-.swatches{display:flex;gap:7px;margin:8px 0 12px}
-.swatch{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:var(--tr)}
-.swatch.active{border-color:var(--tx);transform:scale(1.12)}
-.foot-note{font-size:10.5px;color:var(--tx3);line-height:1.5}
-.theme-toggle{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:8px;border-radius:var(--r2);background:var(--bg3);color:var(--tx2);border:1px solid var(--bd);cursor:pointer;font-weight:600;margin-bottom:10px}
-.theme-toggle:hover{color:var(--tx)}
+/* ---------- MENÚ LATERAL ---------- */
+.sidebar{width:var(--sw);min-width:var(--sw);background:var(--shell);border-right:1px solid var(--shell-line);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;scrollbar-color:rgba(255,255,255,.16) transparent}
+.sidebar::-webkit-scrollbar-thumb{background-color:rgba(255,255,255,.16)}
+.brand{display:flex;align-items:center;gap:10px;padding:20px 18px 16px}
+.brand-mark{width:36px;height:36px;border-radius:var(--radius-control);background:var(--shell-active);color:var(--shell-accent);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.brand-name{font-weight:800;font-size:15px;line-height:1.1;color:var(--shell-ink)}
+.brand-sub{font-size:9px;color:var(--shell-tertiary);font-weight:700;letter-spacing:.09em;text-transform:uppercase;margin-top:2px;white-space:nowrap}
+.nav-wrap{padding:6px 12px;flex:1}
+.nav{display:flex;flex-direction:column}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 10px;margin-bottom:2px;border-radius:var(--radius-control);color:var(--shell-secondary);font-weight:500;font-size:13px;cursor:pointer;transition:background .14s;white-space:nowrap}
+.ni i{font-size:17px;flex-shrink:0;color:var(--shell-secondary)}
+.ni:hover{background:rgba(255,255,255,.05)}
+.ni.active{background:var(--shell-active);color:var(--shell-ink);font-weight:600}
+.ni.active i{color:var(--shell-accent)}
+.ni-badge{background:var(--shell-active);color:var(--shell-accent);font-size:10px;font-weight:700;padding:1px 7px;border-radius:var(--radius-pill)}
+.ni-badge:first-of-type{margin-left:auto}
+.nav-sect{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--shell-tertiary);padding:14px 10px 6px}
+.sidebar-foot{padding:12px 14px 16px;border-top:1px solid var(--shell-line)}
+.tema-seg{display:flex;gap:2px;padding:3px;background:rgba(0,0,0,.25);border-radius:var(--radius-field);margin-bottom:10px}
+.tema-seg button{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:6px 0;border:none;border-radius:var(--radius-control);background:transparent;color:var(--shell-tertiary);font-size:11px;font-weight:600;cursor:pointer;transition:all .14s}
+.tema-seg button.active{background:var(--shell-ink);color:var(--shell)}
+.tema-seg i{font-size:12px}
 .prefs-panel{margin-bottom:10px}
-.prefs-summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:var(--r2);background:var(--bg3);border:1px solid var(--bd);color:var(--tx2);font-weight:600;font-size:12.5px;cursor:pointer;list-style:none;user-select:none}
+.prefs-summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:var(--radius-control);color:var(--shell-secondary);font-weight:500;font-size:12px;cursor:pointer;list-style:none;user-select:none}
 .prefs-summary::-webkit-details-marker{display:none}
-.prefs-summary:hover{color:var(--tx)}
-.prefs-summary i.chev{transition:transform .18s ease;font-size:10px;color:var(--tx3)}
-.prefs-panel[open] .prefs-summary{border-radius:var(--r2) var(--r2) 0 0}
+.prefs-summary:hover{background:rgba(255,255,255,.05)}
+.prefs-summary span{display:inline-flex;align-items:center;gap:8px}
+.prefs-summary i{font-size:14px}
+.prefs-summary i.chev{transition:transform .15s ease;font-size:12px;color:var(--shell-tertiary)}
 .prefs-panel[open] .prefs-summary i.chev{transform:rotate(180deg)}
-.prefs-body{padding:12px 10px 4px;border:1px solid var(--bd);border-top:none;border-radius:0 0 var(--r2) var(--r2)}
+.prefs-body{padding:8px 10px 4px}
+.prefs-lbl{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--shell-tertiary);margin-bottom:8px}
+.swatches{display:flex;gap:7px;margin:0 0 6px}
+.swatch{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:var(--tr)}
+.swatch.active{border-color:var(--shell-ink);transform:scale(1.12)}
+.demo-user{display:flex;align-items:center;gap:9px}
+.demo-avatar{width:32px;height:32px;border-radius:50%;background:var(--shell-active);color:var(--shell-accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+.demo-name{font-size:12px;font-weight:600;color:var(--shell-ink);white-space:nowrap}
+.demo-role{font-size:10.5px;color:var(--shell-tertiary)}
+.foot-note{font-size:10.5px;color:var(--shell-tertiary);line-height:1.5;margin-top:10px}
+.menu-ov{display:none}
 
-/* ---------- MAIN ---------- */
-.main{flex:1;display:flex;flex-direction:column;min-width:0}
-.topbar{height:var(--hh);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--bd);background:var(--bg2)}
-.page-title{font-size:18px;font-weight:800;display:flex;align-items:center;gap:10px}
-.page-title i{color:var(--brand2)}
-.topbar-actions{display:flex;align-items:center;gap:10px}
-.tb-btn{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:var(--r2);background:var(--bg3);border:1px solid var(--bd);color:var(--tx2);cursor:pointer;font-weight:600;transition:var(--tr)}
-.tb-btn:hover{color:var(--tx);border-color:var(--bd2)}
-.tb-btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
-.tb-btn.primary:hover{background:var(--brand2)}
+/* ---------- BARRA SUPERIOR ---------- */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--stage)}
+.topbar{height:var(--hh);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 24px;border-bottom:1px solid var(--border);background:var(--surface)}
+.crumbs{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-tertiary);white-space:nowrap;overflow:hidden;min-width:0}
+.crumbs b{color:var(--text-primary);font-weight:700;overflow:hidden;text-overflow:ellipsis}
+.btn-menu{display:none;width:36px;height:36px;border-radius:var(--radius-control);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);cursor:pointer;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.topbar-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tb-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;padding:0 16px;border-radius:var(--radius-control);background:var(--surface);border:1px solid var(--border);color:var(--text-primary);cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap;transition:background .14s,transform .1s}
+.tb-btn:hover{background:var(--surface-secondary)}
+.tb-btn:active{transform:scale(.97)}
+.tb-btn i{font-size:15px}
 
-.fbar{display:flex;align-items:center;gap:10px;padding:12px 24px;border-bottom:1px solid var(--bd);flex-wrap:wrap;background:var(--bg)}
-.fbar select,.fbar input[type=text]{background:var(--bg3);border:1px solid var(--bd);color:var(--tx);padding:7px 10px;border-radius:8px;outline:none}
-.fbar select:hover,.fbar input:hover{border-color:var(--bd2)}
-.fbar-label{font-size:11.5px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.3px;display:flex;align-items:center;gap:5px}
-.fbar-chip{display:flex;align-items:center;gap:6px;background:var(--brand-d);color:var(--brand2);border:1px solid var(--brand-d);padding:5px 11px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer}
+.fbar{display:flex;align-items:center;gap:8px;padding:12px 24px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:var(--surface)}
+.fbar input[type=text]{background:var(--surface-secondary);border:1px solid var(--border);color:var(--text-primary);padding:7px 10px;border-radius:var(--radius-control);outline:none}
+.fbar-label{font-size:12px;color:var(--text-tertiary);font-weight:600;display:flex;align-items:center;gap:5px}
+.fbar-label i{font-size:14px}
+.fbar-chip{display:flex;align-items:center;gap:6px;background:var(--brand-soft);color:var(--brand-ink);border:1px solid var(--brand);padding:4px 11px;border-radius:var(--radius-pill);font-size:12px;font-weight:600;cursor:pointer}
+.fbar-chip i{font-size:12px!important}
+.segmentado{display:inline-flex;padding:3px;gap:3px;border-radius:var(--radius-pill);background:var(--surface-secondary);border:1px solid var(--border)}
+.segmentado button{padding:5px 12px;border:none;border-radius:var(--radius-pill);background:transparent;color:var(--text-secondary);font-size:12.5px;font-weight:500;cursor:pointer}
+.segmentado button.active{background:var(--surface);box-shadow:var(--shadow-sm);color:var(--text-primary);font-weight:700}
 
-.content{flex:1;overflow-y:auto;padding:22px 24px 40px}
-.banner{display:flex;align-items:center;gap:10px;background:var(--brand-d);border:1px solid var(--brand-d);color:var(--brand2);padding:10px 16px;border-radius:var(--r2);font-size:12.5px;font-weight:600;margin-bottom:18px}
-.banner i{font-size:14px}
+.scroll-area{flex:1;overflow-y:auto;padding:22px 24px 40px;min-height:0}
+.page-head{margin-bottom:16px}
+.page-h{font-size:24px;font-weight:700;line-height:1.25;color:var(--text-primary)}
+.page-s{font-size:13px;color:var(--text-secondary);margin-top:4px}
+.banner{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--info);color:var(--text-secondary);padding:10px 14px;border-radius:var(--radius-field);font-size:13px;margin-bottom:16px}
+.banner i{font-size:15px;color:var(--info);flex-shrink:0}
 
-.grid{display:grid;gap:16px}
-.grid-kpi{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+/* ---------- GRILLAS Y TARJETAS ---------- */
+.grid{display:grid;gap:12px}
+.grid-kpi{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}
+.grid>*{min-width:0}
 .grid-2{grid-template-columns:2fr 1fr}
+.grid-comp{grid-template-columns:minmax(0,1fr) minmax(0,1.7fr)}
 .grid-2e{grid-template-columns:1fr 1fr}
 .grid-3{grid-template-columns:repeat(3,1fr)}
 .grid-4{grid-template-columns:repeat(4,1fr)}
-@media(max-width:1100px){.grid-2,.grid-3,.grid-4,.grid-2e{grid-template-columns:1fr}}
+@media(max-width:1100px){.grid-2,.grid-3,.grid-4,.grid-2e,.grid-comp{grid-template-columns:1fr}}
 
-.card{background:var(--bg2);border:1px solid var(--bd);border-radius:16px;padding:18px;position:relative}
-.card-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px}
-.card-title{font-size:14px;font-weight:700}
-.card-sub{font-size:11.5px;color:var(--tx3);margin-top:2px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:16px 18px;position:relative;min-width:0;box-shadow:var(--shadow-sm)}
+.card:hover{z-index:5}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+.card:has(>.kpix-info)>.card-hdr{padding-right:26px}
+.tar-tit{display:flex;align-items:center;gap:10px;min-width:0}
+.tar-ico{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
+.card-title{font-size:14.5px;font-weight:700;color:var(--text-primary)}
+.card-sub{font-size:12px;color:var(--text-tertiary);margin-top:2px}
 .chart-wrap{position:relative;height:260px}
 .chart-wrap.sm{height:200px}
+.card-nav-hint{font-size:12px;font-weight:600;color:var(--brand-ink);white-space:nowrap;display:flex;align-items:center;gap:4px;flex-shrink:0}
+.card-nav-hint i{font-size:12px}
 
-.kpi{background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;transition:var(--tr)}
-.kpi:hover{transform:translateY(-2px);box-shadow:var(--sh)}
-.kpi-lbl{font-size:11.5px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.3px}
-.kpi-val{font-size:24px;font-weight:800;margin-top:6px;letter-spacing:-.5px}
-.kpi-sub{font-size:11px;color:var(--tx3);margin-top:4px}
-.kpi-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:2px}
-.ico-chip{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
-.kpi-link{font-size:10.5px;font-weight:700;color:var(--tx3);margin-top:8px;display:flex;align-items:center;gap:4px}
-.kpi.clickable:hover .kpi-link{color:var(--brand2)}
-.kpi-link i{font-size:9px}
-.card-nav-hint{font-size:10.5px;font-weight:700;color:var(--brand2);white-space:nowrap;display:flex;align-items:center;gap:4px;flex-shrink:0}
-.card-nav-hint i{font-size:9px}
-
-/* ---------- Tarjeta KPI expandible (kpix) ---------- */
-.kpix{position:relative;border-radius:12px;padding:16px 18px 18px;border:1px solid var(--bd);transition:transform var(--tr), box-shadow var(--tr)}
-.kpix:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(0,0,0,.35)}
+/* Indicadores: fondo blanco y número en negro; el color va solo en el ícono */
+.kpi,.kpix{background:var(--surface)!important;border:1px solid var(--border);border-radius:var(--radius-card);padding:16px 18px 14px;position:relative;min-width:0;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s}
+.kpi:hover,.kpix:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);z-index:5}
+.kpi-top,.kpix-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.kpi-lbl,.kpix-lbl{font-size:13px;font-weight:600;color:var(--text-secondary);padding-top:6px;line-height:1.3}
+.kpi-val{font-size:36px;font-weight:700;letter-spacing:-.035em;line-height:1;color:var(--text-primary)!important;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpix-val{font-size:36px;font-weight:700;letter-spacing:-.035em;line-height:1;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.kpix-val.largo{font-size:21px;letter-spacing:-.02em;line-height:1.2}
+.kpi-sub,.kpix-foot{font-size:12px;color:var(--text-secondary);line-height:1.4;padding-right:22px}
+.ico-chip{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.kpi-medio{min-height:24px;display:flex;align-items:center}
+.kpi-barra{flex:1;height:5px;border-radius:99px;background:var(--surface-tertiary);overflow:hidden}
+.kpi-barra div{height:100%;border-radius:99px;transition:width .4s}
+.kpi-link{font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.kpi-link i{font-size:12px}
+.kpi.clickable{cursor:pointer}
 .kpix.expandable{cursor:pointer}
 .kpix.expandable.open{cursor:default;grid-column:1/-1}
-.kpix-teal{background:var(--bg2);--kpix-c:var(--ok);--kpix-cd:var(--ok-d)}
-.kpix-amber{background:var(--bg2);--kpix-c:var(--wa);--kpix-cd:var(--wa-d)}
-.kpix-blue{background:var(--bg2);--kpix-c:var(--bl);--kpix-cd:var(--bl-d)}
-.kpix-violet{background:var(--bg2);--kpix-c:var(--vi);--kpix-cd:var(--vi-d)}
-.kpix-red{background:var(--bg2);--kpix-c:var(--er);--kpix-cd:var(--er-d)}
-.kpix-accent{background:var(--bg2);--kpix-c:var(--brand2);--kpix-cd:var(--brand-d)}
-.kpix-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-.kpix-lbl{font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--tx2)}
-.kpix-ico-chip{color:var(--kpix-c);background:var(--kpix-cd)}
-.kpix-val{font-size:21px;font-weight:900;margin-top:10px;color:var(--kpix-c);letter-spacing:-.3px}
-.kpix-foot{font-size:11px;color:var(--tx3);margin-top:4px}
-.kpix-hint{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--tx3);margin-top:12px}
-.kpix-hint i{font-size:9px;transition:transform var(--tr)}
+.kpix-teal{--kpix-c:var(--data-viz-1)}
+.kpix-amber{--kpix-c:var(--data-viz-3)}
+.kpix-blue{--kpix-c:var(--data-viz-2)}
+.kpix-violet{--kpix-c:var(--violeta)}
+.kpix-red{--kpix-c:var(--semaforo-rojo)}
+.kpix-accent{--kpix-c:var(--brand)}
+.kpix-ico-chip{color:var(--kpix-c);background:color-mix(in srgb,var(--kpix-c) 16%,transparent)}
+.kpix-hint{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--kpix-c)}
+.kpix-hint i{font-size:13px;transition:transform var(--tr)}
 .kpix.open .kpix-hint i{transform:rotate(180deg)}
 .kpix-panel{max-height:0;overflow:hidden;transition:max-height .28s ease}
-.kpix.open .kpix-panel{max-height:900px}
-.kpix-panel-inner{margin-top:14px;padding-top:14px;border-top:1px solid var(--bd)}
-.kpix-info{position:absolute;bottom:10px;right:10px;width:17px;height:17px;border-radius:50%;background:var(--bg4);color:var(--tx3);font-size:9.5px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:help;font-style:italic;font-family:Georgia,serif}
-.kpix-tooltip{position:absolute;bottom:24px;right:0;background:#161414;color:#fff;font-size:11px;font-weight:500;padding:8px 10px;border-radius:8px;width:190px;line-height:1.4;box-shadow:0 8px 20px rgba(0,0,0,.4);opacity:0;visibility:hidden;transform:translateY(4px);transition:var(--tr);z-index:20;pointer-events:none}
-.kpix-info:hover .kpix-tooltip{opacity:1;visibility:visible;transform:translateY(0)}
+.kpix.open .kpix-panel{max-height:900px;overflow:auto}
+.kpix-panel-inner{margin-top:6px;padding-top:14px;border-top:1px solid var(--border)}
 
-/* ---------- Precios por marca (panel nuestro vs. competencia) ---------- */
-.pmarca-lbl{font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;margin-bottom:8px}
+/* Botón de ayuda (i) */
+.kpix-info{position:absolute;bottom:10px;right:10px;width:24px;height:24px;border-radius:99px;color:var(--text-tertiary);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:help}
+.kpix-info:hover,.kpix-info:focus{background:var(--surface-tertiary);color:var(--text-primary);outline:none}
+.card>.kpix-info{top:13px;bottom:auto}
+.kpix-tooltip{position:absolute;bottom:30px;right:0;background:var(--surface);color:var(--text-secondary);border:1px solid var(--border-strong);font-family:var(--font-ui);font-size:13px;font-weight:400;padding:12px 14px;border-radius:var(--radius-field);width:300px;max-width:calc(100vw - 48px);line-height:1.45;box-shadow:var(--shadow-md);opacity:0;visibility:hidden;transform:translateY(4px);transition:var(--tr);z-index:20;pointer-events:none;text-align:left;white-space:normal}
+.card>.kpix-info .kpix-tooltip{top:30px;bottom:auto}
+.kpix-info:hover .kpix-tooltip,.kpix-info:focus .kpix-tooltip{opacity:1;visibility:visible;transform:translateY(0)}
+
+/* ---------- GRÁFICOS ---------- */
+.leyenda{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 10px}
+.leyenda span{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary)}
+.leyenda em{display:block;width:10px;height:10px;border-radius:2px}
+.leyenda em.linea{width:14px;height:2px}
+.caja-tooltip{position:fixed;z-index:1000;pointer-events:none;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-field);padding:8px 12px;font-size:12px;box-shadow:var(--shadow-md);min-width:170px;max-width:320px;opacity:0;transition:opacity .1s}
+.caja-tooltip b.t{display:block;font-weight:700;margin-bottom:4px;color:var(--text-primary)}
+.caja-tooltip div{display:flex;align-items:center;gap:6px;color:var(--text-secondary);margin-top:2px}
+.caja-tooltip em{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.caja-tooltip span{flex:1}
+.caja-tooltip b.v{color:var(--text-primary);font-variant-numeric:tabular-nums}
+.chart-wrap.torta{height:auto!important;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.torta-anillo{position:relative;width:150px;height:150px;flex-shrink:0}
+.torta-centro{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center}
+.torta-num{font-size:24px;font-weight:700;line-height:1;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.torta-sub{font-size:11px;color:var(--text-tertiary);margin-top:3px;max-width:88px;line-height:1.25}
+.torta-lista{flex:1 1 140px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.torta-fila{display:flex;align-items:baseline;gap:8px;font-size:13px;padding:3px 6px;margin:0 -6px;border-radius:6px;transition:opacity .15s}
+.torta-fila.activa{background:var(--surface-secondary)}
+.torta-fila em{width:10px;height:10px;border-radius:2px;flex-shrink:0;align-self:center}
+.torta-fila span{flex:1;color:var(--text-secondary);min-width:0}
+.torta-fila b{color:var(--text-primary);font-variant-numeric:tabular-nums}
+.torta-fila small{width:40px;text-align:right;font-size:12px;color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+
+/* ---------- Precios por marca ---------- */
+.pmarca-lbl{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
 .pmarca-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .pmarca-pill{cursor:pointer;opacity:.55}
 .pmarca-pill.active{opacity:1}
-.pmarca-box{border-left:3px solid var(--bd);border-radius:8px;background:var(--bg3);padding:12px 14px;margin-bottom:12px}
-.pmarca-box.own{border-left-color:var(--ok)}
-.pmarca-box.comp{border-left-color:var(--er)}
+.pmarca-box{border-left:3px solid var(--border);border-radius:var(--radius-control);background:var(--surface-secondary);padding:12px 14px;margin-bottom:12px}
+.pmarca-box.own{border-left-color:var(--data-viz-1)}
+.pmarca-box.comp{border-left-color:var(--data-viz-5)}
 .pmarca-tbl{max-height:320px;overflow-y:auto}
+.pmarca-tbl th,.pmarca-tbl td{padding:9px 10px}
+.pmarca-tbl td.mono{font-size:12px}
 
-/* ---------- Resumen de clústeres (Resumen ejecutivo) ---------- */
-.cljcard{background:var(--bg2);border-radius:16px;padding:18px 20px;color:var(--tx);border:1px solid var(--bd)}
-.cljcard-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
-.cljcard-title{font-weight:800;font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.cljbadge-alta{background:#F8E0E0;color:#A82E2E;font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.3px}
-.cljcard-pct{font-size:22px;font-weight:900}
-.cljbar-track{height:8px;border-radius:6px;background:var(--bd);overflow:hidden;margin-bottom:10px}
-.cljbar-fill{height:100%;border-radius:6px;transition:width .3s ease}
-.cljcard-info{font-size:12px;color:var(--tx3);margin-bottom:12px}
-.cljcard-toggle{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--tx);cursor:pointer;user-select:none}
-.cljcard-toggle i{transition:transform .18s ease;font-size:10px}
+/* ---------- Resumen de clústeres ---------- */
+.cljcard{background:var(--surface);border-radius:var(--radius-field);padding:14px 16px;color:var(--text-primary);border:1px solid var(--border)}
+.cljcard-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.cljcard-title{font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cljbadge-alta{background:var(--danger-soft);color:var(--danger);font-size:11px;font-weight:600;padding:3px 10px;border-radius:var(--radius-pill)}
+.cljcard-pct{font-size:24px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.cljbar-track{height:6px;border-radius:99px;background:var(--surface-tertiary);overflow:hidden;margin-bottom:10px}
+.cljbar-fill{height:100%;border-radius:99px;transition:width .3s ease}
+.cljcard-info{font-size:12px;color:var(--text-secondary);margin-bottom:10px}
+.cljcard-toggle{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text-primary);cursor:pointer;user-select:none}
+.cljcard-toggle i{transition:transform .15s ease;font-size:13px}
 .cljcard-toggle.open i{transform:rotate(180deg)}
 .cljcard-panel{max-height:0;overflow:hidden;transition:max-height .28s ease}
 .cljcard-panel.open{max-height:420px}
 .cljcard-table{width:100%;margin-top:10px;font-size:12px;border-collapse:collapse}
-.cljcard-table th{text-align:left;color:var(--tx3);font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:.2px;padding:6px 4px;border-bottom:1px solid var(--bd);white-space:nowrap}
-.cljcard-table td{padding:7px 4px;border-bottom:1px solid var(--bd);color:var(--tx);white-space:nowrap}
-.cljcard-table tr:last-child td{border-bottom:none}
-.cljcard-link{display:inline-flex;align-items:center;gap:5px;color:#0B66C3;font-size:12px;font-weight:700;text-decoration:none;margin-top:12px;cursor:pointer}
+.cljcard-table th{padding:7px 10px;font-size:11px}
+.cljcard-table td{padding:7px 10px;font-size:12px}
+.cljcard-link{display:inline-flex;align-items:center;gap:5px;color:var(--brand-ink);font-size:12px;font-weight:600;text-decoration:none;margin-top:10px;cursor:pointer}
+.cljcard-link i{font-size:12px}
 
 /* ---------- Ofertas y Promociones ---------- */
-.ofr-card{background:var(--bg2);border-radius:16px;padding:18px 20px;color:var(--tx);border:1px solid var(--bd);position:relative}
-.ofr-title{font-size:15px;font-weight:800;margin-bottom:2px}
-.ofr-sub{font-size:12px;color:var(--tx3);margin-bottom:14px}
-.ofr-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:10.5px;font-weight:800;white-space:nowrap}
-.ofr-badge-propia{background:#DCF0DD;color:#1F7A3D}
-.ofr-badge-local{background:#E3E9F1;color:#3B5C7A}
-.ofr-badge-activa{background:#DCF0DD;color:#1F7A3D}
-.ofr-badge-provencer{background:#F7EAD0;color:#8A5A0D}
-.ofr-badge-vencida{background:#F8E0E0;color:#A82E2E}
-.ofr-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
-.ofr-photo-card{background:var(--bg2);border:1px solid var(--bd);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .18s ease, box-shadow .18s ease}
-.ofr-photo-card:hover{transform:translateY(-3px);box-shadow:var(--sh)}
+.ofr-card{background:var(--surface);border-radius:var(--radius-card);padding:16px 18px;color:var(--text-primary);border:1px solid var(--border);box-shadow:var(--shadow-sm);position:relative}
+.ofr-title{font-size:14.5px;font-weight:700;margin-bottom:2px}
+.ofr-sub{font-size:12px;color:var(--text-tertiary);margin-bottom:12px}
+.ofr-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;white-space:nowrap}
+.ofr-badge-propia,.ofr-badge-activa{background:var(--success-soft);color:var(--success)}
+.ofr-badge-local{background:var(--info-soft);color:var(--info)}
+.ofr-badge-provencer{background:var(--warning-soft);color:var(--warning)}
+.ofr-badge-vencida{background:var(--danger-soft);color:var(--danger)}
+.ofr-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.ofr-photo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);overflow:hidden;cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s}
+.ofr-photo-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
 .ofr-photo-body{padding:11px 13px}
-.ofr-photo-pdv{font-weight:700;font-size:12.5px;margin-bottom:2px;color:var(--tx)}
-.ofr-photo-meta{font-size:10.5px;color:var(--tx3);margin-bottom:8px}
+.ofr-photo-pdv{font-weight:700;font-size:12.5px;margin-bottom:2px;color:var(--text-primary)}
+.ofr-photo-meta{font-size:11px;color:var(--text-tertiary);margin-bottom:8px}
 
-table{width:100%;border-collapse:collapse;font-size:12.5px}
-th{text-align:left;color:var(--tx3);font-weight:700;text-transform:uppercase;font-size:10.5px;letter-spacing:.3px;padding:9px 10px;border-bottom:1px solid var(--bd);white-space:nowrap}
-td{padding:10px;border-bottom:1px solid var(--bd);white-space:nowrap}
+/* ---------- Tablas ---------- */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--text-tertiary);font-weight:600;font-size:11px;padding:10px 14px;background:var(--surface-secondary);white-space:nowrap}
+td{padding:12px 14px;border-bottom:1px solid var(--border-subtle);white-space:nowrap;color:var(--text-primary);vertical-align:middle}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:var(--bg3)}
+tbody tr:hover td{background:var(--surface-secondary)}
 .tbl-wrap{overflow-x:auto}
 
-.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
-.badge.ok{background:var(--ok-d);color:var(--ok)}
-.badge.er{background:var(--er-d);color:var(--er)}
-.badge.wa{background:var(--wa-d);color:var(--wa)}
-.badge.bl{background:var(--bl-d);color:var(--bl)}
-.badge.vi{background:var(--vi-d);color:var(--vi)}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;white-space:nowrap}
+.badge i{font-size:12px}
+.badge.ok{background:var(--success-soft);color:var(--success)}
+.badge.er{background:var(--danger-soft);color:var(--danger)}
+.badge.wa{background:var(--warning-soft);color:var(--warning)}
+.badge.bl{background:var(--info-soft);color:var(--info)}
+.badge.vi{background:var(--violeta-soft);color:var(--violeta)}
 .badge.br{background:var(--br-d);color:var(--br)}
-.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
-.dot.ok{background:var(--ok)}.dot.er{background:var(--er)}.dot.wa{background:var(--wa)}.dot.bl{background:var(--bl)}.dot.vi{background:var(--vi)}
+.dot{width:10px;height:10px;border-radius:2px;display:inline-block;vertical-align:-1px;margin-right:2px}
+.dot.ok{background:var(--semaforo-verde)}.dot.er{background:var(--semaforo-rojo)}.dot.wa{background:var(--semaforo-amarillo)}.dot.bl{background:var(--info)}.dot.vi{background:var(--violeta)}
 
-.evid-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
-.evid-card{background:var(--bg2);border:1px solid var(--bd);border-radius:12px;overflow:hidden;cursor:pointer;transition:var(--tr)}
-.evid-card:hover{transform:translateY(-3px);box-shadow:var(--sh)}
-.evid-img{width:100%;height:120px;object-fit:cover;display:block;background:var(--bg3)}
-.evid-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;height:100px;background:var(--bg3)}
+.evid-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.evid-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);overflow:hidden;cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s}
+.evid-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.evid-img{width:100%;height:120px;object-fit:cover;display:block;background:var(--surface-secondary)}
+.evid-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;height:100px;background:var(--surface-secondary)}
 .evid-photos .ph-wrap{position:relative;overflow:hidden;cursor:pointer}
 .evid-photos img{width:100%;height:100%;object-fit:cover;display:block}
 .evid-photos .ph-label{position:absolute;bottom:2px;left:3px;font-size:8px;color:#fff;background:rgba(0,0,0,.55);padding:1px 4px;border-radius:3px}
 .evid-body{padding:11px 13px}
 .evid-pdv{font-weight:700;font-size:12.5px;margin-bottom:2px}
-.evid-meta{font-size:10.5px;color:var(--tx3);margin-bottom:8px}
+.evid-meta{font-size:11px;color:var(--text-tertiary);margin-bottom:8px}
 .evid-tags{display:flex;flex-wrap:wrap;gap:5px}
 
-.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;align-items:center;justify-content:center}
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1100;align-items:center;justify-content:center}
 .modal-ov.open{display:flex}
-.modal-box{background:var(--bg2);border-radius:16px;max-width:560px;width:92%;overflow:hidden;border:1px solid var(--bd);max-height:88vh;overflow-y:auto;box-shadow:var(--sh)}
+.modal-box{background:var(--surface);border-radius:var(--radius-modal);max-width:560px;width:92%;overflow:hidden;border:1px solid var(--border);max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg)}
 .modal-box img{width:100%;display:block;max-height:320px;object-fit:cover}
 .modal-body{padding:18px}
-.close-btn{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;border:none;cursor:pointer;font-size:15px;z-index:2}
+.close-btn{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;border:none;cursor:pointer;font-size:16px;z-index:2}
 
-.semaforo{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.semaforo{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
 @media(max-width:900px){.semaforo{grid-template-columns:repeat(2,1fr)}}
-.sf-card{border-radius:12px;padding:16px;border:1px solid var(--bd)}
-.sf-card.rojo{background:var(--er-d)}
-.sf-card.naranja{background:rgba(232,160,69,.16)}
-.sf-card.amarillo{background:var(--wa-d)}
-.sf-card.ok{background:var(--ok-d)}
-.sf-card.vi{background:var(--vi-d)}
-.sf-card.br{background:var(--br-d)}
-.kpi.clickable{cursor:pointer}
-.kpi.clickable:hover{border-color:var(--brand-d)}
-.sf-val{font-size:24px;font-weight:800}
-.sf-lbl{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-top:4px}
+.sf-card{border-radius:var(--radius-card);padding:16px 18px;border:1px solid var(--border);background:var(--surface)!important;box-shadow:var(--shadow-sm);display:flex;flex-direction:column-reverse;justify-content:flex-end;gap:8px}
+.sf-val{font-size:36px;font-weight:700;letter-spacing:-.035em;line-height:1;font-variant-numeric:tabular-nums}
+.sf-lbl{font-size:13px;font-weight:600;color:var(--text-secondary);line-height:1.3}
 
-#map-cobertura,#map-recorrido{height:340px;border-radius:var(--r2);overflow:hidden}
-.toast{position:fixed;bottom:22px;right:22px;background:var(--bg4);border:1px solid var(--bd2);color:var(--tx);padding:12px 18px;border-radius:10px;box-shadow:var(--sh);font-size:13px;font-weight:600;display:flex;align-items:center;gap:9px;z-index:300;opacity:0;transform:translateY(10px);transition:.25s ease}
+#map-cobertura,#map-recorrido{height:340px;border-radius:var(--radius-field);overflow:hidden;isolation:isolate}
+#map-cobertura{height:400px}
+.mapa-grupo{width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 8px rgba(16,24,22,.35);cursor:pointer}
+.mapa-grupo span{width:68%;height:68%;border-radius:50%;background:#fff;color:#101816;display:flex;align-items:center;justify-content:center;font:700 12px var(--font-ui)}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--surface);border:1px solid var(--border-strong);color:var(--text-primary);padding:12px 18px;border-radius:var(--radius-field);box-shadow:var(--shadow-md);font-size:13px;font-weight:600;display:flex;align-items:center;gap:9px;z-index:1200;opacity:0;transform:translateY(10px);transition:.25s ease;pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
 .rank-medal{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#fff;flex-shrink:0}
-.select-inline{background:var(--bg3);border:1px solid var(--bd);color:var(--tx);padding:7px 10px;border-radius:8px}
-.mono{font-variant-numeric:tabular-nums}
-.section-divider{display:flex;align-items:center;gap:9px;margin:24px 0 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3)}
+.select-inline{height:36px;background:var(--surface-secondary);border:1px solid var(--border);color:var(--text-primary);padding:0 12px;border-radius:var(--radius-control);font-size:13px;cursor:pointer;outline:none}
+.select-inline:hover,.select-inline:focus{border-color:var(--border-strong)}
+#content input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=date]){height:36px;background:var(--surface-secondary);border:1px solid var(--border);color:var(--text-primary);padding:0 12px;border-radius:var(--radius-control);outline:none}
+#content input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=date]):focus{border-color:var(--border-strong)}
+:root[data-theme="dark"] .select-inline{color-scheme:dark}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.section-divider{display:flex;align-items:center;gap:9px;margin:24px 0 14px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
 .section-divider:first-child{margin-top:0}
-.section-divider::after{content:'';flex:1;height:1px;background:var(--bd)}
-.roi-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;padding:14px 0;border-bottom:1px solid var(--bd)}
+.section-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.roi-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;padding:14px 0;border-bottom:1px solid var(--border)}
 .roi-row:last-child{border-bottom:none}
-.roi-lbl{font-size:12.5px;font-weight:700;color:var(--tx2)}
-.roi-lbl small{display:block;font-weight:500;color:var(--tx3);font-size:11px;margin-top:2px}
-.roi-val{font-weight:800;color:var(--brand2);font-size:13px;white-space:nowrap;margin-left:10px}
+.roi-lbl{font-size:13px;font-weight:600;color:var(--text-secondary)}
+.roi-lbl small{display:block;font-weight:400;color:var(--text-tertiary);font-size:12px;margin-top:2px}
+.roi-val{font-weight:700;color:var(--brand-ink);font-size:13px;white-space:nowrap;margin-left:10px}
 .roi-slider{width:100%;display:flex;align-items:center;gap:10px}
-input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:5px;border-radius:4px;background:var(--bg4);outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:17px;height:17px;border-radius:50%;background:var(--brand2);cursor:pointer;border:3px solid var(--bg2);box-shadow:0 0 0 1px var(--brand2)}
-input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;background:var(--brand2);cursor:pointer;border:3px solid var(--bg2)}
+input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:5px;border-radius:99px;background:var(--surface-tertiary);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:17px;height:17px;border-radius:50%;background:var(--brand);cursor:pointer;border:3px solid var(--surface);box-shadow:0 0 0 1px var(--brand)}
+input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;background:var(--brand);cursor:pointer;border:3px solid var(--surface)}
 .impact-hero{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-.impact-hero .big{font-size:34px;font-weight:800;color:var(--brand2);letter-spacing:-.5px}
-.delta-badge{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:20px}
-.delta-badge.up{background:var(--ok-d);color:var(--ok)}
-.delta-badge.down{background:var(--er-d);color:var(--er)}
-.delta-badge.flat{background:var(--bg4);color:var(--tx3)}
+.impact-hero .big{font-size:46px;font-weight:600;letter-spacing:-.035em;line-height:1.05;color:var(--text-primary)}
+.delta-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:var(--radius-pill);white-space:nowrap}
+.delta-badge i{font-size:12px}
+.delta-badge.up{background:var(--success-soft);color:var(--success)}
+.delta-badge.down{background:var(--danger-soft);color:var(--danger)}
+.delta-badge.flat{background:var(--surface-tertiary);color:var(--text-tertiary)}
+
+/* ---------- Celular: el menú pasa a ser un panel deslizable, como en el Controller ---------- */
+@media(max-width:768px){
+  .sidebar{position:fixed;top:0;bottom:0;left:0;z-index:1000;width:min(280px,85vw);min-width:0;transform:translateX(-100%);transition:transform .22s ease}
+  .app.menu-abierto .sidebar{transform:translateX(0);box-shadow:0 0 40px rgba(0,0,0,.45)}
+  .app.menu-abierto .menu-ov{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999}
+  .btn-menu{display:inline-flex}
+  .topbar{padding:0 12px;gap:10px}
+  .crumbs{flex:1}
+  .crumbs .crumb-extra{display:none}
+  .tb-btn span{display:none}
+  .tb-btn{padding:0 10px}
+  .card-hdr{flex-wrap:wrap}
+  .fbar{padding:10px 12px}
+  .select-inline{flex:1 1 140px;min-width:0}
+  .scroll-area{padding:16px 12px 32px}
+  .semaforo{grid-template-columns:1fr 1fr}
+  .kpi-val,.kpix-val{font-size:30px}
+}
 </style>
 </head>
-<body class="light">
-<div class="app">
-
+<body>
+<div class="app" id="app">
+  <div class="menu-ov" id="menu-ov"></div>
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-mark" id="brand-mark">+MK</div>
+      <div class="brand-mark" id="brand-mark"><i class="fas fa-grid-mk"></i></div>
       <div>
-        <div class="brand-name">+Marka</div>
+        <div class="brand-name">+MARKA</div>
         <div class="brand-sub">Nova Consumo · Paraguay</div>
       </div>
     </div>
-    <div class="demo-badge"><i class="fas fa-circle" style="font-size:6px"></i> Demo comercial</div>
-
+    <div class="nav-wrap">
     <div class="nav-sect">Análisis</div>
     <nav class="nav" id="nav">
       <div class="ni active" data-p="resumen"><i class="fas fa-chart-pie"></i>Resumen ejecutivo</div>
-      <div class="ni" data-p="precios"><i class="fas fa-tags"></i>Precios</div>
       <div class="ni" data-p="auditoria"><i class="fas fa-clipboard-check"></i>Auditoría de PDV</div>
       <div class="ni" data-p="evidencias"><i class="fas fa-camera"></i>Relevamiento fotográfico</div>
     </nav>
     <div class="nav-sect">Productos</div>
     <nav class="nav" id="nav3">
+      <div class="ni" data-p="precios"><i class="fas fa-tags"></i>Precios</div>
       <div class="ni" data-p="alertas"><i class="fas fa-exclamation-triangle"></i>Averiados y Vencimientos<span class="ni-badge" id="nb-alertas">0</span></div>
       <div class="ni" data-p="quiebres"><i class="fas fa-box-open"></i>Quiebres de stock</div>
       <div class="ni" data-p="ofertas"><i class="fas fa-percent"></i>Ofertas y Promociones</div>
@@ -299,26 +413,35 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
       <div class="ni" data-p="recorrido"><i class="fas fa-route"></i>Recorrido por persona</div>
       <div class="ni" data-p="comisiones"><i class="fas fa-hand-holding-dollar"></i>Comisiones</div>
     </nav>
+    </div>
 
     <div class="sidebar-foot">
+      <div class="tema-seg">
+        <button id="tema-claro" class="active"><i class="fas fa-sun"></i>Light</button>
+        <button id="tema-oscuro"><i class="fas fa-moon"></i>Dark</button>
+      </div>
       <details class="prefs-panel">
         <summary class="prefs-summary"><span><i class="fas fa-sliders"></i> Preferencias</span><i class="fas fa-chevron-down chev"></i></summary>
         <div class="prefs-body">
-          <div class="fbar-label" style="margin-bottom:8px"><i class="fas fa-palette"></i> Color de marca</div>
+          <div class="prefs-lbl">Color de marca</div>
           <div class="swatches" id="swatches"></div>
-          <div class="theme-toggle" id="theme-toggle"><i class="fas fa-sun" id="theme-icon"></i><span id="theme-label">Modo claro</span></div>
         </div>
       </details>
+      <div class="demo-user">
+        <div class="demo-avatar">NC</div>
+        <div><div class="demo-name">Nova Consumo</div><div class="demo-role">Demo comercial</div></div>
+      </div>
       <div class="foot-note">Todos los datos de este panel son ficticios y se generan localmente con fines de demostración comercial.</div>
     </div>
   </aside>
 
   <div class="main">
     <div class="topbar">
-      <div class="page-title"><i class="fas fa-chart-pie" id="pt-icon"></i><span id="pt-text">Resumen ejecutivo</span></div>
+      <button class="btn-menu" id="btn-menu" title="Menú" aria-label="Abrir menú"><i class="fas fa-bars"></i></button>
+      <div class="crumbs"><span>+MARKA</span><span class="crumb-extra">/</span><span class="crumb-extra">Nova Consumo</span><span>/</span><b id="pt-text">Resumen ejecutivo</b></div>
       <div class="topbar-actions">
-        <button class="tb-btn" id="btn-refresh"><i class="fas fa-sync-alt"></i> Actualizar</button>
-        <button class="tb-btn primary" id="btn-export"><i class="fas fa-file-export"></i> Exportar CSV</button>
+        <button class="tb-btn" id="btn-refresh" title="Actualizar"><i class="fas fa-sync-alt"></i><span>Actualizar</span></button>
+        <button class="tb-btn" id="btn-export" title="Exportar CSV"><i class="fas fa-file-export"></i><span>Exportar</span></button>
       </div>
     </div>
     <div class="fbar">
@@ -329,12 +452,17 @@ input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;bac
       <input type="date" id="f-desde" class="select-inline">
       <span style="color:var(--tx3)">→</span>
       <input type="date" id="f-hasta" class="select-inline">
-      <button class="tb-btn" id="btn-junio" style="padding:7px 12px">Junio</button>
-      <button class="tb-btn" id="btn-julio" style="padding:7px 12px">Julio</button>
-      <button class="tb-btn" id="btn-agosto" style="padding:7px 12px">Agosto</button>
+      <div class="segmentado">
+        <button id="btn-mes-2"></button>
+        <button id="btn-mes-1"></button>
+        <button id="btn-mes-0"></button>
+      </div>
       <div id="fbar-chips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
     </div>
-    <div class="content" id="content"></div>
+    <div class="scroll-area" id="scroll-area">
+      <div class="page-head"><div class="page-h" id="pg-titulo">Resumen ejecutivo</div><div class="page-s" id="pg-sub"></div></div>
+      <div id="content"></div>
+    </div>
   </div>
 </div>
 
@@ -655,11 +783,11 @@ for(let back=DIAS_HISTORIAL; back>=0; back--){
 // ESTADO / FILTROS
 // ============================================================
 let currentPage='resumen';
-let temaActivoIdx=0; // índice del tema de color de marca activo (ver THEMES) — 0 = rojo
+let temaActivoIdx=0; // índice del tema de color de marca activo (ver THEMES) — 0 = turquesa del Controller
 const FECHA_MIN = isoDate(addDays(TODAY,-DIAS_HISTORIAL));
 const FECHA_MAX = isoDate(TODAY);
 const ANIO_DEMO = TODAY.getFullYear();
-const F = {cadena:'', ciudad:'', categoria:'', fechaDesde:`${ANIO_DEMO}-07-01`, fechaHasta:`${ANIO_DEMO}-07-31`};
+const F = {cadena:'', ciudad:'', categoria:'', fechaDesde:isoDate(new Date(TODAY.getFullYear(),TODAY.getMonth(),1)), fechaHasta:isoDate(TODAY)};
 let searchTerm='';
 let recorridoPromotor = PROMOTERS[0].id;
 function fechaEquipoActual(){ return F.fechaHasta || F.fechaDesde || FECHA_MAX; }
@@ -766,12 +894,269 @@ function ofertaDetalle(r){
   const vigenciaDias = [7,10,14,15,21,30][hashStr(r.id+'ofvig')%6];
   return {tipo, detalle, origen, vigenciaDias};
 }
+// ============================================================
+// GRÁFICOS — mismo formato que el Resumen operativo del Controller
+// (admin-app/src/client-config/ResumenGraficos.jsx): barras horizontales con el
+// valor escrito, línea con degradé, tortas con el total al centro y la lista al
+// costado, leyenda arriba y tooltip en caja.
+// ============================================================
+function cv(nombre){ return getComputedStyle(document.documentElement).getPropertyValue(nombre).trim(); }
+function conAlfa(color, alfa){
+  if(!color.startsWith('#')) return color;
+  const n = parseInt(color.slice(1),16);
+  return `rgba(${n>>16&255},${n>>8&255},${n&255},${alfa})`;
+}
+// Gráficos verticales que el Controller muestra como barras horizontales
+const A_HORIZONTAL = new Set(['ch-cadena','ch-disponibilidad','ch-quiebrecadena','ch-gondola']);
+const CENTRO_TORTA = {'ch-competencia':'visitas','ch-ofr-origen':'ofertas','ch-motivos':'alertas','ch-quiebrecategoria':'quiebres'};
+
+function tooltipCaja({chart, tooltip}){
+  let t = document.getElementById('caja-tooltip');
+  if(!t){ t = document.createElement('div'); t.id='caja-tooltip'; t.className='caja-tooltip'; document.body.appendChild(t); }
+  if(tooltip.opacity===0){ t.style.opacity=0; return; }
+  const porcentaje = chart.$mkPorcentaje;
+  const filas = (tooltip.dataPoints||[]).map((dp,i)=>{
+    const linea = tooltip.body[i].lines[0]||'';
+    const corte = linea.lastIndexOf(': ');
+    let valor = corte>=0 ? linea.slice(corte+2) : linea;
+    if(porcentaje && corte>=0) valor += '%';
+    return `<div><em style="background:${dp.dataset.type==='line'||chart.config.type==='line'?dp.dataset.borderColor:tooltip.labelColors[i].backgroundColor}"></em><span>${dp.dataset.label||'Valor'}</span><b class="v">${valor}</b></div>`;
+  }).join('');
+  t.innerHTML = `<b class="t">${(tooltip.title||[]).join(' ')}</b>${filas}`;
+  const caja = chart.canvas.getBoundingClientRect();
+  t.style.opacity = 1;
+  const ancho = t.offsetWidth, alto = t.offsetHeight;
+  t.style.left = Math.max(8, Math.min(caja.left+tooltip.caretX+12, window.innerWidth-ancho-8))+'px';
+  t.style.top = Math.max(8, Math.min(caja.top+tooltip.caretY-alto/2, window.innerHeight-alto-8))+'px';
+}
+
+// Dibuja lo que Chart.js no trae: valor en cada barra, último valor de la línea, línea del 100% y promedio.
+function pluginEstilo(e){
+  return {id:'estiloMk', afterDatasetsDraw(chart){
+    const c = chart.ctx, area = chart.chartArea;
+    c.save();
+    c.textBaseline = 'middle';
+    if(e.lineaCien && chart.scales.y){
+      const y = chart.scales.y.getPixelForValue(100);
+      c.strokeStyle = cv('--border-strong'); c.setLineDash([4,4]); c.lineWidth = 1;
+      c.beginPath(); c.moveTo(area.left,y); c.lineTo(area.right,y); c.stroke(); c.setLineDash([]);
+    }
+    if(e.promedio!=null && chart.scales.x){
+      const x = chart.scales.x.getPixelForValue(e.promedio);
+      c.strokeStyle = cv('--text-secondary'); c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(x,area.top); c.lineTo(x,area.bottom); c.stroke();
+      c.fillStyle = cv('--text-secondary'); c.font = '600 11.5px Outfit, sans-serif'; c.textAlign = 'center';
+      c.fillText(`Promedio ${e.promedio}%`, x, area.top-9);
+    }
+    if(e.ultimo!=null){
+      const ds = chart.data.datasets[e.ultimo], puntos = chart.getDatasetMeta(e.ultimo).data;
+      let i = ds.data.length-1;
+      while(i>=0 && ds.data[i]==null) i--;
+      if(i>=0 && puntos[i]){
+        c.fillStyle = cv('--text-primary'); c.font = '700 11px Outfit, sans-serif'; c.textAlign = 'left';
+        c.fillText(`${ds.data[i]}%`, puntos[i].x+10, puntos[i].y);
+      }
+    }
+    if(e.etiquetas){
+      c.fillStyle = cv('--text-primary');
+      c.font = `700 ${e.horizontal?12.5:11}px Outfit, sans-serif`;
+      c.textAlign = e.horizontal ? 'left' : 'center';
+      chart.data.datasets.forEach((ds,i)=>{
+        chart.getDatasetMeta(i).data.forEach((barra,j)=>{
+          const v = ds.data[j];
+          if(v==null || v===0) return;
+          const texto = Array.isArray(v) ? `${fmtInt(v[0])} – ${fmtInt(v[1])}` : fmtInt(v)+(e.porcentaje?'%':'');
+          if(e.horizontal) c.fillText(texto, barra.x+8, barra.y);
+          else c.fillText(texto, barra.x, barra.y-9);
+        });
+      });
+    }
+    c.restore();
+  }};
+}
+
+function estilarEjes(o, horizontal){
+  const escalas = o.scales = o.scales||{};
+  ['x','y'].forEach(k=>{
+    const s = escalas[k] = escalas[k]||{};
+    const esValor = horizontal ? k==='x' : k==='y';
+    s.border = {display:false};
+    s.title = {display:false};
+    s.grid = esValor ? {color:cv('--border-subtle'),drawTicks:false} : {display:false};
+    const delEje = esValor || !horizontal
+      ? {color:cv('--text-tertiary'),font:{family:'Outfit',size:11}}
+      : {color:cv('--text-primary'),font:{family:'Outfit',size:12.5}};
+    s.ticks = {...(s.ticks||{}), ...delEje, padding:8, maxRotation:0};
+    if(esValor && s.max===100){ s.ticks.stepSize = 25; s.ticks.callback = v=>v+'%'; }
+    if(!esValor && horizontal) s.ticks.callback = function(v){
+      const nombre = String(this.getLabelForValue(v)), tope = Math.max(12, Math.floor(this.chart.width*.36/7));
+      return nombre.length>tope ? nombre.slice(0,tope-1)+'…' : nombre;
+    };
+  });
+}
+
+function pintarLeyenda(wrap, items){
+  if(wrap.previousElementSibling && wrap.previousElementSibling.classList.contains('leyenda')) wrap.previousElementSibling.remove();
+  if(!items.length) return;
+  wrap.insertAdjacentHTML('beforebegin', `<div class="leyenda">${items.map(i=>`<span><em class="${i.linea?'linea':''}" style="background:${i.color}"></em>${i.label}</span>`).join('')}</div>`);
+}
+
+function estilarBarras(id, config, wrap, est){
+  const o = config.options;
+  if(A_HORIZONTAL.has(id)){
+    o.indexAxis = 'y';
+    const {x,y} = o.scales;
+    o.scales = {x:{...x,...y,grid:x.grid},y:{...x,max:undefined,beginAtZero:undefined}};
+  }
+  const ds = config.data.datasets;
+  const horizontal = o.indexAxis==='y';
+  const apilado = !!(o.scales && o.scales.x && o.scales.x.stacked);
+  const flotante = ds.some(d=>d.data.some(Array.isArray));
+  const eje = (o.scales||{})[horizontal?'x':'y']||{};
+  est.horizontal = horizontal;
+  est.porcentaje = eje.max===100;
+  est.etiquetas = !apilado;
+  if(A_HORIZONTAL.has(id) && ds.length===1){
+    const orden = config.data.labels.map((_,i)=>i).sort((a,b)=>ds[0].data[b]-ds[0].data[a]);
+    const reordenar = arr => orden.map(i=>arr[i]);
+    config.data.labels = reordenar(config.data.labels);
+    ds[0].data = reordenar(ds[0].data);
+    if(Array.isArray(ds[0].backgroundColor)) ds[0].backgroundColor = reordenar(ds[0].backgroundColor);
+  }
+  // Barras semáforo sobre 100%: con la línea del promedio, como "Productividad por marca"
+  if(horizontal && est.porcentaje && ds.length===1 && Array.isArray(ds[0].backgroundColor)){
+    const validos = ds[0].data.filter(v=>v>0);
+    if(validos.length) est.promedio = Math.round(validos.reduce((a,v)=>a+v,0)/validos.length);
+  }
+  ds.forEach(d=>{
+    d.borderRadius = apilado ? 0 : 5;
+    d.borderSkipped = flotante ? false : 'start';
+    d.maxBarThickness = horizontal ? (ds.length>1?18:28) : 34;
+    if(apilado){ d.borderColor = cv('--surface'); d.borderWidth = 1; }
+  });
+  o.datasets = {bar:{categoryPercentage:.84,barPercentage:ds.length>1?.92:.82}};
+  const derecha = !est.etiquetas ? 8 : flotante ? 150 : horizontal ? 62 : 8;
+  o.layout = {padding:{top:est.promedio!=null||(!horizontal&&est.etiquetas)?20:4,right:derecha,left:0,bottom:0}};
+  if(horizontal && wrap.classList.contains('chart-wrap')){
+    const n = config.data.labels.length;
+    wrap.style.height = Math.max(160, n*(ds.length>1?46:42)+50)+'px';
+  }
+  if(ds.length>1) return ds.map(d=>({label:d.label,color:Array.isArray(d.backgroundColor)?cv('--semaforo-verde'):d.backgroundColor}));
+  return [];
+}
+
+function estilarLinea(config, est){
+  const ds = config.data.datasets, o = config.options;
+  ds.forEach((d,i)=>{
+    const color = d.borderColor;
+    d.cubicInterpolationMode = 'monotone';
+    d.spanGaps = true;
+    if(d.fill){
+      est.ultimo = i;
+      d.borderWidth = 2.5; d.pointRadius = 4; d.pointHoverRadius = 6; d.pointBorderWidth = 2;
+      d.pointBackgroundColor = color; d.pointBorderColor = cv('--surface');
+      d.backgroundColor = ctx=>{
+        const a = ctx.chart.chartArea;
+        if(!a) return 'transparent';
+        const g = ctx.chart.ctx.createLinearGradient(0,a.top,0,a.bottom);
+        g.addColorStop(0,conAlfa(color,.28)); g.addColorStop(1,conAlfa(color,0));
+        return g;
+      };
+    } else {
+      d.borderWidth = 1.5; d.borderDash = [4,4]; d.pointRadius = 0; d.pointHoverRadius = 4;
+    }
+  });
+  est.lineaCien = true;
+  est.porcentaje = true;
+  o.interaction = {mode:'index',intersect:false};
+  o.layout = {padding:{top:8,right:44,left:0,bottom:0}};
+  o.scales.x.ticks = {...(o.scales.x.ticks||{}),autoSkip:true,autoSkipPadding:14};
+  return ds.map(d=>({label:d.label,color:d.borderColor,linea:true}));
+}
+
+function armarTorta(id, config, el){
+  const ds = config.data.datasets[0];
+  const colores = ds.backgroundColor, etiquetas = config.data.labels, valores = ds.data;
+  const total = valores.reduce((a,v)=>a+v,0);
+  let wrap = el.parentElement, anillo;
+  if(wrap.classList.contains('torta-anillo')){ anillo = wrap; wrap = anillo.parentElement; wrap.querySelector('.torta-lista').remove(); anillo.querySelector('.torta-centro').remove(); }
+  else {
+    anillo = document.createElement('div'); anillo.className = 'torta-anillo';
+    wrap.classList.add('torta'); wrap.insertBefore(anillo, el); anillo.appendChild(el);
+  }
+  const subCentro = CENTRO_TORTA[id]||'total';
+  anillo.insertAdjacentHTML('beforeend', `<div class="torta-centro"><div class="torta-num">${fmtInt(total)}</div><div class="torta-sub">${subCentro}</div></div>`);
+  wrap.insertAdjacentHTML('beforeend', `<div class="torta-lista">${etiquetas.map((l,i)=>`<div class="torta-fila" data-i="${i}"><em style="background:${colores[i]}"></em><span>${l}</span><b>${fmtInt(valores[i])}</b><small>${total?Math.round(valores[i]/total*100)+'%':''}</small></div>`).join('')}</div>`);
+  const num = anillo.querySelector('.torta-num'), sub = anillo.querySelector('.torta-sub');
+  const filas = [...wrap.querySelectorAll('.torta-fila')];
+  // Sin tooltip flotante: al pasar el mouse por una porción o su fila, el centro muestra esa porción.
+  const activar = i=>{
+    filas.forEach((f,j)=>{ f.classList.toggle('activa', i===j); f.style.opacity = i!=null && i!==j ? .35 : 1; });
+    const chart = charts[id];
+    if(chart){
+      chart.data.datasets[0].backgroundColor = colores.map((c,j)=> i!=null && i!==j ? conAlfa(c,.35) : c);
+      chart.update('none');
+    }
+    if(i==null || !total){ num.textContent = fmtInt(total); num.style.color = ''; sub.textContent = subCentro; return; }
+    num.textContent = Math.round(valores[i]/total*100)+'%';
+    num.style.color = colores[i];
+    sub.textContent = `${fmtInt(valores[i])} · ${etiquetas[i].toLowerCase()}`;
+  };
+  filas.forEach((f,i)=>f.onmouseenter = ()=>total && activar(i));
+  wrap.querySelector('.torta-lista').onmouseleave = ()=>activar(null);
+  el.onmouseleave = ()=>activar(null);
+  if(!total){ ds.data = [1]; ds.backgroundColor = [cv('--surface-secondary')]; }
+  ds.borderWidth = 2; ds.borderColor = cv('--surface'); ds.hoverOffset = 0;
+  config.options = {responsive:true,maintainAspectRatio:false,cutout:'69%',animation:false,
+    plugins:{legend:{display:false},tooltip:{enabled:false}},
+    onHover:(ev,activos)=>{ if(total) activar(activos.length?activos[0].index:null); }};
+}
+
 function mkChart(id, config){
   if(charts[id]) charts[id].destroy();
   const el = document.getElementById(id);
   if(!el) return;
+  const o = config.options = config.options||{};
+  const p = o.plugins = o.plugins||{};
+  Chart.defaults.font.family = 'Outfit, sans-serif';
+  if(config.type==='doughnut'){
+    armarTorta(id, config, el);
+    charts[id] = new Chart(el, config);
+    return;
+  }
+  const wrap = el.parentElement;
+  const est = {};
+  const leyenda = config.type==='line' ? estilarLinea(config, est) : estilarBarras(id, config, wrap, est);
+  p.legend = {display:false};
+  p.tooltip = {...(p.tooltip||{}),enabled:false,external:tooltipCaja};
+  estilarEjes(o, o.indexAxis==='y');
+  pintarLeyenda(wrap, leyenda);
+  config.plugins = [pluginEstilo(est)];
   charts[id] = new Chart(el, config);
+  // El tooltip suma el % solo cuando el valor viene sin formato propio
+  charts[id].$mkPorcentaje = est.porcentaje && !(p.tooltip.callbacks && p.tooltip.callbacks.label);
 }
+
+// Ícono en el título de cada tarjeta, como las tarjetas del Controller
+function decorarTarjetas(){
+  document.querySelectorAll('#content .card>.card-hdr').forEach(h=>{
+    const primero = h.firstElementChild;
+    if(!primero || h.querySelector('.tar-tit')) return;
+    const c = h.parentElement;
+    let icono='fa-chart-bar', color='--data-viz-1';
+    if(c.querySelector('.torta-anillo')){ icono='fa-chart-pie'; color='--data-viz-3'; }
+    else if(c.querySelector('canvas')){ icono='fa-chart-bar'; color='--data-viz-1'; }
+    else if(c.querySelector('#map-cobertura,#map-recorrido')){ icono='fa-route'; color='--data-viz-2'; }
+    else if(c.querySelector('table')){ icono='fa-table'; color='--data-viz-2'; }
+    else if(c.querySelector('.evid-card,.ofr-photo-card')){ icono='fa-camera'; color='--data-viz-2'; }
+    const tit = document.createElement('div');
+    tit.className = 'tar-tit';
+    tit.innerHTML = `<div class="tar-ico" style="color:var(${color});background:color-mix(in srgb,var(${color}) 16%,transparent)"><i class="fas ${icono}"></i></div>`;
+    h.insertBefore(tit, primero);
+    tit.appendChild(primero);
+  });
+}
+new MutationObserver(()=>decorarTarjetas()).observe(document.getElementById('content'),{childList:true,subtree:true});
 
 function toast(msg, icon='fa-check-circle'){
   const t=document.getElementById('toast');
@@ -795,17 +1180,30 @@ function animateNum(el, target, suffix=''){
 // ============================================================
 // COMPONENTES REUTILIZABLES
 // ============================================================
-function kpiCard(label, value, sub, icon, colorVar, id, target){
+function kpiCard(label, value, sub, icon, colorVar, id, target, medio){
   const clickable = target ? `class="kpi clickable" onclick="goPage('${target}')" title="Ver detalle"` : `class="kpi"`;
-  return `<div ${clickable} style="background:linear-gradient(135deg, var(${colorVar}-d), var(--bg2) 70%)">
+  return `<div ${clickable}>
     <div class="kpi-top">
       <div class="kpi-lbl">${label}</div>
-      <div class="ico-chip" style="color:var(${colorVar});background:var(${colorVar}-d)"><i class="fas ${icon}"></i></div>
+      <div class="ico-chip" style="color:var(${colorVar});background:color-mix(in srgb,var(${colorVar}) 16%,transparent)"><i class="fas ${icon}"></i></div>
     </div>
-    <div class="kpi-val" style="color:var(${colorVar})" id="${id}">0</div>
+    <div class="kpi-val" id="${id}">0</div>
+    ${medio?`<div class="kpi-medio">${medio}</div>`:''}
     <div class="kpi-sub">${sub}</div>
-    ${target?`<div class="kpi-link">Ver detalle <i class="fas fa-arrow-right"></i></div>`:''}
+    ${target?`<div class="kpi-link" style="color:var(${colorVar})">Ver detalle <i class="fas fa-arrow-right"></i></div>`:''}
   </div>`;
+}
+// Dentro de una tarjeta: barra de progreso y mini línea de tendencia, como los indicadores del Controller
+function kpiBarra(pct, color){
+  return `<div class="kpi-barra"><div style="width:${Math.max(0,Math.min(100,pct||0))}%;background:${color}"></div></div>`;
+}
+function miniTendencia(valores, color){
+  const v = valores.filter(x=>x!=null);
+  if(v.length<2) return '';
+  const max = Math.max(...v,1), min = Math.min(...v,0), w = 120, h = 28, paso = w/(v.length-1);
+  const y = x=>h-3-((x-min)/(max-min||1))*(h-6);
+  const puntos = v.map((x,i)=>`${(i*paso).toFixed(1)},${y(x).toFixed(1)}`).join(' ');
+  return `<svg width="${w}" height="${h}" style="flex-shrink:0;overflow:visible" aria-hidden="true"><polyline points="${puntos}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${(v.length-1)*paso}" cy="${y(v[v.length-1])}" r="3" fill="${color}" stroke="var(--surface)" stroke-width="1.5"/></svg>`;
 }
 
 // ---- Tarjeta KPI expandible (kpix): variante simple o expandible con panel de detalle ----
@@ -820,11 +1218,11 @@ function kpiX(opts){
       <div class="kpix-lbl">${label}</div>
       <div class="ico-chip kpix-ico-chip"><i class="fas ${icon}"></i></div>
     </div>
-    <div class="kpix-val">${value}</div>
+    <div class="kpix-val${String(value).length>10?' largo':''}">${value}</div>
     ${foot?`<div class="kpix-foot">${foot}</div>`:''}
     ${expandable?`<div class="kpix-hint"><span>${hint||'Ver detalle'}</span><i class="fas fa-chevron-down"></i></div>
     <div class="kpix-panel"><div class="kpix-panel-inner">${detail||''}</div></div>`:''}
-    ${tooltip?`<div class="kpix-info" onclick="event.stopPropagation()">i<div class="kpix-tooltip">${tooltip}</div></div>`:''}
+    ${tooltip?infoTip(tooltip):''}
   </div>`;
 }
 function wireKpiX(id){
@@ -864,16 +1262,15 @@ function chip(label, onclickAttr){
 }
 function brandColor(){ return getComputedStyle(document.documentElement).getPropertyValue('--brand').trim(); }
 function brandColor2(){ return getComputedStyle(document.documentElement).getPropertyValue('--brand2').trim(); }
-// Color de acento para gráficos/tarjetas de datos (no de estado): si la marca elegida es roja, se evita el rojo
-// porque en este tablero el rojo ya significa "alerta/malo" — se usa un verde agua neutral en su lugar.
-function chartAccent(){ return temaActivoIdx===0 ? getComputedStyle(document.documentElement).getPropertyValue('--ok').trim() : brandColor(); }
-function chartAccent2(){ return temaActivoIdx===0 ? getComputedStyle(document.documentElement).getPropertyValue('--ok').trim() : brandColor2(); }
+// Color de acento para gráficos/tarjetas de datos (no de estado): turquesa del Controller, o el color de marca elegido.
+function chartAccent(){ return cv('--data-viz-1'); }
+function chartAccent2(){ return cv('--data-viz-1'); }
 // Estándar de color semáforo para gráficos de cumplimiento/estado: verde = bien, amarillo = regular, rojo = mal.
-function pctColor(pct){ return getComputedStyle(document.documentElement).getPropertyValue(pct>=85?'--ok':pct>=60?'--wa':'--er').trim(); }
+function pctColor(pct){ return getComputedStyle(document.documentElement).getPropertyValue(pct>=85?'--semaforo-verde':pct>=60?'--semaforo-amarillo':'--semaforo-rojo').trim(); }
 // Semáforo relativo a una meta (para métricas con metas distintas entre sí, ej. 35% vs. 95%): verde si la alcanza o supera, amarillo si está cerca, rojo si está lejos.
-function metaColor(real, meta){ const ratio = meta? real/meta*100 : 100; return getComputedStyle(document.documentElement).getPropertyValue(ratio>=100?'--ok':ratio>=85?'--wa':'--er').trim(); }
+function metaColor(real, meta){ const ratio = meta? real/meta*100 : 100; return getComputedStyle(document.documentElement).getPropertyValue(ratio>=100?'--semaforo-verde':ratio>=85?'--semaforo-amarillo':'--semaforo-rojo').trim(); }
 function pctLegend(){
-  return `<div style="display:flex;gap:14px;font-size:10.5px;flex-wrap:wrap;margin-top:10px;color:var(--tx3)">
+  return `<div style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap;margin-top:10px;color:var(--tx2)">
     <span><span class="dot ok"></span> ≥85% cumple objetivo</span>
     <span><span class="dot wa"></span> 60-84% regular</span>
     <span><span class="dot er"></span> &lt;60% necesita atención</span>
@@ -881,7 +1278,7 @@ function pctLegend(){
 }
 // Ícono "i" con tooltip explicando qué muestra el gráfico/panel y cómo se calcula. Requiere un contenedor con position:relative.
 function infoTip(text){
-  return `<div class="kpix-info" onclick="event.stopPropagation()">i<div class="kpix-tooltip">${text}</div></div>`;
+  return `<div class="kpix-info" tabindex="0" onclick="event.stopPropagation()"><i class="fas fa-info-circle"></i><div class="kpix-tooltip">${text}</div></div>`;
 }
 
 function buildFotoCard(r){
@@ -1111,28 +1508,30 @@ function renderResumen(){
   if(mesAnteriorNum===0){ mesAnteriorNum=12; anioMesAnterior=anioMesActual-1; }
   const nombreMesActual = MESES[mesActualNum-1];
   const nombreMesAnterior = MESES[mesAnteriorNum-1];
+  const visitasPorDia = {};
+  rows.forEach(r=>{ visitasPorDia[r.fecha]=(visitasPorDia[r.fecha]||0)+1; });
+  const tendenciaVisitas = Object.keys(visitasPorDia).sort().map(f=>visitasPorDia[f]);
   const mesActual = metricasMes(rowsDelMes(mesActualNum, anioMesActual));
   const mesAnterior = metricasMes(rowsDelMes(mesAnteriorNum, anioMesAnterior));
 
   document.getElementById('content').innerHTML = `
     <div class="banner"><i class="fas fa-info-circle"></i> Panel de demostración — toda la información (visitas, PDVs, alertas) es ficticia y se genera en el navegador para fines comerciales.</div>
     <div class="grid grid-kpi" style="margin-bottom:18px">
-      ${kpiCard('Visitas totales', totalVisitas, periodoLabel, 'fa-clipboard-check', temaActivoIdx===0?'--ok':'--brand2','k-visitas','cobertura')}
-      ${kpiCard('PDVs cubiertos', pdvsUnicos, `de ${PDVS.length} puntos totales — al menos 1 visita`, 'fa-store', '--ok','k-pdvs','cobertura')}
-      ${kpiCard('Cumplimiento', Math.round(cumplPct), 'promedio de criterios — ver Cobertura', 'fa-check-circle', '--ok','k-cumpl','cobertura')}
-      ${kpiCard('Alertas activas', alertas, 'vencidos, por vencer y averiados', 'fa-exclamation-triangle', '--er','k-alertas','alertas')}
-      ${kpiCard('Promotores activos', promotoresActivos, `de ${PROMOTERS.length} en nómina — ver Jornada`, 'fa-users', '--bl','k-promotores','jornada')}
-      ${kpiCard('Góndola promedio', Math.round(gondolaProm), 'participación de espacio', 'fa-border-all', '--vi','k-gondola','auditoria')}
-      ${kpiCard('Cumplimiento de ejecución', ejecucionPct, 'criterios + espacios + POP + precios — detalle en Auditoría de PDV', 'fa-clipboard-check', ejecucionPct>=85?'--ok':ejecucionPct>=60?'--wa':'--er','k-ejecucion','auditoria')}
+      ${kpiCard('Visitas totales', totalVisitas, periodoLabel, 'fa-clipboard-check', '--data-viz-1','k-visitas','cobertura', miniTendencia(tendenciaVisitas, chartAccent()))}
+      ${kpiCard('PDVs cubiertos', pdvsUnicos, `de ${PDVS.length} puntos totales — al menos 1 visita`, 'fa-store', '--data-viz-2','k-pdvs','cobertura', kpiBarra(pdvsUnicos/PDVS.length*100, cv('--data-viz-2')))}
+      ${kpiCard('Cumplimiento', Math.round(cumplPct), 'promedio de criterios — ver Cobertura', 'fa-check-circle', '--semaforo-verde','k-cumpl','cobertura', kpiBarra(cumplPct, pctColor(cumplPct)))}
+      ${kpiCard('Alertas activas', alertas, 'vencidos, por vencer y averiados', 'fa-exclamation-triangle', '--semaforo-rojo','k-alertas','alertas')}
+      ${kpiCard('Promotores activos', promotoresActivos, `de ${PROMOTERS.length} en nómina — ver Jornada`, 'fa-users', '--data-viz-2','k-promotores','jornada', kpiBarra(promotoresActivos/PROMOTERS.length*100, cv('--data-viz-2')))}
+      ${kpiCard('Góndola promedio', Math.round(gondolaProm), 'participación de espacio', 'fa-border-all', '--data-viz-3','k-gondola','auditoria', kpiBarra(gondolaProm, cv('--data-viz-3')))}
+      ${kpiCard('Cumplimiento de ejecución', ejecucionPct, 'criterios + espacios + POP + precios — detalle en Auditoría de PDV', 'fa-clipboard-check', '--data-viz-1','k-ejecucion','auditoria', kpiBarra(ejecucionPct, pctColor(ejecucionPct)))}
     </div>
     <div class="card" style="margin-bottom:16px">
-      <h2 style="font-size:16px;margin-bottom:2px">Resumen por clúster</h2>
-      <p style="font-size:12px;color:var(--tx3);margin-bottom:16px">Cumplimiento de precio Nova Consumo por grupo de rotación — mismos clústeres H/A/B/C que Cobertura y Precios</p>
+      <div class="card-hdr"><div><div class="card-title">Resumen por clúster</div><div class="card-sub">Cumplimiento de precio Nova Consumo por grupo de rotación — mismos clústeres H/A/B/C que Cobertura y Precios</div></div></div>
       ${infoTip('Locales agrupados por rotación (unidades repuestas): H = top 10%, A = 10-30%, B = 30-60%, C = 60-100%. El % muestra cuántos locales de cada grupo cumplen el precio sugerido (≥60% de sus visitas con precio propio conforme).')}
-      <div class="grid grid-2e" style="gap:14px">
+      <div class="grid grid-2e">
         ${resumenClusters.map(c=>{
           const abierto = resumenClusterAbiertos.has(c.id);
-          const colorBar = c.id==='C' ? '#D13838' : '#BA7819';
+          const colorBar = pctColor(c.pct);
           return `<article class="cljcard">
             <div class="cljcard-hdr">
               <div class="cljcard-title">${c.label}${c.id==='C'?'<span class="cljbadge-alta">Prioridad alta</span>':''}</div>
@@ -1159,17 +1558,17 @@ function renderResumen(){
       </div>
       <div class="card">
         <div class="card-hdr"><div class="card-title">Riesgos y oportunidades</div></div>
-        <div style="font-size:9.5px;font-weight:700;color:var(--er);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">⚠ Menor cumplimiento de precio</div>
+        <div style="font-size:11px;font-weight:600;color:var(--danger);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px"><i class="fas fa-triangle-exclamation"></i> Menor cumplimiento de precio</div>
         ${categoriasRiesgo.map(cc=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${cc.cat}</span><span style="font-weight:700;color:${cc.pct<70?'var(--er)':'var(--wa)'}">${cc.pct}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Sin datos suficientes</div>`}
-        <div style="font-size:9.5px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">📈 Mejor rotación</div>
+        <div style="font-size:11px;font-weight:600;color:var(--success);letter-spacing:.06em;text-transform:uppercase;margin:12px 0 8px"><i class="fas fa-chart-bar"></i> Mejor rotación</div>
         ${topRotacion.map(([p,unid])=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${p}</span><span style="font-weight:700;color:var(--ok)">${unid} unid.</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Sin datos suficientes</div>`}
         ${infoTip('Las 3 categorías con menor % de cumplimiento de precio propio (rojo si &lt;70%, amarillo si ≥70%), y los 3 productos con más unidades repuestas.')}
       </div>
       <div class="card" style="cursor:pointer" onclick="goPage('precios')">
         <div class="card-hdr"><div><div class="card-title">Posicionamiento competitivo</div><div class="card-sub">precio Nova Consumo vs. promedio de la categoría</div></div><div class="card-nav-hint">Ver detalle <i class="fas fa-arrow-right"></i></div></div>
-        <div style="font-size:9.5px;font-weight:700;color:var(--er);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Más caras que su categoría</div>
+        <div style="font-size:11px;font-weight:600;color:var(--danger);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">Más caras que su categoría</div>
         ${masCaras.map(m=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${m.prod}</span><span style="font-weight:700;color:var(--er)">+${m.indice-100}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Ninguna</div>`}
-        <div style="font-size:9.5px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">Más económicas que su categoría</div>
+        <div style="font-size:11px;font-weight:600;color:var(--success);letter-spacing:.06em;text-transform:uppercase;margin:12px 0 8px">Más económicas que su categoría</div>
         ${masBaratas.map(m=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--bd)"><span>${m.prod}</span><span style="font-weight:700;color:var(--ok)">${m.indice-100}%</span></div>`).join('') || `<div style="color:var(--tx3);font-size:11.5px">Ninguna</div>`}
         ${infoTip('Índice de precio = precio Nova Consumo ÷ precio promedio de la categoría × 100. &gt;105 = más cara que su categoría, &lt;95 = más económica.')}
       </div>
@@ -1177,10 +1576,10 @@ function renderResumen(){
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">${nombreMesActual} vs. ${nombreMesAnterior}</div><div class="card-sub">Comparativo mensual e índice de competitividad</div></div></div>
       ${infoTip(`Índice de competitividad (0-100): pondera participación en góndola, ausencia de acciones agresivas de la competencia y competitividad de precio. La variación compara el valor de ${nombreMesActual.toLowerCase()} contra ${nombreMesAnterior.toLowerCase()}.`)}
-      <div class="grid grid-2" style="align-items:stretch">
+      <div class="grid grid-comp" style="align-items:stretch">
         <div>
           <div class="roi-lbl" style="margin-bottom:6px">Índice de competitividad<small>Pondera participación en góndola, ausencia de acciones agresivas de la competencia y competitividad de precio</small></div>
-          <div class="impact-hero"><span class="big" style="color:${chartAccent2()}">${mesActual.indice}</span><span style="color:var(--tx3);font-size:13px">/ 100</span>${deltaBadgePts(mesActual.indice, mesAnterior.indice, nombreMesAnterior.toLowerCase())}</div>
+          <div class="impact-hero"><span class="big">${mesActual.indice}</span><span style="color:var(--tx3);font-size:13px">/ 100</span>${deltaBadgePts(mesActual.indice, mesAnterior.indice, nombreMesAnterior.toLowerCase())}</div>
         </div>
         <div class="tbl-wrap"><table><thead><tr><th>Métrica</th><th>${nombreMesAnterior}</th><th>${nombreMesActual}</th><th>Variación</th></tr></thead><tbody>
           <tr><td>Visitas</td><td class="mono">${fmtInt(mesAnterior.visitas)}</td><td class="mono">${fmtInt(mesActual.visitas)}</td><td>${deltaBadgePct(mesActual.visitas, mesAnterior.visitas, nombreMesAnterior.toLowerCase())}</td></tr>
@@ -1191,14 +1590,14 @@ function renderResumen(){
         </tbody></table></div>
       </div>
       <div style="margin-top:18px">
-        <div class="card-sub" style="margin-bottom:8px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.3px">Cumplimiento diario, día a día</div>
-        <div class="chart-wrap" style="height:220px"><canvas id="ch-mesalinea"></canvas></div>
+        <div class="card-title" style="margin-bottom:10px">Cumplimiento diario, día a día</div>
+        <div class="chart-wrap" style="height:300px"><canvas id="ch-mesalinea"></canvas></div>
       </div>
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hdr"><div><div class="card-title">Metas vs. cumplimiento</div><div class="card-sub">Objetivos comerciales definidos vs. resultado real del período</div></div></div>
       <div class="chart-wrap" style="height:220px"><canvas id="ch-metas"></canvas></div>
-      <div style="display:flex;gap:14px;font-size:10.5px;flex-wrap:wrap;margin-top:10px;color:var(--tx3)">
+      <div style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap;margin-top:10px;color:var(--tx2)">
         <span><span class="dot ok"></span> Alcanza o supera la meta</span>
         <span><span class="dot wa"></span> Cerca (≥85% de la meta)</span>
         <span><span class="dot er"></span> Lejos (&lt;85% de la meta)</span>
@@ -1207,12 +1606,12 @@ function renderResumen(){
     </div>
     <div class="grid grid-3">
       <div class="card"><div class="card-hdr"><div><div class="card-title">Presencia de competencia en el PDV</div><div class="card-sub">Quién domina el espacio de exhibición</div></div></div>
-        <div style="height:14px;border-radius:7px;overflow:hidden;display:flex;gap:2px;margin:8px 0 12px">
-          ${dominamosPct?`<div style="flex:${dominamosPct};background:var(--ok)"></div>`:''}
-          ${empatePct?`<div style="flex:${empatePct};background:var(--bl)"></div>`:''}
-          ${dominaCompPct?`<div style="flex:${dominaCompPct};background:var(--er)"></div>`:''}
+        <div style="height:16px;border-radius:5px;overflow:hidden;display:flex;gap:2px;margin:8px 0 12px;background:var(--surface-secondary)">
+          ${dominamosPct?`<div style="flex:${dominamosPct};background:var(--semaforo-verde)"></div>`:''}
+          ${empatePct?`<div style="flex:${empatePct};background:var(--info)"></div>`:''}
+          ${dominaCompPct?`<div style="flex:${dominaCompPct};background:var(--semaforo-rojo)"></div>`:''}
         </div>
-        <div style="display:flex;gap:10px;font-size:10.5px;flex-wrap:wrap">
+        <div style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap;color:var(--tx2)">
           <span><span class="dot ok"></span> Dominamos (${dominamosPct}%)</span>
           <span><span class="dot bl"></span> Empate (${empatePct}%)</span>
           <span><span class="dot er"></span> Competencia (${dominaCompPct}%)</span>
@@ -1235,7 +1634,7 @@ function renderResumen(){
   animateNum(document.getElementById('k-ejecucion'), ejecucionPct, '%');
 
   mkChart('ch-metas',{type:'bar',data:{labels:metas.map(m=>m.label),datasets:[
-      {label:'Meta',data:metas.map(m=>m.meta),backgroundColor:getComputedStyle(document.documentElement).getPropertyValue('--tx3').trim()||'#8c919c',borderRadius:5,maxBarThickness:18},
+      {label:'Meta',data:metas.map(m=>m.meta),backgroundColor:cv('--border-strong'),borderRadius:5,maxBarThickness:18},
       {label:'Real',data:metas.map(m=>m.real),backgroundColor:metas.map(m=>metaColor(m.real,m.meta)),borderRadius:5,maxBarThickness:18},
     ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
       plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}},
@@ -1244,8 +1643,8 @@ function renderResumen(){
   const serieMesAnterior = serieDiariaMes(mesAnteriorNum, rs=>rs.length? Math.round(rs.filter(r=>r.cumpleCriterios).length/rs.length*100) : null, anioMesAnterior);
   const serieMesActual = serieDiariaMes(mesActualNum, rs=>rs.length? Math.round(rs.filter(r=>r.cumpleCriterios).length/rs.length*100) : null, anioMesActual);
   mkChart('ch-mesalinea',{type:'line',data:{labels:[...Array(31)].map((_,i)=>i+1),datasets:[
-      {label:nombreMesAnterior,data:serieMesAnterior,borderColor:'#9c9494',backgroundColor:'transparent',tension:.3,pointRadius:2,spanGaps:true},
-      {label:nombreMesActual,data:serieMesActual,borderColor:chartAccent2(),backgroundColor:chartAccent2()+'22',fill:true,tension:.3,pointRadius:2,spanGaps:true},
+      {label:nombreMesAnterior,data:serieMesAnterior,borderColor:cv('--data-viz-5'),backgroundColor:'transparent',spanGaps:true},
+      {label:nombreMesActual,data:serieMesActual,borderColor:chartAccent2(),fill:true,spanGaps:true},
     ]},options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}},
       scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'},title:{display:true,text:'% Cumplimiento',color:getComputedStyle(document.body).color,font:{size:10.5}}},
@@ -1281,6 +1680,14 @@ function renderResumen(){
 // ============================================================
 // PÁGINA: COBERTURA
 // ============================================================
+// Mismos mapas del Controller (Esri Canvas, claro u oscuro según el tema), más los nombres de los lugares.
+// OpenStreetMap bloquea las páginas abiertas como archivo local: en vez del mapa devuelve una imagen "Access blocked".
+function capasDeMapa(mapa){
+  const tono = document.documentElement.dataset.theme==='dark' ? 'Dark' : 'Light';
+  const url = capa=>`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_${tono}_Gray_${capa}/MapServer/tile/{z}/{y}/{x}`;
+  L.tileLayer(url('Base'),{maxZoom:16,attribution:'Mapa © Esri'}).addTo(mapa);
+  L.tileLayer(url('Reference'),{maxZoom:16}).addTo(mapa);
+}
 function renderCobertura(){
   const rows = filterVisits();
   const omitidas = filterOmitidas();
@@ -1349,7 +1756,7 @@ function renderCobertura(){
 
   document.getElementById('content').innerHTML = `
     <div class="grid grid-2" style="margin-bottom:16px">
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Mapa de puntos de venta</div><div class="card-sub">${PDVS.length} PDVs en Paraguay · color según estado de cumplimiento</div></div></div>
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Mapa de puntos de venta</div><div class="card-sub">${pdvsFiltrados.length} PDVs · color según la última visita · los círculos con número agrupan locales cercanos: hacé clic para acercar</div></div></div>
         <div id="map-cobertura"></div>
         <div style="display:flex;gap:16px;margin-top:12px;font-size:11.5px;color:var(--tx2);flex-wrap:wrap">
           <span><span class="dot ok"></span> Cumple</span><span><span class="dot wa"></span> Cumplimiento bajo</span><span><span class="dot er"></span> Con vencidos</span><span><span class="dot" style="background:var(--tx3)"></span> Sin visitas</span>
@@ -1394,7 +1801,7 @@ function renderCobertura(){
       ${localesSinVisitar.map(z=>{
         const detalleFechas = z.fechasNoCubiertas.slice(0,5).map(f=>`${dateDisplay(f.fecha)} — ${f.motivo}`).join('<br>') || '—';
         const reincidente = z.fechasNoCubiertas.length>1;
-        return `<tr><td style="font-weight:700">${z.pdv.name}</td><td>${z.pdv.chain}</td><td>${z.pdv.city}</td><td>${z.promotor?z.promotor.name:'—'}</td><td style="font-size:11px;color:var(--tx2)">${detalleFechas}</td><td>${reincidente?`<span class="badge er"><i class="fas fa-triangle-exclamation"></i> Reincidente (${z.fechasNoCubiertas.length}x)</span>`:'—'}</td></tr>`;
+        return `<tr><td style="font-weight:700">${z.pdv.name}</td><td>${z.pdv.chain}</td><td>${z.pdv.city}</td><td>${z.promotor?z.promotor.name:'—'}</td><td style="font-size:11px;color:var(--tx2);white-space:normal;min-width:200px">${detalleFechas}</td><td>${reincidente?`<span class="badge er"><i class="fas fa-triangle-exclamation"></i> Reincidente (${z.fechasNoCubiertas.length}x)</span>`:'—'}</td></tr>`;
       }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:20px"><i class="fas fa-check-circle" style="color:var(--ok);margin-right:6px"></i>Todos los PDVs con visita en los últimos ${VENTANA_RECIENTE} días</td></tr>`}
       </tbody></table></div>
       ${infoTip('PDVs con al menos una visita planificada y no realizada (omitida) en los últimos '+VENTANA_RECIENTE+' días. "Reincidente" = más de una fecha sin cubrir en esa ventana.')}
@@ -1411,23 +1818,56 @@ function renderCobertura(){
   const clusterClear = document.getElementById('cob-cluster-clear');
   if(clusterClear) clusterClear.onclick = ()=>{ coberturaClusterFiltro=null; renderCobertura(); };
 
-  mkChart('ch-ciudad',{type:'bar',data:{labels:visitasPorCiudadChart.map(c=>c.nombre),datasets:[{label:'Visitas',data:visitasPorCiudadChart.map(c=>c.visitas),backgroundColor:chartAccent(),borderRadius:6,maxBarThickness:34}]},
+  mkChart('ch-ciudad',{type:'bar',data:{labels:visitasPorCiudadChart.map(c=>c.nombre),datasets:[{label:'Visitas',data:visitasPorCiudadChart.map(c=>c.visitas),backgroundColor:chartAccent()}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false}}}}});
 
   if(mapCobertura){ mapCobertura.remove(); mapCobertura=null; }
-  mapCobertura = L.map('map-cobertura',{scrollWheelZoom:false}).setView([-25.6,-56.5],6.6);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapCobertura);
-  PDVS.forEach(pdv=>{
+  mapCobertura = L.map('map-cobertura',{scrollWheelZoom:false});
+  capasDeMapa(mapCobertura);
+  // Color según la última visita del período, como explica la ayuda de la tarjeta
+  const estadosMapa = {verde:cv('--semaforo-verde'), amarillo:cv('--semaforo-amarillo'), rojo:cv('--semaforo-rojo'), gris:cv('--text-tertiary')};
+  const puntosMapa = pdvsFiltrados.map(pdv=>{
     const rs = rows.filter(r=>r.pdvId===pdv.id);
-    let color='#5a5252';
-    if(rs.length){
-      const conVenc = rs.some(r=>r.tieneVencidos);
-      const cumpl = rs.filter(r=>r.cumpleCriterios).length/rs.length*100;
-      color = conVenc ? '#e84a55' : (cumpl>=80 ? '#3AAFA0' : '#e8a045');
-    }
-    const marker = L.circleMarker([pdv.lat,pdv.lng],{radius:6,color,fillColor:color,fillOpacity:.85,weight:1.5}).addTo(mapCobertura);
-    marker.bindPopup(`<b>${pdv.name}</b><br>${rs.length} visitas en el período`);
+    const ultima = rs.reduce((u,r)=> !u || `${r.fecha} ${r.hora}`>`${u.fecha} ${u.hora}` ? r : u, null);
+    const estado = !ultima ? 'gris' : ultima.tieneVencidos ? 'rojo' : ultima.cumpleCriterios ? 'verde' : 'amarillo';
+    return {pdv, estado, visitas:rs.length, latlng:L.latLng(pdv.lat,pdv.lng)};
   });
+  const capaMapa = L.layerGroup().addTo(mapCobertura);
+  // Une los puntos que quedarían encimados en el zoom actual; se recalcula al acercar o alejar.
+  function dibujarMapa(){
+    capaMapa.clearLayers();
+    const grupos = [];
+    puntosMapa.forEach(p=>{
+      const px = mapCobertura.latLngToLayerPoint(p.latlng);
+      const g = grupos.find(g=>g.px.distanceTo(px)<38);
+      if(g) g.puntos.push(p); else grupos.push({px, puntos:[p]});
+    });
+    grupos.forEach(g=>{
+      if(g.puntos.length===1){
+        const p = g.puntos[0], color = estadosMapa[p.estado];
+        L.circleMarker(p.latlng,{radius:7,color:'#fff',fillColor:color,fillOpacity:1,weight:2}).addTo(capaMapa)
+          .bindPopup(`<b>${p.pdv.name}</b><br>${p.visitas} visitas en el período`);
+        return;
+      }
+      const limites = L.latLngBounds(g.puntos.map(p=>p.latlng));
+      const n = g.puntos.length, tam = n>=20?46:n>=10?42:36;
+      let acum = 0;
+      const tramos = ['verde','amarillo','rojo','gris'].map(e=>{
+        const desde = acum; acum += g.puntos.filter(p=>p.estado===e).length/n*100;
+        return `${estadosMapa[e]} ${desde}% ${acum}%`;
+      }).join(',');
+      const resumen = ['verde','amarillo','rojo','gris'].map(e=>[e,g.puntos.filter(p=>p.estado===e).length]);
+      const textos = {verde:'cumplen',amarillo:'cumplimiento bajo',rojo:'con vencidos',gris:'sin visitas'};
+      L.marker(limites.getCenter(),{title:`${n} locales: ${resumen.filter(r=>r[1]).map(r=>`${r[1]} ${textos[r[0]]}`).join(', ')}`,
+        icon:L.divIcon({className:'',iconSize:[tam,tam],html:`<div class="mapa-grupo" style="background:conic-gradient(${tramos})"><span>${n}</span></div>`})})
+        .addTo(capaMapa)
+        .on('click',()=>mapCobertura.fitBounds(limites,{padding:[50,50],maxZoom:16}));
+    });
+  }
+  mapCobertura.on('zoomend', dibujarMapa);
+  if(puntosMapa.length) mapCobertura.fitBounds(L.latLngBounds(puntosMapa.map(p=>p.latlng)),{padding:[45,45],maxZoom:13,animate:false});
+  else mapCobertura.setView([-25.6,-56.5],6);
+  dibujarMapa();
   setTimeout(()=>mapCobertura && mapCobertura.invalidateSize(), 150);
 }
 
@@ -1523,15 +1963,15 @@ function renderAuditoria(){
 
   document.getElementById('content').innerHTML = `
     <div class="grid grid-kpi" style="margin-bottom:18px">
-      ${kpiCard('Cobertura de criterios', coberturaPct, `${n} relevamientos en el período`, 'fa-clipboard-check', coberturaPct>=85?'--ok':coberturaPct>=60?'--wa':'--er','k-cobertura')}
-      ${kpiCard('Participación en góndola', Math.round(gondolaProm), 'promedio del período', 'fa-border-all', '--vi','k-gondola2')}
-      ${kpiCard('Disponibilidad de stock', Math.round(disponibilidad), `${quiebres} quiebres detectados`, 'fa-box-open', quiebres?'--wa':'--ok','k-disp')}
+      ${kpiCard('Cobertura de criterios', coberturaPct, `${n} relevamientos en el período`, 'fa-clipboard-check', '--data-viz-1','k-cobertura', undefined, kpiBarra(coberturaPct, pctColor(coberturaPct)))}
+      ${kpiCard('Participación en góndola', Math.round(gondolaProm), 'promedio del período', 'fa-border-all', '--data-viz-3','k-gondola2', undefined, kpiBarra(gondolaProm, cv('--data-viz-3')))}
+      ${kpiCard('Disponibilidad de stock', Math.round(disponibilidad), `${quiebres} quiebres detectados`, 'fa-box-open', '--data-viz-2','k-disp', undefined, kpiBarra(disponibilidad, pctColor(disponibilidad)))}
       ${kpiX({id:'cumplprecio', variant:cumplePrecioPct>=85?'teal':cumplePrecioPct>=60?'amber':'red', icon:'fa-tag', label:'Cumplimiento de precio Nova Consumo',
         value:`${Math.round(cumplePrecioPct)}%`, foot:'vs. precio público sugerido',
         tooltip:'% de visitas sin quiebre de stock donde el precio de Nova Consumo está dentro del ±5% del precio público sugerido.',
         expandable:true, hint:'Ver locales que no cumplen', detail:detalleCumplePrecio})}
-      ${kpiCard('Cumplimiento de promociones', Math.round(promoPct), `de ${n} visitas relevadas`, 'fa-bullhorn', promoPct>=85?'--ok':promoPct>=60?'--wa':'--er','k-promo')}
-      ${kpiCard('Estado de materiales', materialesPct, `espacios ${espaciosPct}% + POP ${Math.round(pctPOP)}%`, 'fa-box', materialesPct>=85?'--ok':materialesPct>=60?'--wa':'--er','k-materiales')}
+      ${kpiCard('Cumplimiento de promociones', Math.round(promoPct), `de ${n} visitas relevadas`, 'fa-bullhorn', '--data-viz-3','k-promo', undefined, kpiBarra(promoPct, pctColor(promoPct)))}
+      ${kpiCard('Estado de materiales', materialesPct, `espacios ${espaciosPct}% + POP ${Math.round(pctPOP)}%`, 'fa-box', '--data-viz-2','k-materiales', undefined, kpiBarra(materialesPct, pctColor(materialesPct)))}
     </div>
     <div class="grid grid-2e" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div><div class="card-title">Participación en góndola por cadena</div><div class="card-sub">% de espacio de exhibición, Nova Consumo vs. competencia</div></div></div>
@@ -1548,9 +1988,9 @@ function renderAuditoria(){
       <div class="card">
         <div class="card-hdr"><div><div class="card-title">Presencia de competencia en el punto de venta</div><div class="card-sub">Encuesta independiente de precio/vencimientos — quién domina el espacio de exhibición</div></div></div>
         <div style="height:14px;border-radius:7px;overflow:hidden;display:flex;gap:2px;margin-bottom:12px">
-          ${dominamosPct?`<div style="flex:${dominamosPct};background:var(--ok)"></div>`:''}
-          ${empatePct?`<div style="flex:${empatePct};background:var(--bl)"></div>`:''}
-          ${dominaCompPct?`<div style="flex:${dominaCompPct};background:var(--er)"></div>`:''}
+          ${dominamosPct?`<div style="flex:${dominamosPct};background:var(--semaforo-verde)"></div>`:''}
+          ${empatePct?`<div style="flex:${empatePct};background:var(--info)"></div>`:''}
+          ${dominaCompPct?`<div style="flex:${dominaCompPct};background:var(--semaforo-rojo)"></div>`:''}
         </div>
         <div style="display:flex;gap:16px;font-size:11px;flex-wrap:wrap;margin-bottom:${cadenasEnRiesgo.length?'12px':'0'}">
           <span><span class="dot ok"></span> Dominamos nosotros (${dominamosPct}%)</span>
@@ -1611,14 +2051,14 @@ function renderAuditoria(){
   animateNum(document.getElementById('k-materiales'), materialesPct, '%');
 
   mkChart('ch-gondola',{type:'bar',data:{labels:CHAINS,datasets:[
-      {label:'Nova Consumo',data:gondolaCadena,backgroundColor:'#3AAFA0',borderRadius:6,maxBarThickness:26},
-      {label:'Competencia',data:gondolaCadenaComp,backgroundColor:'#5a5252',borderRadius:6,maxBarThickness:26},
+      {label:'Nova Consumo',data:gondolaCadena,backgroundColor:cv('--data-viz-1')},
+      {label:'Competencia',data:gondolaCadenaComp,backgroundColor:cv('--data-viz-5')},
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
   mkChart('ch-disponibilidad',{type:'bar',data:{labels:CHAINS,datasets:[{label:'% Disponibilidad',data:disponibilidadCadena,backgroundColor:disponibilidadCadena.map(pctColor),borderRadius:6,maxBarThickness:36}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
-  mkChart('ch-competencia',{type:'doughnut',data:{labels:accionesLabels,datasets:[{data:accionesLabels.map(a=>accionesCount[a]),backgroundColor:['#5a5252','#7C93A8','#3AAFA0','#9C8FA6','#e8a045','#e84a55'],borderWidth:0}]},
+  mkChart('ch-competencia',{type:'doughnut',data:{labels:accionesLabels,datasets:[{data:accionesLabels.map(a=>accionesCount[a]),backgroundColor:['--data-viz-5','--data-viz-2','--data-viz-1','--violeta','--data-viz-3','--semaforo-rojo'].map(cv)}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}}}});
 }
 
@@ -1759,9 +2199,9 @@ function renderPrecios(){
 
   // Comparativo por producto: Nova Consumo vs. cada competidor, para el producto elegido en el select
   const VARIANTES_COMPETIDOR = ['amber','blue','violet'];
-  const COLORES_COMPETIDOR = ['#e8a045','#7C93A8','#9C8FA6'];
+  const COLORES_COMPETIDOR = ['--data-viz-3','--data-viz-2','--violeta'].map(cv);
   const comparativoStats = preciosProductoComparado ? (() => {
-    const entidades = [{nombre:'Nova Consumo', color:'#3AAFA0'}, ...COMPETIDORES.map((n,i)=>({nombre:n, color:COLORES_COMPETIDOR[i]}))];
+    const entidades = [{nombre:'Nova Consumo', color:cv('--data-viz-1')}, ...COMPETIDORES.map((n,i)=>({nombre:n, color:COLORES_COMPETIDOR[i]}))];
     return entidades.map((e,i)=>{
       const rs = i===0
         ? conStock.filter(r=>r.producto===preciosProductoComparado)
@@ -1857,8 +2297,8 @@ function renderPrecios(){
     </div>`;
 
   mkChart('ch-precios',{type:'bar',data:{labels:preciosCat.map(p=>p.cat),datasets:[
-      {label:'Nova Consumo',data:preciosCat.map(p=>p.nuestro),backgroundColor:'#3AAFA0',borderRadius:5,maxBarThickness:36},
-      {label:'Competencia',data:preciosCat.map(p=>p.competidor),backgroundColor:'#5a5252',borderRadius:5,maxBarThickness:36},
+      {label:'Nova Consumo',data:preciosCat.map(p=>p.nuestro),backgroundColor:cv('--data-viz-1')},
+      {label:'Competencia',data:preciosCat.map(p=>p.competidor),backgroundColor:cv('--data-viz-5')},
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:10.5}}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false}}}}});
 
   document.querySelectorAll('.pmarca-pill').forEach(el=>{
@@ -1982,10 +2422,10 @@ function renderOfertas(){
       ${infoTip('Evidencia fotográfica de la exhibición/activación de la oferta, cargada por el promotor en cada visita.')}
     </div>`;
 
-  mkChart('ch-ofr-dia',{type:'bar',data:{labels:DIAS_SEMANA,datasets:[{data:countPorDia,backgroundColor:DIAS_SEMANA.map((d,i)=>(i===4||i===5)?'#BA7819':'#D8CBB5'),borderRadius:6,maxBarThickness:34}]},
+  mkChart('ch-ofr-dia',{type:'bar',data:{labels:DIAS_SEMANA,datasets:[{data:countPorDia,backgroundColor:DIAS_SEMANA.map((d,i)=>(i===4||i===5)?cv('--data-viz-1'):cv('--border-strong')),borderRadius:6,maxBarThickness:34}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(0,0,0,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
-  mkChart('ch-ofr-origen',{type:'doughnut',data:{labels:['Propia','Local / Cadena'],datasets:[{data:[origenCount.Propia,origenCount.Local],backgroundColor:['#3DA35D','#5B7C99'],borderWidth:0}]},
+  mkChart('ch-ofr-origen',{type:'doughnut',data:{labels:['Propia','Local / Cadena'],datasets:[{data:[origenCount.Propia,origenCount.Local],backgroundColor:['--data-viz-1','--data-viz-2'].map(cv)}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}}}});
 }
 
@@ -2072,10 +2512,10 @@ function renderAlertas(){
     document.getElementById(id).onclick = ()=>{ alertasTab=tab; renderAlertas(); };
   });
 
-  mkChart('ch-productos',{type:'bar',data:{labels:prodTop.map(p=>p[0]),datasets:[{label:'Alertas',data:prodTop.map(p=>p[1]),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:26}]},
+  mkChart('ch-productos',{type:'bar',data:{labels:prodTop.map(p=>p[0]),datasets:[{label:'Alertas',data:prodTop.map(p=>p[1]),backgroundColor:cv('--semaforo-rojo')}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false},ticks:{font:{size:10.5}}}}}});
 
-  mkChart('ch-motivos',{type:'doughnut',data:{labels:['Vencido','Vence ≤7d','Vence 8-30d','Vence +30d','Averiados'],datasets:[{data:[vencidos.length,urgente.length,proximo.length,holgado.length,averiados.length],backgroundColor:['#e84a55','#e8a045','#f0c674','#3AAFA0','#c98a4b'],borderWidth:0}]},
+  mkChart('ch-motivos',{type:'doughnut',data:{labels:['Vencido','Vence ≤7d','Vence 8-30d','Vence +30d','Averiados'],datasets:[{data:[vencidos.length,urgente.length,proximo.length,holgado.length,averiados.length],backgroundColor:['--semaforo-rojo','--data-viz-3','--semaforo-amarillo','--semaforo-verde','--data-viz-4'].map(cv)}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}}}});
 }
 
@@ -2136,16 +2576,16 @@ function renderQuiebres(){
       ${infoTip('"Góndola" = sin stock en el exhibidor pero sí en depósito (reponible en el momento). "Total" = sin stock ni en góndola ni en depósito.')}
     </div>`;
 
-  mkChart('ch-quiebrepdv',{type:'bar',data:{labels:porPdvTop.map(p=>p[0]),datasets:[{label:'Quiebres',data:porPdvTop.map(p=>p[1]),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:22}]},
+  mkChart('ch-quiebrepdv',{type:'bar',data:{labels:porPdvTop.map(p=>p[0]),datasets:[{label:'Quiebres',data:porPdvTop.map(p=>p[1]),backgroundColor:cv('--semaforo-rojo')}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
-  mkChart('ch-quiebreproducto',{type:'bar',data:{labels:porProductoTop.map(p=>p[0]),datasets:[{label:'Quiebres',data:porProductoTop.map(p=>p[1]),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:22}]},
+  mkChart('ch-quiebreproducto',{type:'bar',data:{labels:porProductoTop.map(p=>p[0]),datasets:[{label:'Quiebres',data:porProductoTop.map(p=>p[1]),backgroundColor:cv('--semaforo-rojo')}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(255,255,255,.06)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 
-  mkChart('ch-quiebrecategoria',{type:'doughnut',data:{labels:porCategoria.map(c=>c.cat),datasets:[{data:porCategoria.map(c=>c.n),backgroundColor:['#7C93A8','#3AAFA0','#9C8FA6','#e8a045'],borderWidth:0}]},
+  mkChart('ch-quiebrecategoria',{type:'doughnut',data:{labels:porCategoria.map(c=>c.cat),datasets:[{data:porCategoria.map(c=>c.n),backgroundColor:['--data-viz-2','--data-viz-1','--violeta','--data-viz-3'].map(cv)}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getComputedStyle(document.body).color,boxWidth:10,font:{size:11}}}}}});
 
-  mkChart('ch-quiebrecadena',{type:'bar',data:{labels:porCadena.map(c=>c.cadena),datasets:[{label:'Quiebres',data:porCadena.map(c=>c.n),backgroundColor:'#e84a55',borderRadius:6,maxBarThickness:36}]},
+  mkChart('ch-quiebrecadena',{type:'bar',data:{labels:porCadena.map(c=>c.cadena),datasets:[{label:'Quiebres',data:porCadena.map(c=>c.n),backgroundColor:cv('--semaforo-rojo')}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(255,255,255,.06)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
 }
 
@@ -2241,13 +2681,13 @@ function renderJornada(){
       </tbody></table></div>
     </div>`:''}
     <div class="card" style="margin-bottom:16px">
-      <div class="card-hdr" style="align-items:center"><div class="card-title">Cobertura de nómina — ${dateDisplay(fecha)}</div><span style="font-size:24px;font-weight:900;color:${pctPresentes>=85?'var(--ok)':pctPresentes>=60?'var(--wa)':'var(--er)'}">${pctPresentes}%</span></div>
-      <div style="height:14px;border-radius:7px;overflow:hidden;display:flex;gap:2px;margin-bottom:14px">
-        ${aTiempo.length?`<div style="flex:${aTiempo.length};background:var(--ok);border-radius:7px 0 0 7px"></div>`:''}
-        ${tarde.length?`<div style="flex:${tarde.length};background:var(--wa)"></div>`:''}
-        ${dayAusencias.length?`<div style="flex:${dayAusencias.length};background:var(--er);opacity:.5;border-radius:0 7px 7px 0"></div>`:''}
+      <div class="card-hdr" style="align-items:center"><div class="card-title">Cobertura de nómina — ${dateDisplay(fecha)}</div><span style="font-size:24px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--text-primary)">${pctPresentes}%</span></div>
+      <div style="height:16px;border-radius:5px;overflow:hidden;display:flex;gap:2px;margin-bottom:12px;background:var(--surface-secondary)">
+        ${aTiempo.length?`<div style="flex:${aTiempo.length};background:var(--semaforo-verde)"></div>`:''}
+        ${tarde.length?`<div style="flex:${tarde.length};background:var(--semaforo-amarillo)"></div>`:''}
+        ${dayAusencias.length?`<div style="flex:${dayAusencias.length};background:var(--semaforo-rojo)"></div>`:''}
       </div>
-      <div style="display:flex;gap:16px;font-size:11px;flex-wrap:wrap">
+      <div style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap;color:var(--tx2)">
         <span><span class="dot ok"></span> A tiempo (${aTiempo.length})</span>
         <span><span class="dot wa"></span> Tarde (${tarde.length})</span>
         <span style="cursor:pointer" id="jornada-leyenda-ausentes"><span class="dot er"></span> Ausentes (${dayAusencias.length})</span>
@@ -2305,7 +2745,7 @@ function renderJornada(){
     document.getElementById('kpi-jornada-almuerzo').onclick = ()=>{ jornadaFiltroActivo = jornadaFiltroActivo==='almuerzo'?null:'almuerzo'; renderJornada(); };
     document.getElementById('kpi-jornada-ausentes').onclick = ()=>{ jornadaFiltroActivo = jornadaFiltroActivo==='ausentes'?null:'ausentes'; renderJornada(); };
     const leyenda = document.getElementById('jornada-leyenda-ausentes'); if(leyenda) leyenda.onclick = ()=>{ jornadaFiltroActivo='ausentes'; renderJornada(); };
-    mkChart('ch-horas-entry',{type:'bar',data:{labels:horasLabels,datasets:[{label:'A tiempo',data:horasSlice.map((v,i)=>v-horasTardeSlice[i]),backgroundColor:'#3AAFA0',borderRadius:4},{label:'Tarde',data:horasTardeSlice,backgroundColor:'#e84a55',borderRadius:4}]},
+    mkChart('ch-horas-entry',{type:'bar',data:{labels:horasLabels,datasets:[{label:'A tiempo',data:horasSlice.map((v,i)=>v-horasTardeSlice[i]),backgroundColor:cv('--semaforo-verde')},{label:'Tarde',data:horasTardeSlice,backgroundColor:cv('--semaforo-rojo')}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:9}}},y:{stacked:true,beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{stepSize:1}}}}});
   }
 }
@@ -2362,16 +2802,16 @@ function renderComisiones(){
   const promPreciosGlobal = promPrecios.length? Math.round(promPrecios.reduce((a,d)=>a+d.pcts.precios,0)/promPrecios.length):0;
   const quiebresTotal = data.reduce((a,d)=>a+d.quiebres,0);
   const totalControles = data.reduce((a,d)=>a+d.visitas,0);
-  const medalColor = i => i===0?'#e8a045':i===1?'#9c9494':i===2?'#c07a3a':'var(--bg4)';
+  const medalColor = i => i===0?'var(--data-viz-3)':i===1?'var(--data-viz-5)':i===2?'var(--data-viz-4)':'var(--border-strong)';
   const cell = (pct) => pct==null? `<td style="text-align:center;color:var(--tx3);font-size:11px">—</td>` : `<td style="text-align:center;font-weight:800;font-size:12.5px;color:${pct>=80?'var(--ok)':pct>=60?'var(--wa)':'var(--er)'}">${pct}%</td>`;
 
   document.getElementById('content').innerHTML = `
     <div class="banner"><i class="fas fa-calculator"></i> Comisión de Gs. ${fmtInt(COMISION_TOTAL)} compuesta por 6 KPIs medibles a partir de los datos de campo — sin evaluación subjetiva.</div>
     <div class="grid grid-kpi" style="margin-bottom:18px">
-      ${kpiCard('Comisión total de la pauta', 0, `${Object.keys(COMISION_KPIS).length} KPIs, 100% medibles con datos de campo`, 'fa-coins', temaActivoIdx===0?'--ok':'--brand2','k-total')}
-      ${kpiCard('Promedio del equipo', 0, `${data.length} promotores con datos en el período`, 'fa-chart-bar', '--ok','k-promedio')}
-      ${kpiCard('Cumplimiento de precio (equipo)', promPreciosGlobal, 'vs. precio público sugerido', 'fa-tag', '--bl','k-precioequipo')}
-      ${kpiCard('Quiebres de stock', quiebresTotal, `de ${totalControles} visitas — ver Quiebres`, 'fa-box-open', quiebresTotal?'--wa':'--ok','k-quiebres','quiebres')}
+      ${kpiCard('Comisión total de la pauta', 0, `${Object.keys(COMISION_KPIS).length} KPIs, 100% medibles con datos de campo`, 'fa-coins', '--data-viz-1','k-total')}
+      ${kpiCard('Promedio del equipo', 0, `${data.length} promotores con datos en el período`, 'fa-chart-bar', '--data-viz-2','k-promedio')}
+      ${kpiCard('Cumplimiento de precio (equipo)', promPreciosGlobal, 'vs. precio público sugerido', 'fa-tag', '--data-viz-2','k-precioequipo')}
+      ${kpiCard('Quiebres de stock', quiebresTotal, `de ${totalControles} visitas — ver Quiebres`, 'fa-box-open', '--data-viz-3','k-quiebres','quiebres')}
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card"><div class="card-hdr"><div class="card-title">Top 10 comisiones del período</div></div>
@@ -2397,7 +2837,7 @@ function renderComisiones(){
   animateNum(document.getElementById('k-quiebres'), quiebresTotal);
 
   const top10 = data.slice(0,10);
-  mkChart('ch-comisiones',{type:'bar',data:{labels:top10.map(d=>d.p.name.split(' ')[0]),datasets:[{label:'Comisión total',data:top10.map(d=>d.total),backgroundColor:chartAccent(),borderRadius:6,maxBarThickness:30}]},
+  mkChart('ch-comisiones',{type:'bar',data:{labels:top10.map(d=>d.p.name.split(' ')[0]),datasets:[{label:'Comisión total',data:top10.map(d=>d.total),backgroundColor:chartAccent()}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmtGs(ctx.parsed.y)}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{callback:v=>fmtInt(v)}},x:{grid:{display:false},ticks:{font:{size:10.5}}}}}});
 }
 
@@ -2433,7 +2873,7 @@ function drawRecorrido(){
   const prom = promoterById(recorridoPromotor);
   const center = CITY_COORDS[prom.city];
   mapRecorrido = L.map('map-recorrido',{scrollWheelZoom:false}).setView(center,12.5);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapRecorrido);
+  capasDeMapa(mapRecorrido);
 
   const latlngs = dia.map(r=>{ const pdv=pdvById(r.pdvId); return [pdv.lat,pdv.lng]; });
   if(latlngs.length>1) L.polyline(latlngs,{color:chartAccent2(),weight:3,dashArray:'6,6'}).addTo(mapRecorrido);
@@ -2464,17 +2904,17 @@ function drawRecorrido(){
 // NAVEGACIÓN / FILTROS / TEMA
 // ============================================================
 const PAGES = {
-  resumen:{title:'Resumen ejecutivo', icon:'fa-chart-pie', render:renderResumen},
-  cobertura:{title:'Cobertura', icon:'fa-store', render:renderCobertura},
-  precios:{title:'Precios', icon:'fa-tags', render:renderPrecios},
-  auditoria:{title:'Auditoría de punto de venta', icon:'fa-clipboard-check', render:renderAuditoria},
-  evidencias:{title:'Relevamiento fotográfico', icon:'fa-camera', render:renderEvidencias},
-  alertas:{title:'Averiados y Vencimientos', icon:'fa-exclamation-triangle', render:renderAlertas},
-  quiebres:{title:'Quiebres de stock', icon:'fa-box-open', render:renderQuiebres},
-  ofertas:{title:'Ofertas y Promociones', icon:'fa-percent', render:renderOfertas},
-  jornada:{title:'Jornada y Asistencia', icon:'fa-user-clock', render:renderJornada},
-  recorrido:{title:'Recorrido por persona', icon:'fa-route', render:renderRecorrido},
-  comisiones:{title:'Comisiones', icon:'fa-hand-holding-dollar', render:renderComisiones},
+  resumen:{title:'Resumen ejecutivo', icon:'fa-chart-pie', sub:'Visitas, cumplimiento, precios y competencia de Nova Consumo en el período.', render:renderResumen},
+  cobertura:{title:'Cobertura', icon:'fa-store', sub:'Puntos de venta visitados, plan de visitas y clústeres de rotación.', render:renderCobertura},
+  precios:{title:'Precios', icon:'fa-tags', sub:'Precios de Nova Consumo frente a la competencia, por producto y por marca.', render:renderPrecios},
+  auditoria:{title:'Auditoría de punto de venta', icon:'fa-clipboard-check', sub:'Ejecución en el punto de venta: criterios, góndola, stock, promociones y materiales.', render:renderAuditoria},
+  evidencias:{title:'Relevamiento fotográfico', icon:'fa-camera', sub:'Fotos tomadas por el equipo en cada visita.', render:renderEvidencias},
+  alertas:{title:'Averiados y Vencimientos', icon:'fa-exclamation-triangle', sub:'Productos vencidos, próximos a vencer y averiados detectados en las visitas.', render:renderAlertas},
+  quiebres:{title:'Quiebres de stock', icon:'fa-box-open', sub:'Faltantes de stock en góndola y en depósito.', render:renderQuiebres},
+  ofertas:{title:'Ofertas y Promociones', icon:'fa-percent', sub:'Promociones activas, su vigencia y quién las definió.', render:renderOfertas},
+  jornada:{title:'Jornada y Asistencia', icon:'fa-user-clock', sub:'Presentes, ausentes, tardanzas y duración de la jornada del equipo.', render:renderJornada},
+  recorrido:{title:'Recorrido por persona', icon:'fa-route', sub:'Visitas y trayecto de cada persona en el día.', render:renderRecorrido},
+  comisiones:{title:'Comisiones', icon:'fa-hand-holding-dollar', sub:'Comisión del equipo según los indicadores medidos en campo.', render:renderComisiones},
 };
 
 function goPage(page){
@@ -2482,13 +2922,21 @@ function goPage(page){
   searchTerm='';
   document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('active', n.dataset.p===page));
   document.getElementById('pt-text').textContent = PAGES[page].title;
-  document.getElementById('pt-icon').className = 'fas '+PAGES[page].icon;
+  document.getElementById('pg-titulo').textContent = PAGES[page].title;
+  document.getElementById('pg-sub').textContent = PAGES[page].sub;
+  document.getElementById('scroll-area').scrollTop = 0;
+  document.getElementById('app').classList.remove('menu-abierto');
   PAGES[page].render();
 }
 document.getElementById('nav').addEventListener('click', e=>{ const ni=e.target.closest('.ni'); if(ni) goPage(ni.dataset.p); });
 document.getElementById('nav2').addEventListener('click', e=>{ const ni=e.target.closest('.ni'); if(ni) goPage(ni.dataset.p); });
 document.getElementById('nav3').addEventListener('click', e=>{ const ni=e.target.closest('.ni'); if(ni) goPage(ni.dataset.p); });
 
+// Botones de mes: 0 = mes actual, 1 = anterior, 2 = dos meses atrás (recortado a los datos disponibles)
+function rangoMesRapido(i){
+  const ini = new Date(TODAY.getFullYear(), TODAY.getMonth()-i, 1), fin = isoDate(new Date(ini.getFullYear(), ini.getMonth()+1, 0));
+  return {desde: isoDate(ini)<FECHA_MIN?FECHA_MIN:isoDate(ini), hasta: fin>FECHA_MAX?FECHA_MAX:fin, nombre: ini.toLocaleDateString('es-PY',{month:'long'})};
+}
 function renderFbarChips(){
   const chips=[];
   if(F.cadena) chips.push(chip(F.cadena, `clearFilter('cadena')`));
@@ -2500,6 +2948,10 @@ function renderFbarChips(){
     chips.push(chip(lbl, `clearDateRange()`));
   }
   document.getElementById('fbar-chips').innerHTML = chips.join('');
+  [0,1,2].forEach(i=>{
+    const r = rangoMesRapido(i);
+    document.getElementById('btn-mes-'+i).classList.toggle('active', F.fechaDesde===r.desde && F.fechaHasta===r.hasta);
+  });
 }
 function clearFilter(key){
   F[key]='';
@@ -2549,9 +3001,11 @@ function initFilterOptions(){
   selDesde.onchange = e=>{ F.fechaDesde=e.target.value; applyFilters(); };
   selHasta.onchange = e=>{ F.fechaHasta=e.target.value; applyFilters(); };
 
-  document.getElementById('btn-junio').onclick = ()=> setDateRange(`${ANIO_DEMO}-06-01`, `${ANIO_DEMO}-06-30`);
-  document.getElementById('btn-julio').onclick = ()=> setDateRange(`${ANIO_DEMO}-07-01`, `${ANIO_DEMO}-07-31`);
-  document.getElementById('btn-agosto').onclick = ()=> setDateRange(`${ANIO_DEMO}-08-01`, FECHA_MAX<`${ANIO_DEMO}-08-31`?FECHA_MAX:`${ANIO_DEMO}-08-31`);
+  [0,1,2].forEach(i=>{
+    const r = rangoMesRapido(i), btn = document.getElementById('btn-mes-'+i);
+    btn.textContent = r.nombre.charAt(0).toUpperCase()+r.nombre.slice(1);
+    btn.onclick = ()=> setDateRange(r.desde, r.hasta);
+  });
 }
 
 document.getElementById('btn-refresh').onclick = ()=>{
@@ -2577,18 +3031,25 @@ document.getElementById('btn-export').onclick = ()=>{
 
 // ---- Selector de color de marca ----
 const THEMES = [
-  {c1:'#C41E24', c2:'#E0272E'},
+  {c1:'#3cb3a8', c2:'#58d6c9'},
   {c1:'#0052cc', c2:'#2f7dff'},
   {c1:'#1f8a4c', c2:'#33b56a'},
   {c1:'#6a3fd0', c2:'#8b63e8'},
   {c1:'#e07b1a', c2:'#f59a3d'},
 ];
 function applyTheme(i){
-  const t = THEMES[i];
+  const t = THEMES[i], raiz = document.documentElement;
   temaActivoIdx = i;
-  document.documentElement.style.setProperty('--brand', t.c1);
-  document.documentElement.style.setProperty('--brand2', t.c2);
-  document.documentElement.style.setProperty('--brand-d', t.c1+'29');
+  if(i===0){
+    delete raiz.dataset.marca;
+    ['--brand','--data-viz-1','--shell-accent','--shell-active'].forEach(v=>raiz.style.removeProperty(v));
+  } else {
+    raiz.dataset.marca = 'custom';
+    raiz.style.setProperty('--brand', t.c1);
+    raiz.style.setProperty('--data-viz-1', t.c1);
+    raiz.style.setProperty('--shell-accent', t.c2);
+    raiz.style.setProperty('--shell-active', t.c1+'40');
+  }
   document.querySelectorAll('.swatch').forEach((s,idx)=>s.classList.toggle('active', idx===i));
   PAGES[currentPage].render();
   toast('Color de marca actualizado');
@@ -2605,13 +3066,16 @@ function initSwatches(){
   });
 }
 
-document.getElementById('theme-toggle').onclick = ()=>{
-  document.body.classList.toggle('light');
-  const light = document.body.classList.contains('light');
-  document.getElementById('theme-icon').className = light ? 'fas fa-sun' : 'fas fa-moon';
-  document.getElementById('theme-label').textContent = light ? 'Modo claro' : 'Modo oscuro';
+function setTema(oscuro){
+  document.documentElement.dataset.theme = oscuro ? 'dark' : 'light';
+  document.getElementById('tema-claro').classList.toggle('active', !oscuro);
+  document.getElementById('tema-oscuro').classList.toggle('active', oscuro);
   PAGES[currentPage].render();
-};
+}
+document.getElementById('tema-claro').onclick = ()=>setTema(false);
+document.getElementById('tema-oscuro').onclick = ()=>setTema(true);
+document.getElementById('btn-menu').onclick = ()=>document.getElementById('app').classList.toggle('menu-abierto');
+document.getElementById('menu-ov').onclick = ()=>document.getElementById('app').classList.remove('menu-abierto');
 
 // ============================================================
 // INIT
